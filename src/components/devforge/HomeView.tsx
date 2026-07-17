@@ -229,6 +229,12 @@ export default function HomeView() {
 
   useEffect(() => {
     setShowcase(loadShowcase());
+    // Live-refresh showcase when superadmin edits project cards in another tab
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "theshield_showcase") setShowcase(loadShowcase());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   useEffect(() => {

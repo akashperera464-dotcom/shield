@@ -192,6 +192,7 @@ export default function SuperAdminView() {
           {/* Content area */}
           <div className="mt-6">
             {tab === "cms" && <CMSPanel isDemo={isDemo} />}
+            {tab === "projects" && <ShowcasePanel />}
             {tab === "team" && <TeamPanel isDemo={isDemo} />}
             {tab === "analytics" && <AnalyticsPanel />}
             {tab === "storage" && <StoragePanel />}
