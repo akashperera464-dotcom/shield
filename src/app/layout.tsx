@@ -16,14 +16,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "DevForge — Software Development Agency",
   description:
-    "DevForge is a senior-only software studio. Submit your project, track status, and watch ideas ship — React, Next.js, Firebase, Cloudinary.",
+    "DevForge is a senior-only software studio. Submit your project, track status, and watch ideas ship — React, Next.js, Firebase.",
   keywords: [
     "DevForge",
     "software agency",
     "React",
     "Next.js",
     "Firebase",
-    "Cloudinary",
     "web development",
   ],
   icons: {

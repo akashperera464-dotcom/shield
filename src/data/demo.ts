@@ -32,7 +32,7 @@ export const DEMO_PROJECTS: Project[] = [
     attachments: ["wireframe-home.png", "checkout-flow.pdf", "brand-guide.fig"],
     notes: [
       { author: "Daniel O.", text: "Sprint 1 demo scheduled for Friday.", createdAt: "2026-07-12" },
-      { author: "Mei T.", text: "Cloudinary signed URLs working for product imagery.", createdAt: "2026-07-14" },
+      { author: "Mei T.", text: "Logo and hero background wired up via Cloudinary URLs.", createdAt: "2026-07-14" },
     ],
     createdAt: "2026-07-10",
   },
@@ -57,7 +57,7 @@ export const DEMO_PROJECTS: Project[] = [
     clientEmail: "mei@studiomei.jp",
     projectTitle: "Studio Mei — Portfolio + Booking",
     description:
-      "Bilingual portfolio site with Calendly-style booking, Cloudinary media uploads for case studies, and Stripe deposits.",
+      "Bilingual portfolio site with Calendly-style booking, Stripe deposits, and role-based admin CMS.",
     budget: "$8k – $15k",
     status: "Under Review",
     attachments: ["mei-wireframes.pdf", "mood-board.png", "logo.svg"],
@@ -127,7 +127,7 @@ export const DEMO_CONFIG: SiteConfig = {
   heroTitle: "We build software that ships.",
   heroSubtitle: "Senior-only product studio. Ship in weeks, not months.",
   aboutText:
-    "DevForge is a senior-only software studio. We design, build, and ship production React apps with Firebase, Cloudinary, and role-based admin tooling.",
+    "DevForge is a senior-only software studio. We design, build, and ship production React apps with Firebase and role-based admin tooling.",
   contactEmail: "hello@devforge.agency",
   logoUrl:
     "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png",
