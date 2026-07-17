@@ -55,6 +55,8 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { Sparkline } from "./Charts";
 import HeroLivePanel from "./HeroLivePanel";
+import Reveal from "./Reveal";
+import { useCountUp, useMagnetic, useScrollReveal, useTilt } from "@/hooks/use-animations";
 import {
   uploadFile,
   validateFile,
@@ -72,10 +74,10 @@ const LOGO_URL =
   "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png";
 
 const STATS = [
-  { label: "Years Experience",        value: "10+", spark: [3, 4, 5, 6, 7, 8, 9, 10], color: "#64ffda" },
-  { label: "Apps, Software & Sites",  value: "100+", spark: [40, 50, 60, 70, 80, 85, 95, 100], color: "#667eea" },
-  { label: "Service Locations",       value: "15+",  spark: [5, 7, 9, 10, 11, 13, 14, 15], color: "#9d8df1" },
-  { label: "Happy Customers",         value: "45+",  spark: [10, 15, 20, 25, 30, 35, 40, 45], color: "#64ffda" },
+  { label: "Years Experience",        value: "10+",  target: 10,  spark: [3, 4, 5, 6, 7, 8, 9, 10], color: "#64ffda" },
+  { label: "Apps, Software & Sites",  value: "100+", target: 100, spark: [40, 50, 60, 70, 80, 85, 95, 100], color: "#667eea" },
+  { label: "Service Locations",       value: "15+",  target: 15,  spark: [5, 7, 9, 10, 11, 13, 14, 15], color: "#9d8df1" },
+  { label: "Happy Customers",         value: "45+",  target: 45,  spark: [10, 15, 20, 25, 30, 35, 40, 45], color: "#64ffda" },
 ];
 
 const SERVICES = [
@@ -214,6 +216,68 @@ const HERO_SLIDES = [
   "AI & Machine Learning",
 ];
 
+/* ─────────────────────────────────────────────────────────────────────── */
+/* StatCard — count-up animated counter that triggers on scroll-into-view  */
+/* ─────────────────────────────────────────────────────────────────────── */
+function StatCard({
+  stat,
+  delay,
+}: {
+  stat: { label: string; value: string; target: number; spark: number[]; color: string };
+  delay: number;
+}) {
+  const { ref, visible } = useScrollReveal<HTMLDivElement>({ threshold: 0.3 });
+  const count = useCountUp(stat.target, visible, 1800);
+  return (
+    <div
+      ref={ref}
+      className={`glass-card-hover p-5 reveal-hidden ${visible ? "reveal-visible" : ""}`}
+      style={{ transitionDelay: `${delay}s` }}
+    >
+      <div className="flex items-end justify-between">
+        <div>
+          <div className="text-3xl font-bold text-gradient-animated sm:text-4xl">
+            {count}{stat.value.replace(/[0-9]/g, "")}
+          </div>
+          <div className="mt-1 text-xs uppercase tracking-wider text-ink-400">{stat.label}</div>
+        </div>
+        <Sparkline data={stat.spark} color={stat.color} width={64} height={24} />
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* MagneticButton — wraps an <a> or <button> and applies a magnetic cursor */
+/* pull effect. Use for primary CTAs to give a premium feel.               */
+/* ─────────────────────────────────────────────────────────────────────── */
+function MagneticButton({
+  as: Tag = "a",
+  href,
+  onClick,
+  className = "",
+  children,
+}: {
+  as?: "a" | "button";
+  href?: string;
+  onClick?: () => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const magnetic = useMagnetic<HTMLAnchorElement & HTMLButtonElement>(6);
+  return (
+    <Tag
+      ref={magnetic.ref as never}
+      href={href}
+      onClick={onClick}
+      style={magnetic.style}
+      className={`shine-sweep ${className}`}
+    >
+      {children}
+    </Tag>
+  );
+}
+
 export default function HomeView() {
   const { isAuthenticated, isAdmin, setView } = useAuth();
   const [slideIdx, setSlideIdx] = useState(0);
@@ -299,9 +363,9 @@ export default function HomeView() {
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3 animate-fade-up stagger-4">
-              <a href="#submit" className="btn-primary">
+              <MagneticButton href="#submit" className="btn-primary">
                 <Send className="h-4 w-4" /> Submit a Project
-              </a>
+              </MagneticButton>
               <a href="#services" className="btn-ghost">
                 <Sparkles className="h-4 w-4" /> Know More
               </a>
@@ -349,21 +413,7 @@ export default function HomeView() {
           </div>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {STATS.map((s, i) => (
-              <div
-                key={s.label}
-                className="glass-card-hover p-5 animate-fade-up"
-                style={{ animationDelay: `${i * 0.08}s` }}
-              >
-                <div className="flex items-end justify-between">
-                  <div>
-                    <div className="text-3xl font-bold text-gradient-animated sm:text-4xl">
-                      {s.value}
-                    </div>
-                    <div className="mt-1 text-xs uppercase tracking-wider text-ink-400">{s.label}</div>
-                  </div>
-                  <Sparkline data={s.spark} color={s.color} width={64} height={24} />
-                </div>
-              </div>
+              <StatCard key={s.label} stat={s} delay={i * 0.1} />
             ))}
           </div>
         </div>
@@ -371,7 +421,7 @@ export default function HomeView() {
 
       {/* ─────────── SERVICES ─────────── */}
       <section id="services" className="mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
-        <div className="mb-12 text-center">
+        <Reveal className="mb-12 text-center">
           <span className="text-xs font-semibold uppercase tracking-[0.25em] text-mint-300">
             Our Services
           </span>
@@ -381,15 +431,11 @@ export default function HomeView() {
           <p className="mx-auto mt-3 max-w-2xl text-ink-300">
             Bridging the gap between business and technology — across every technology domain.
           </p>
-        </div>
+        </Reveal>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map((s, i) => (
-            <div
-              key={s.title}
-              className="glass-card-hover group p-6 animate-fade-up"
-              style={{ animationDelay: `${i * 0.06}s` }}
-            >
+            <Reveal key={s.title} delay={i * 0.06} className="glass-card-hover group p-6">
               <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-mint-300/20 to-violet-600/15 ring-1 ring-white/10 transition-transform duration-500 group-hover:scale-110">
                 <s.icon className="h-6 w-6 text-mint-300" />
               </div>
@@ -405,7 +451,7 @@ export default function HomeView() {
                   </span>
                 ))}
               </div>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -413,7 +459,7 @@ export default function HomeView() {
       {/* ─────────── INDUSTRIES ─────────── */}
       <section id="industries" className="border-y border-white/5 bg-white/[0.015]">
         <div className="mx-auto max-w-7xl px-6 py-16 scroll-mt-20">
-          <div className="mb-10 text-center">
+          <Reveal className="mb-10 text-center">
             <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
               What We Serve
             </span>
@@ -421,7 +467,7 @@ export default function HomeView() {
             <p className="mx-auto mt-3 max-w-2xl text-ink-300">
               Domain expertise across the verticals that move the modern economy.
             </p>
-          </div>
+          </Reveal>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {INDUSTRIES.map((it, i) => (
               <div
@@ -442,7 +488,7 @@ export default function HomeView() {
 
       {/* ─────────── PROCESS ─────────── */}
       <section id="process" className="relative mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
-        <div className="mb-12 text-center">
+        <Reveal className="mb-12 text-center">
           <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
             How we work
           </span>
@@ -452,14 +498,14 @@ export default function HomeView() {
           <p className="mx-auto mt-3 max-w-2xl text-ink-300">
             Transparent sprints. Real-time status tracking. No black boxes.
           </p>
-        </div>
+        </Reveal>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {PROCESS.map((p, i) => (
-            <div
+            <Reveal
               key={p.n}
-              className="relative glass-card-hover p-6 animate-fade-up"
-              style={{ animationDelay: `${i * 0.1}s` }}
+              delay={i * 0.1}
+              className="relative glass-card-hover p-6"
             >
               <div className="absolute -top-4 left-6 text-5xl font-bold text-white/10">
                 {p.n}
@@ -476,7 +522,7 @@ export default function HomeView() {
                   <ArrowRight className="h-5 w-5" />
                 </div>
               )}
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -582,7 +628,7 @@ export default function HomeView() {
 
       {/* ─────────── CTA ─────────── */}
       <section className="mx-auto max-w-7xl px-6 py-16">
-        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-navy-800 via-navy-900 to-ink-950 p-10 sm:p-14">
+        <Reveal className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-navy-800 via-navy-900 to-ink-950 p-10 sm:p-14">
           <div className="absolute inset-0 -z-10 grid-backdrop opacity-60" />
           <div className="relative flex flex-col items-center gap-6 text-center md:flex-row md:text-left">
             <div className="flex-1">
@@ -594,15 +640,15 @@ export default function HomeView() {
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <a href="#submit" className="btn-primary">
+              <MagneticButton href="#submit" className="btn-primary">
                 <Send className="h-4 w-4" /> Submit Project
-              </a>
+              </MagneticButton>
               <a href="mailto:akashperera464@gmail.com" className="btn-ghost">
                 <Mail className="h-4 w-4" /> Email us
               </a>
             </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* ─────────── FOOTER ─────────── */}
@@ -688,7 +734,7 @@ function ShowcaseSection({ projects }: { projects: ShowcaseProject[] }) {
 
   return (
     <section id="projects" className="mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
-      <div className="mb-12 text-center">
+      <Reveal className="mb-12 text-center">
         <span className="inline-flex items-center gap-2 rounded-full bg-mint-300/10 px-3 py-1 text-xs font-medium text-mint-300">
           <FolderKanban className="h-3.5 w-3.5" /> Our Projects
         </span>
@@ -698,7 +744,7 @@ function ShowcaseSection({ projects }: { projects: ShowcaseProject[] }) {
         <p className="mx-auto mt-3 max-w-2xl text-ink-300">
           A snapshot of recent products we&apos;ve shipped for clients across web, mobile, design, and software. Click any card to view the live project.
         </p>
-      </div>
+      </Reveal>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {sorted.map((p, i) => (
@@ -712,26 +758,33 @@ function ShowcaseSection({ projects }: { projects: ShowcaseProject[] }) {
 function ShowcaseCard({ project, index }: { project: ShowcaseProject; index: number }) {
   const hasUrl = /^https?:\/\/.+/.test(project.projectUrl || "");
   const hasImg = /^https?:\/\/.+/.test(project.imageUrl || "");
+  const tilt = useTilt<HTMLDivElement>(5);     // gentle 5° cursor tilt
+  const reveal = useScrollReveal<HTMLDivElement>({ threshold: 0.2 });
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   const CardInner = (
     <>
       {/* Image */}
       <div className="relative aspect-[16/10] overflow-hidden rounded-t-2xl bg-navy-800">
         {hasImg ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={project.imageUrl}
-            alt={project.title}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+          <>
+            {!imgLoaded && <div className="absolute inset-0 skeleton" />}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={project.imageUrl}
+              alt={project.title}
+              loading="lazy"
+              onLoad={() => setImgLoaded(true)}
+              className={`showcase-card-image h-full w-full object-cover ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+            />
+          </>
         ) : (
           <div className="flex h-full w-full items-center justify-center">
             <ImageIcon className="h-10 w-10 text-ink-600" />
           </div>
         )}
         {/* Top gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-navy-950/80 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-navy-950/80 via-transparent to-transparent pointer-events-none" />
 
         {/* Category chip */}
         <div className="absolute left-3 top-3">
@@ -786,24 +839,33 @@ function ShowcaseCard({ project, index }: { project: ShowcaseProject; index: num
     </>
   );
 
+  // Combined classes: showcase-card adds the lift + glow + image-zoom hover
+  // reveal-hidden/visible handles scroll-triggered fade-up
+  // We need both refs (reveal + tilt) on the same element — use a callback ref.
+  const setRef = (el: HTMLDivElement | null) => {
+    reveal.ref.current = el;
+    tilt.ref.current = el;
+  };
+
+  const containerCls = `group showcase-card reveal-hidden ${reveal.visible ? "reveal-visible" : ""} flex h-full flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] hover:border-mint-300/40 hover:bg-white/[0.04]`;
+
   return (
     <div
-      className="group animate-fade-up"
-      style={{ animationDelay: `${index * 0.08}s` }}
+      ref={setRef}
+      style={{ transitionDelay: `${index * 0.08}s`, ...tilt.style }}
+      className={containerCls}
     >
       {hasUrl ? (
         <a
           href={project.projectUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] transition-all duration-300 hover:-translate-y-1 hover:border-mint-300/40 hover:bg-white/[0.04] hover:shadow-2xl hover:shadow-mint-300/5"
+          className="flex h-full flex-col"
         >
           {CardInner}
         </a>
       ) : (
-        <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02]">
-          {CardInner}
-        </div>
+        <div className="flex h-full flex-col">{CardInner}</div>
       )}
     </div>
   );

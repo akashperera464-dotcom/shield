@@ -41,6 +41,7 @@ import { useAuth } from "@/context/AuthContext";
 import { loadSubmissions, type Submission } from "@/lib/submissions";
 import { loadShowcase } from "@/lib/showcase";
 import { CircularGauge, MiniBarChart } from "./Charts";
+import { useTilt } from "@/hooks/use-animations";
 
 interface SystemStats {
   total: number;
@@ -149,6 +150,7 @@ export default function HeroLivePanel() {
   const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
   const [tick, setTick] = useState(0); // forces "Xs ago" re-render
   const mountedRef = useRef(true);
+  const tilt = useTilt<HTMLDivElement>(4); // gentle 4° tilt on cursor move
 
   useEffect(() => {
     mountedRef.current = true;
@@ -201,9 +203,53 @@ export default function HeroLivePanel() {
     return (
       <div className="relative animate-scale-in stagger-3">
         <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-mint-300/20 via-violet-600/15 to-violet-500/10 blur-2xl animate-pulse-glow" />
-        <div className="relative glass-card border-gradient overflow-hidden p-10">
-          <Loader2 className="mx-auto h-6 w-6 animate-spin text-mint-300" />
-          <p className="mt-3 text-center text-xs text-ink-400">Loading live data…</p>
+        <div className="relative glass-card border-gradient-animated overflow-hidden p-1">
+          <div className="rounded-t-[15px] border-b border-white/5 bg-navy-900/60 px-5 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-rose-400/40" />
+                <span className="h-3 w-3 rounded-full bg-amber-400/40" />
+                <span className="h-3 w-3 rounded-full bg-emerald-400/40" />
+              </div>
+              <div className="skeleton h-3 w-32" />
+            </div>
+          </div>
+          <div className="bg-navy-900/40 p-5">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <div className="skeleton h-3 w-20" />
+                <div className="skeleton h-4 w-28" />
+              </div>
+              <div className="skeleton h-6 w-14 rounded-full" />
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+                  <div className="skeleton h-2.5 w-12" />
+                  <div className="skeleton mt-2 h-5 w-8" />
+                  <div className="skeleton mt-1.5 h-2 w-10" />
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex items-center gap-4 rounded-lg border border-white/5 bg-white/[0.02] p-4">
+              <div className="skeleton h-24 w-24 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <div className="skeleton h-3 w-32" />
+                <div className="skeleton h-5 w-40" />
+                <div className="skeleton h-10 w-full" />
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <div className="skeleton h-3 w-16" />
+                    <div className="skeleton h-4 w-6" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -217,11 +263,11 @@ export default function HeroLivePanel() {
   ];
 
   return (
-    <div className="relative animate-scale-in stagger-3">
+    <div className="relative animate-scale-in stagger-3" ref={tilt.ref} style={tilt.style}>
       {/* Glow */}
       <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-mint-300/20 via-violet-600/15 to-violet-500/10 blur-2xl animate-pulse-glow" />
 
-      <div className="relative glass-card border-gradient overflow-hidden p-1">
+      <div className="relative glass-card border-gradient-animated overflow-hidden p-1">
         {/* Window chrome */}
         <div className="rounded-t-[15px] border-b border-white/5 bg-navy-900/60 px-5 py-3">
           <div className="flex items-center justify-between">

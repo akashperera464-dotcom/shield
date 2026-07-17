@@ -6,6 +6,7 @@ import HomeView from "@/components/devforge/HomeView";
 import LoginView from "@/components/devforge/LoginView";
 import DashboardView from "@/components/devforge/DashboardView";
 import SuperAdminView from "@/components/devforge/SuperAdminView";
+import ScrollProgress from "@/components/devforge/ScrollProgress";
 
 function Shell() {
   const { view, isAuthenticated, isAdmin, isSuperadmin, loading } = useAuth();
@@ -42,12 +43,23 @@ function Shell() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      {/* Animated background layers */}
+      {/* Animated background layers — aurora blobs + dot grid */}
+      <div className="aurora-stage">
+        <div className="aurora-blob aurora-blob-1" />
+        <div className="aurora-blob aurora-blob-2" />
+        <div className="aurora-blob aurora-blob-3" />
+      </div>
       <div className="pointer-events-none fixed inset-0 -z-10 grid-backdrop" />
-      <div className="pointer-events-none fixed inset-0 -z-10 aurora-blobs" />
+
+      {/* Top-of-page scroll progress bar (home + login only — admin pages
+          have their own scroll containers) */}
+      {(view === "home" || view === "login") && <ScrollProgress />}
 
       <Navbar />
-      <main className="relative z-10">{renderView()}</main>
+      {/* key forces remount → view-fade animation runs on every view change */}
+      <main key={view} className="relative z-10 view-fade">
+        {renderView()}
+      </main>
     </div>
   );
 }
