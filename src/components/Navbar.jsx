@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { Menu, X, LogOut, LayoutDashboard, Shield, Sparkles } from 'lucide-react'
+import { Menu, X, LogOut, LayoutDashboard, Shield, Sparkles, LogIn, FlaskConical } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import Logo from './Logo'
 
 export default function Navbar() {
-  const { isAuthenticated, isAdmin, isSuperadmin, logout, profile } = useAuth()
+  const { isAuthenticated, isAdmin, isSuperadmin, isDemo, logout, profile } = useAuth()
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
 
@@ -41,12 +41,20 @@ export default function Navbar() {
           <NavLink to="/" className={navLinkClass} end>
             Home
           </NavLink>
-          <NavLink to="/#submit" className={navLinkClass}>
+          <a href="/#services"  className="px-3 py-2 text-sm font-medium text-ink-300 hover:text-white transition-colors">
+            Services
+          </a>
+          <a href="/#process"  className="px-3 py-2 text-sm font-medium text-ink-300 hover:text-white transition-colors">
+            Process
+          </a>
+          <a href="/#submit"   className="px-3 py-2 text-sm font-medium text-ink-300 hover:text-white transition-colors">
             Submit Project
-          </NavLink>
-          <NavLink to="/#track" className={navLinkClass}>
+          </a>
+          <a href="/#track"    className="px-3 py-2 text-sm font-medium text-ink-300 hover:text-white transition-colors">
             Track Status
-          </NavLink>
+          </a>
+
+          {/* Show Dashboard / Superadmin only when authenticated */}
           {isAuthenticated && isAdmin && (
             <NavLink to="/dashboard" className={navLinkClass}>
               <span className="inline-flex items-center gap-1.5">
@@ -65,9 +73,16 @@ export default function Navbar() {
 
         {/* CTA / Auth */}
         <div className="hidden items-center gap-3 md:flex">
+          {/* Demo badge */}
+          {isAuthenticated && isDemo && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+              <FlaskConical className="h-3 w-3" /> Demo
+            </span>
+          )}
+
           {!isAuthenticated ? (
             <Link to="/login" className="btn-primary text-sm">
-              <Sparkles className="h-4 w-4" /> Admin Login
+              <LogIn className="h-4 w-4" /> Login
             </Link>
           ) : (
             <div className="flex items-center gap-3">
@@ -99,6 +114,12 @@ export default function Navbar() {
             <NavLink to="/" end onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-ink-200 hover:bg-white/5">
               Home
             </NavLink>
+            <a href="/#services" onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-ink-200 hover:bg-white/5">
+              Services
+            </a>
+            <a href="/#process" onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-ink-200 hover:bg-white/5">
+              Process
+            </a>
             <a href="/#submit" onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-ink-200 hover:bg-white/5">
               Submit Project
             </a>
@@ -118,7 +139,7 @@ export default function Navbar() {
             <div className="my-2 h-px bg-white/5" />
             {!isAuthenticated ? (
               <Link to="/login" onClick={() => setOpen(false)} className="btn-primary text-sm w-full">
-                Admin Login
+                <LogIn className="h-4 w-4" /> Login
               </Link>
             ) : (
               <button onClick={handleLogout} className="btn-ghost text-sm w-full">

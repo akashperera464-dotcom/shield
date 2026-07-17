@@ -53,6 +53,21 @@ import {
 } from 'firebase/firestore'
 import { auth, db, isFirebaseReady } from '../firebase/config'
 
+// ── Demo mode flag (persisted to localStorage so refresh keeps the session) ──
+const DEMO_KEY = 'devforge:demo-session'
+const loadDemo = () => {
+  try {
+    const raw = localStorage.getItem(DEMO_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+const saveDemo = (val) => {
+  try { localStorage.setItem(DEMO_KEY, JSON.stringify(val)) } catch {}
+}
+const clearDemo = () => {
+  try { localStorage.removeItem(DEMO_KEY) } catch {}
+}
+
 // ── Context shape ────────────────────────────────────────────────────────────
 const AuthContext = createContext(null)
 
@@ -75,6 +90,7 @@ export function AuthProvider({ children }) {
   const [role, setRole]         = useState(null)   // 'superadmin' | 'admin' | null
   const [loading, setLoading]   = useState(true)   // true until first auth check resolves
   const [error, setError]       = useState(null)
+  const [isDemo, setIsDemo]     = useState(false)  // true when running in demo mode
 
   // Guard so we only attach onAuthStateChanged once.
   const attachedRef = useRef(false)
@@ -109,6 +125,17 @@ export function AuthProvider({ children }) {
 
   // ── Subscribe to Firebase Auth state changes ───────────────────────────────
   useEffect(() => {
+    // First: try to restore a demo session (works even without Firebase).
+    const restored = loadDemo()
+    if (restored) {
+      setIsDemo(true)
+      setUser({ uid: 'demo-' + restored.role, email: restored.email, isDemo: true })
+      setProfile({ uid: 'demo-' + restored.role, name: restored.name, email: restored.email, role: restored.role })
+      setRole(restored.role)
+      setLoading(false)
+      return
+    }
+
     // Preview mode (no Firebase credentials yet) — short-circuit cleanly.
     if (!isFirebaseReady || !auth) {
       setLoading(false)
@@ -144,6 +171,26 @@ export function AuthProvider({ children }) {
     return () => unsubscribe()
   }, [fetchProfile])
 
+  // ── demoLogin(role?) → bypasses Firebase, sets a mock superadmin/admin ────
+  /**
+   * Used when Firebase isn't configured yet (or for quick previews).
+   * Persists to localStorage so refreshes keep the demo session.
+   */
+  const demoLogin = useCallback((overrideRole = 'superadmin') => {
+    const demoRole = overrideRole === 'admin' ? 'admin' : 'superadmin'
+    const demoProfile = {
+      name: demoRole === 'superadmin' ? 'Demo Superadmin' : 'Demo Admin',
+      email: demoRole === 'superadmin' ? 'superadmin@demo.devforge' : 'admin@demo.devforge',
+      role: demoRole,
+    }
+    saveDemo(demoProfile)
+    setIsDemo(true)
+    setUser({ uid: 'demo-' + demoRole, email: demoProfile.email, isDemo: true })
+    setProfile({ uid: 'demo-' + demoRole, ...demoProfile })
+    setRole(demoRole)
+    return demoProfile
+  }, [])
+
   // ── login(email, password) → wraps signInWithEmailAndPassword ──────────────
   const login = useCallback(async (email, password) => {
     if (!auth) throw new Error('Firebase Auth is not configured yet.')
@@ -161,14 +208,18 @@ export function AuthProvider({ children }) {
     }
   }, [fetchProfile])
 
-  // ── logout() → wraps signOut ────────────────────────────────────────────────
+  // ── logout() → wraps signOut (also clears demo session) ──────────────────────
   const logout = useCallback(async () => {
-    if (!auth) return
-    await signOut(auth)
+    // Always clear demo first (covers both modes).
+    clearDemo()
+    setIsDemo(false)
+    if (auth && !isDemo) {
+      try { await signOut(auth) } catch {}
+    }
     setUser(null)
     setProfile(null)
     setRole(null)
-  }, [])
+  }, [isDemo])
 
   // ── refreshRole() → re-fetch the role doc (e.g. after superadmin updates it)
   const refreshRole = useCallback(async () => {
@@ -233,6 +284,7 @@ export function AuthProvider({ children }) {
     role,
     loading,
     error,
+    isDemo,
     // derived
     isAuthenticated,
     isSuperadmin,
@@ -240,13 +292,14 @@ export function AuthProvider({ children }) {
     // actions
     login,
     logout,
+    demoLogin,
     refreshRole,
     registerAdmin,
     sendPasswordReset,
   }), [
-    user, profile, role, loading, error,
+    user, profile, role, loading, error, isDemo,
     isAuthenticated, isSuperadmin, isAdmin,
-    login, logout, refreshRole, registerAdmin, sendPasswordReset,
+    login, logout, demoLogin, refreshRole, registerAdmin, sendPasswordReset,
   ])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

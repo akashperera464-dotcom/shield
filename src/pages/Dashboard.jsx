@@ -1,31 +1,140 @@
 /**
- * Dashboard — Admin project management (placeholder for Step 5).
+ * Dashboard — Admin project management.
  *
- * In Step 5 this page will:
- *   • Show metric summary cards (Total / Pending / Completed).
- *   • Render an interactive grid of all `projects` docs.
- *   • Open a detail drawer to update status + push notes objects.
+ * Works in two modes:
+ *   • Live mode (Firebase configured)  → reads from `projects` collection.
+ *   • Demo mode (AuthContext.isDemo)   → renders rich mock data so the
+ *     whole UI can be reviewed before Firebase is connected.
  *
- * For now it shows the live auth profile + a polished empty state so
- * admins can confirm their role guard works end-to-end.
+ * Step 5 will replace the mock data with real Firestore reads and add the
+ * detail drawer + status updates + notes array.
  */
-import React from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   LayoutDashboard, Inbox, Clock, CheckCircle2, Loader2,
-  Search, Filter, ChevronRight,
+  Search, Filter, ChevronRight, X, StickyNote, Send, Eye,
+  Paperclip, Calendar, User, Mail, DollarSign,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { isFirebaseReady } from '../firebase/config'
 
-const METRICS = [
-  { label: 'Total Projects', icon: Inbox,           value: '—', accent: 'from-brand-500/20 to-brand-500/5' },
-  { label: 'Pending',        icon: Clock,           value: '—', accent: 'from-amber-500/20 to-amber-500/5' },
-  { label: 'In Progress',    icon: Loader2,         value: '—', accent: 'from-blue-500/20 to-blue-500/5' },
-  { label: 'Completed',      icon: CheckCircle2,    value: '—', accent: 'from-emerald-500/20 to-emerald-500/5' },
+// ── Mock data for demo mode ──────────────────────────────────────────────────
+const DEMO_PROJECTS = [
+  {
+    id: 'p_001',
+    clientName: 'Sara Al-Mansoori',
+    clientEmail: 'sara@laylacosmetics.com',
+    projectTitle: 'Layla Cosmetics — D2C Storefront',
+    description: 'Headless Shopify React storefront with subscription checkout, AR try-on, and a superadmin CMS for product drops.',
+    budget: '$25k – $40k',
+    status: 'In Progress',
+    attachments: ['wireframe-home.png', 'checkout-flow.pdf', 'brand-guide.fig'],
+    notes: [
+      { author: 'Daniel O.', text: 'Sprint 1 demo scheduled for Friday.', createdAt: '2026-07-12' },
+      { author: 'Mei T.',    text: 'Cloudinary signed URLs working for product imagery.', createdAt: '2026-07-14' },
+    ],
+    createdAt: '2026-07-10',
+  },
+  {
+    id: 'p_002',
+    clientName: 'Daniel Okafor',
+    clientEmail: 'daniel@fleetiq.io',
+    projectTitle: 'FleetIQ — Operations Dashboard',
+    description: 'Real-time fleet tracking dashboard with role-based access for ops, drivers, and finance. WebSocket live updates.',
+    budget: '$40k – $60k',
+    status: 'Pending',
+    attachments: ['ops-screen.png'],
+    notes: [
+      { author: 'Sara A.', text: 'Discovery call booked for Monday.', createdAt: '2026-07-15' },
+    ],
+    createdAt: '2026-07-15',
+  },
+  {
+    id: 'p_003',
+    clientName: 'Mei Tanaka',
+    clientEmail: 'mei@studiomei.jp',
+    projectTitle: 'Studio Mei — Portfolio + Booking',
+    description: 'Bilingual portfolio site with Calendly-style booking, Cloudinary media uploads for case studies, and Stripe deposits.',
+    budget: '$8k – $15k',
+    status: 'Under Review',
+    attachments: ['mei-wireframes.pdf', 'mood-board.png', 'logo.svg'],
+    notes: [
+      { author: 'Daniel O.', text: 'Design review pending — fonts need licensing check.', createdAt: '2026-07-14' },
+      { author: 'Mei T.',    text: 'Sent over the brand kit. Awaiting feedback.', createdAt: '2026-07-15' },
+    ],
+    createdAt: '2026-07-08',
+  },
+  {
+    id: 'p_004',
+    clientName: 'Alex Petrov',
+    clientEmail: 'alex@northwind.dev',
+    projectTitle: 'Northwind — Internal Admin Portal',
+    description: 'Replace legacy PHP admin with a React + Firebase portal. RBAC, audit logs, CSV imports.',
+    budget: '$30k – $50k',
+    status: 'Completed',
+    attachments: ['legacy-screens.zip'],
+    notes: [
+      { author: 'Sara A.', text: 'Shipped to production. Handoff docs delivered.', createdAt: '2026-07-02' },
+    ],
+    createdAt: '2026-05-20',
+  },
+  {
+    id: 'p_005',
+    clientName: 'Priya Nair',
+    clientEmail: 'priya@brightpath.edu',
+    projectTitle: 'BrightPath — LMS Mobile Web',
+    description: 'PWA learning management system with offline video, quiz engine, and parent dashboard.',
+    budget: '$50k – $80k',
+    status: 'In Progress',
+    attachments: ['pwa-spec.pdf', 'quiz-flow.png'],
+    notes: [
+      { author: 'Daniel O.', text: 'Sprint 2 — quiz engine 80% complete.', createdAt: '2026-07-16' },
+    ],
+    createdAt: '2026-06-28',
+  },
 ]
 
+const STATUS_CLASS = {
+  'Pending':      'badge-pending',
+  'In Progress':  'badge-progress',
+  'Under Review': 'badge-review',
+  'Completed':    'badge-completed',
+}
+
+const STATUSES = ['Pending', 'In Progress', 'Under Review', 'Completed']
+
 export default function Dashboard() {
-  const { profile, isSuperadmin } = useAuth()
+  const { profile, isSuperadmin, isDemo } = useAuth()
+  const [projects]   = useState(DEMO_PROJECTS)
+  const [filter, setFilter]     = useState('All')
+  const [query, setQuery]       = useState('')
+  const [selected, setSelected] = useState(null)
+
+  const metrics = useMemo(() => ({
+    total:     projects.length,
+    pending:   projects.filter((p) => p.status === 'Pending').length,
+    progress:  projects.filter((p) => p.status === 'In Progress').length,
+    completed: projects.filter((p) => p.status === 'Completed').length,
+  }), [projects])
+
+  const filtered = useMemo(() => {
+    return projects.filter((p) => {
+      const matchesStatus = filter === 'All' || p.status === filter
+      const q = query.trim().toLowerCase()
+      const matchesQuery = !q ||
+        p.clientName.toLowerCase().includes(q) ||
+        p.clientEmail.toLowerCase().includes(q) ||
+        p.projectTitle.toLowerCase().includes(q)
+      return matchesStatus && matchesQuery
+    })
+  }, [projects, filter, query])
+
+  const METRICS = [
+    { label: 'Total Projects', icon: Inbox,        value: metrics.total,     accent: 'from-brand-500/20 to-brand-500/5' },
+    { label: 'Pending',        icon: Clock,        value: metrics.pending,   accent: 'from-amber-500/20 to-amber-500/5' },
+    { label: 'In Progress',    icon: Loader2,      value: metrics.progress,  accent: 'from-blue-500/20 to-blue-500/5' },
+    { label: 'Completed',      icon: CheckCircle2, value: metrics.completed, accent: 'from-emerald-500/20 to-emerald-500/5' },
+  ]
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-10">
@@ -34,6 +143,11 @@ export default function Dashboard() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full bg-brand-500/10 px-3 py-1 text-xs font-medium text-brand-200">
             <LayoutDashboard className="h-3.5 w-3.5" /> Admin Dashboard
+            {isDemo && (
+              <span className="ml-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300">
+                Demo
+              </span>
+            )}
           </div>
           <h1 className="mt-3 font-display text-3xl font-bold text-white sm:text-4xl">
             Welcome back, {profile?.name?.split(' ')[0] || 'Admin'} 👋
@@ -44,11 +158,8 @@ export default function Dashboard() {
           </p>
         </div>
         {isSuperadmin && (
-          <a
-            href="/superadmin"
-            className="btn-ghost text-sm"
-          >
-            Open Superadmin →
+          <a href="/superadmin" className="btn-ghost text-sm">
+            Open Superadmin <ChevronRight className="h-4 w-4" />
           </a>
         )}
       </div>
@@ -63,7 +174,7 @@ export default function Dashboard() {
           >
             <div className="flex items-center justify-between">
               <span className="text-xs uppercase tracking-wider text-ink-300">{m.label}</span>
-              <m.icon className="h-4 w-4 text-ink-300" />
+              <m.icon className={`h-4 w-4 text-ink-300 ${m.label === 'In Progress' ? 'animate-spin' : ''}`} />
             </div>
             <div className="mt-2 font-display text-3xl font-bold text-white">{m.value}</div>
           </div>
@@ -78,34 +189,225 @@ export default function Dashboard() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
             <input
               type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by client or title…"
               className="input-field pl-10 py-2 text-sm"
-              disabled
             />
           </div>
-          <button className="btn-ghost text-sm" disabled>
-            <Filter className="h-4 w-4" /> Filter
-          </button>
+          <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+            <Filter className="ml-1.5 mr-1 h-3.5 w-3.5 text-ink-500" />
+            {['All', ...STATUSES].map((s) => (
+              <button
+                key={s}
+                onClick={() => setFilter(s)}
+                className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-200 ${
+                  filter === s ? 'bg-brand-500/20 text-brand-200' : 'text-ink-400 hover:text-white'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Empty state */}
-      <div className="mt-6 glass-card p-12 text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-500/15 ring-1 ring-brand-500/30">
-          <Inbox className="h-8 w-8 text-brand-300" />
+      {/* Project grid */}
+      <div className="mt-6 grid gap-4">
+        {filtered.length === 0 && (
+          <div className="glass-card p-10 text-center text-sm text-ink-400">
+            No projects match your filters.
+          </div>
+        )}
+        {filtered.map((p, i) => (
+          <button
+            key={p.id}
+            onClick={() => setSelected(p)}
+            className="glass-card-hover group p-5 text-left animate-fade-up"
+            style={{ animationDelay: `${i * 0.05}s` }}
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={STATUS_CLASS[p.status]}>{p.status}</span>
+                  <span className="font-display text-base font-semibold text-white">{p.projectTitle}</span>
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-400">
+                  <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> {p.clientName}</span>
+                  <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3" /> {p.clientEmail}</span>
+                  <span className="inline-flex items-center gap-1"><DollarSign className="h-3 w-3" /> {p.budget}</span>
+                  <span className="inline-flex items-center gap-1"><Paperclip className="h-3 w-3" /> {p.attachments.length} files</span>
+                  <span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" /> {p.createdAt}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-ink-400">
+                <span className="hidden sm:inline-flex items-center gap-1 text-xs">
+                  <StickyNote className="h-3 w-3" /> {p.notes.length} notes
+                </span>
+                <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {!isFirebaseReady && !isDemo && (
+        <div className="mt-6 glass-card p-6 text-center text-sm text-ink-400">
+          <Inbox className="mx-auto mb-2 h-6 w-6 text-ink-500" />
+          Add Firebase credentials to <code>.env</code> to start receiving real submissions, or use{' '}
+          <span className="text-brand-300">Demo Mode</span> on the login page to preview with mock data.
         </div>
-        <h3 className="mt-4 font-display text-xl font-semibold text-white">
-          Project listings arrive in Step 5
-        </h3>
-        <p className="mx-auto mt-2 max-w-md text-sm text-ink-400">
-          {isFirebaseReady
-            ? 'Firebase is connected — the next step wires up the live `projects` collection, status filters, and the detail drawer with internal notes.'
-            : 'Add Firebase credentials to .env to start receiving real submissions from the public site.'}
-        </p>
-        <div className="mt-6 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-ink-300">
-          <ChevronRight className="h-3.5 w-3.5" /> Status badges · detail drawer · internal notes — all in Step 5
+      )}
+
+      {/* Detail drawer */}
+      {selected && <DetailDrawer project={selected} onClose={() => setSelected(null)} isDemo={isDemo} />}
+    </div>
+  )
+}
+
+// ── Detail Drawer (read-only in demo, will be writable in Step 5) ────────────
+function DetailDrawer({ project, onClose, isDemo }) {
+  const [note, setNote] = useState('')
+  const [localNotes, setLocalNotes] = useState(project.notes)
+  const [status, setStatus] = useState(project.status)
+
+  const handleAddNote = (e) => {
+    e.preventDefault()
+    if (!note.trim()) return
+    setLocalNotes([
+      ...localNotes,
+      { author: 'You', text: note.trim(), createdAt: new Date().toISOString().slice(0, 10) },
+    ])
+    setNote('')
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+        onClick={onClose}
+      />
+      {/* Panel */}
+      <div className="relative h-full w-full max-w-xl overflow-y-auto border-l border-white/10 bg-ink-950/95 backdrop-blur-xl animate-scale-in">
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/5 bg-ink-950/90 px-6 py-4 backdrop-blur-xl">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={STATUS_CLASS[project.status]}>{status}</span>
+              <span className="text-[11px] text-ink-500">ID: {project.id}</span>
+            </div>
+            <h2 className="mt-1 font-display text-lg font-semibold text-white">{project.projectTitle}</h2>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-2 text-ink-400 hover:bg-white/5 hover:text-white">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="space-y-6 px-6 py-6">
+          {/* Client info */}
+          <section>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-400">Client</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <InfoRow icon={User}    label="Name"  value={project.clientName} />
+              <InfoRow icon={Mail}    label="Email" value={project.clientEmail} />
+              <InfoRow icon={DollarSign} label="Budget" value={project.budget} />
+              <InfoRow icon={Calendar}   label="Submitted" value={project.createdAt} />
+            </div>
+          </section>
+
+          {/* Description */}
+          <section>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Description</h3>
+            <p className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-sm leading-relaxed text-ink-200">
+              {project.description}
+            </p>
+          </section>
+
+          {/* Attachments */}
+          <section>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Attachments</h3>
+            <div className="space-y-2">
+              {project.attachments.map((a) => (
+                <div key={a} className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 text-sm">
+                  <Paperclip className="h-4 w-4 text-ink-400" />
+                  <span className="flex-1 text-ink-200">{a}</span>
+                  <a href="#" className="text-brand-300 hover:text-brand-200" onClick={(e) => e.preventDefault()}>
+                    <Eye className="h-4 w-4" />
+                  </a>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Status update */}
+          <section>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Update status</h3>
+            <div className="flex flex-wrap gap-2">
+              {STATUSES.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatus(s)}
+                  disabled={isDemo === false && false /* will gate in Step 5 */}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                    status === s
+                      ? 'bg-brand-500/20 text-brand-200 ring-1 ring-brand-400/40'
+                      : 'border border-white/10 bg-white/[0.02] text-ink-300 hover:bg-white/5'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            {isDemo && (
+              <p className="mt-2 text-[11px] text-ink-500">
+                Demo mode — status changes are local only. Step 5 wiring will persist to Firestore.
+              </p>
+            )}
+          </section>
+
+          {/* Notes */}
+          <section>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-400">
+              Internal notes ({localNotes.length})
+            </h3>
+            <div className="space-y-2">
+              {localNotes.map((n, i) => (
+                <div key={i} className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+                  <div className="flex items-center justify-between text-[11px] text-ink-500">
+                    <span className="font-medium text-brand-300">{n.author}</span>
+                    <span>{n.createdAt}</span>
+                  </div>
+                  <p className="mt-1 text-sm text-ink-200">{n.text}</p>
+                </div>
+              ))}
+            </div>
+            <form onSubmit={handleAddNote} className="mt-3 flex gap-2">
+              <input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Add an internal note for the team…"
+                className="input-field flex-1 text-sm"
+              />
+              <button type="submit" className="btn-primary text-sm">
+                <Send className="h-4 w-4" />
+              </button>
+            </form>
+          </section>
         </div>
       </div>
+    </div>
+  )
+}
+
+function InfoRow({ icon: Icon, label, value }) {
+  return (
+    <div className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-ink-500">
+        <Icon className="h-3 w-3" /> {label}
+      </div>
+      <div className="mt-0.5 text-sm text-ink-100">{value}</div>
     </div>
   )
 }

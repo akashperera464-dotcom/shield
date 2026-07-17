@@ -6,13 +6,13 @@
  */
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Mail, Lock, LogIn, AlertCircle, Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { Mail, Lock, LogIn, AlertCircle, Eye, EyeOff, ArrowLeft, Sparkles, User, Shield } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { isFirebaseReady } from '../firebase/config'
 import Logo from '../components/Logo'
 
 export default function Login() {
-  const { login } = useAuth()
+  const { login, demoLogin } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -34,6 +34,11 @@ export default function Login() {
     } finally {
       setBusy(false)
     }
+  }
+
+  const handleDemo = (role = 'superadmin') => {
+    demoLogin(role)
+    navigate(role === 'superadmin' ? '/superadmin' : '/dashboard')
   }
 
   return (
@@ -81,8 +86,8 @@ export default function Login() {
             <div className="mt-6 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                Firebase isn't configured yet. Add credentials to <code>.env</code> (see{' '}
-                <code>.env.example</code>) to enable real authentication.
+                Firebase isn't configured yet. Add credentials to <code>.env</code> to enable real
+                authentication — or use <strong>Demo Mode</strong> below to preview the dashboard.
               </span>
             </div>
           )}
@@ -155,8 +160,38 @@ export default function Login() {
             </button>
           </form>
 
+          {/* Demo mode divider */}
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-white/5" />
+            <span className="text-xs uppercase tracking-wider text-ink-500">or preview without firebase</span>
+            <div className="h-px flex-1 bg-white/5" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => handleDemo('superadmin')}
+              className="group relative overflow-hidden rounded-xl border border-brand-400/30 bg-brand-500/10 px-4 py-3 text-left transition-all duration-300 hover:border-brand-400/60 hover:bg-brand-500/15"
+            >
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-brand-300" />
+                <span className="text-sm font-semibold text-white">Demo Superadmin</span>
+              </div>
+              <p className="mt-1 text-[11px] text-ink-400">Full CMS + team manager access</p>
+            </button>
+            <button
+              onClick={() => handleDemo('admin')}
+              className="group relative overflow-hidden rounded-xl border border-accent-400/30 bg-accent-500/10 px-4 py-3 text-left transition-all duration-300 hover:border-accent-400/60 hover:bg-accent-500/15"
+            >
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-accent-400" />
+                <span className="text-sm font-semibold text-white">Demo Admin</span>
+              </div>
+              <p className="mt-1 text-[11px] text-ink-400">Project queue + notes access</p>
+            </button>
+          </div>
+
           <p className="mt-6 text-center text-xs text-ink-500">
-            Need access? Ask the <span className="text-brand-300">Superadmin</span> to provision your account.
+            Need a real account? Ask the <span className="text-brand-300">Superadmin</span> to provision your access.
           </p>
         </div>
       </div>
