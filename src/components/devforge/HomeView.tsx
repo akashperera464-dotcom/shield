@@ -65,6 +65,7 @@ import {
   type UploadProgress,
 } from "@/lib/uploads";
 import { loadShowcase } from "@/lib/showcase";
+import { addSubmission, loadSubmissions, seedDemoSubmissions, type Submission } from "@/lib/submissions";
 import type { ShowcaseProject } from "@/data/demo";
 
 const LOGO_URL =
@@ -229,6 +230,8 @@ export default function HomeView() {
 
   useEffect(() => {
     setShowcase(loadShowcase());
+    // Make sure the admin inbox has at least a few demo rows on first visit
+    seedDemoSubmissions();
     // Live-refresh showcase when superadmin edits project cards in another tab
     const onStorage = (e: StorageEvent) => {
       if (e.key === "theshield_showcase") setShowcase(loadShowcase());
@@ -948,18 +951,20 @@ function SubmitProjectSection() {
     setSubmitting(true);
 
     try {
-      const submission = {
-        ...form,
-        attachments: uploads,
+      const submission: Submission = {
         id: "s_" + Math.random().toString(36).slice(2, 10),
+        name: form.name,
+        email: form.email,
+        company: form.company || undefined,
+        service: form.service,
+        timeline: form.timeline || undefined,
+        brief: form.brief,
+        attachments: uploads.map((u) => ({ name: u.name, url: u.url, size: u.size, type: u.type })),
         status: "Pending",
         createdAt: new Date().toISOString(),
       };
 
-      const KEY = "theshield_submissions";
-      const existing = JSON.parse(localStorage.getItem(KEY) || "[]");
-      existing.unshift(submission);
-      localStorage.setItem(KEY, JSON.stringify(existing));
+      addSubmission(submission);
 
       await new Promise((r) => setTimeout(r, 400));
 
@@ -1455,14 +1460,12 @@ function TrackStatusSection() {
       return;
     }
     try {
-      const KEY = "theshield_submissions";
-      const all = JSON.parse(localStorage.getItem(KEY) || "[]");
+      const all = loadSubmissions();
       const matches = all.filter(
-        (s: { email: string; id: string; brief?: string; service?: string; status: string; createdAt: string }) =>
-          s.email.toLowerCase() === email.toLowerCase()
+        (s) => s.email.toLowerCase() === email.toLowerCase()
       );
       setResults(
-        matches.map((s: { id: string; brief?: string; service?: string; status: string; createdAt: string }) => ({
+        matches.map((s) => ({
           id: s.id,
           projectTitle: s.service || s.brief?.slice(0, 60) || "Project",
           status: s.status,

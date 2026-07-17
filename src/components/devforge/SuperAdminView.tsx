@@ -32,6 +32,7 @@ import {
   ArrowUp,
   ArrowDown,
   Tag,
+  Bell,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -44,18 +45,21 @@ import {
 } from "@/data/demo";
 import { GradientAvatar, MiniAreaChart, CircularGauge } from "./Charts";
 import { loadShowcase, saveShowcase, newShowcaseId } from "@/lib/showcase";
+import { loadSubmissions, getMeta } from "@/lib/submissions";
+import NotificationsPanel from "./NotificationsPanel";
 
 const SIDEBAR_NAV = [
   { id: "home",       label: "Back to site",    icon: HomeIcon },
   { id: "dashboard",  label: "Dashboard",       icon: LayoutDashboard },
   { id: "cms",        label: "CMS Settings",    icon: Settings },
   { id: "projects",   label: "Projects",        icon: FolderKanban },
+  { id: "notifications", label: "Notifications", icon: Bell },
   { id: "team",       label: "User Management", icon: Users },
   { id: "analytics",  label: "Analytics",       icon: Activity },
   { id: "storage",    label: "Storage",         icon: HardDrive },
 ] as const;
 
-type TabId = "cms" | "projects" | "team" | "analytics" | "storage";
+type TabId = "cms" | "projects" | "notifications" | "team" | "analytics" | "storage";
 
 const STORAGE_DATA = [42, 38, 55, 48, 65, 58, 72, 68, 85, 78, 92, 96];
 const TRAFFIC_DATA = [120, 145, 138, 168, 185, 172, 195, 210, 188, 232, 248, 268];
@@ -114,9 +118,13 @@ export default function SuperAdminView() {
                 const isActive =
                   (item.id === "cms" && tab === "cms") ||
                   (item.id === "projects" && tab === "projects") ||
+                  (item.id === "notifications" && tab === "notifications") ||
                   (item.id === "team" && tab === "team") ||
                   (item.id === "analytics" && tab === "analytics") ||
                   (item.id === "storage" && tab === "storage");
+                const unreadCount = item.id === "notifications"
+                  ? loadSubmissions().filter((s) => !getMeta(s.id).readAt).length
+                  : 0;
                 return (
                   <button
                     key={item.id}
@@ -128,6 +136,11 @@ export default function SuperAdminView() {
                     {item.id === "team" && (
                       <span className="rounded-md bg-violet-600/20 px-1.5 py-0.5 text-[10px] font-bold text-violet-300">
                         {DEMO_TEAM.length}
+                      </span>
+                    )}
+                    {item.id === "notifications" && unreadCount > 0 && (
+                      <span className="rounded-md bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">
+                        {unreadCount}
                       </span>
                     )}
                   </button>
@@ -193,6 +206,7 @@ export default function SuperAdminView() {
           <div className="mt-6">
             {tab === "cms" && <CMSPanel isDemo={isDemo} />}
             {tab === "projects" && <ShowcasePanel />}
+            {tab === "notifications" && <NotificationsPanel />}
             {tab === "team" && <TeamPanel isDemo={isDemo} />}
             {tab === "analytics" && <AnalyticsPanel />}
             {tab === "storage" && <StoragePanel />}

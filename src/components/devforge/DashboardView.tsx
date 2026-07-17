@@ -41,16 +41,19 @@ import {
   Sparkline,
   GradientAvatar,
 } from "./Charts";
+import { loadSubmissions, getMeta } from "@/lib/submissions";
+import NotificationsPanel from "./NotificationsPanel";
 
 const LOGO_URL =
   "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png";
 
 const SIDEBAR_NAV = [
-  { id: "home",       label: "Back to site",    icon: HomeIcon },
-  { id: "dashboard",  label: "Overview",        icon: LayoutDashboard },
-  { id: "projects",   label: "Projects",        icon: Inbox },
-  { id: "analytics",  label: "Analytics",       icon: Activity },
-  { id: "settings",   label: "Settings",        icon: Settings },
+  { id: "home",          label: "Back to site",    icon: HomeIcon },
+  { id: "dashboard",     label: "Overview",        icon: LayoutDashboard },
+  { id: "projects",      label: "Projects",        icon: Inbox },
+  { id: "notifications", label: "Notifications",  icon: Bell },
+  { id: "analytics",     label: "Analytics",       icon: Activity },
+  { id: "settings",      label: "Settings",        icon: Settings },
 ] as const;
 
 const REVENUE_DATA  = [42, 38, 55, 48, 65, 58, 72, 68, 85, 78, 92, 96];
@@ -189,6 +192,9 @@ export default function DashboardView() {
               </div>
               {SIDEBAR_NAV.map((item) => {
                 const isActive = activeNav === item.id;
+                const unreadCount = item.id === "notifications"
+                  ? loadSubmissions().filter((s) => !getMeta(s.id).readAt).length
+                  : 0;
                 return (
                   <button
                     key={item.id}
@@ -200,6 +206,11 @@ export default function DashboardView() {
                     {item.id === "projects" && (
                       <span className="rounded-md bg-mint-300/15 px-1.5 py-0.5 text-[10px] font-bold text-mint-300">
                         {metrics.total}
+                      </span>
+                    )}
+                    {item.id === "notifications" && unreadCount > 0 && (
+                      <span className="rounded-md bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">
+                        {unreadCount}
                       </span>
                     )}
                   </button>
@@ -261,6 +272,12 @@ export default function DashboardView() {
           </div>
 
           {/* Metric cards */}
+          {activeNav === "notifications" ? (
+            <div className="mt-6">
+              <NotificationsPanel />
+            </div>
+          ) : (
+          <>
           <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
             {METRICS.map((m, i) => (
               <div
@@ -474,6 +491,8 @@ export default function DashboardView() {
           {/* Detail drawer */}
           {selected && (
             <DetailDrawer project={selected} onClose={() => setSelected(null)} isDemo={isDemo} />
+          )}
+          </>
           )}
         </main>
       </div>
