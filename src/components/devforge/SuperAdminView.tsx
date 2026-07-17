@@ -391,7 +391,7 @@ function TeamPanel({ isDemo }: { isDemo: boolean }) {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="input-field pl-10"
-                placeholder="jane@devforge.agency"
+                placeholder="jane@theshield.agency"
               />
             </div>
           </div>

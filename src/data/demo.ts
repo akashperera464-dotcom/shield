@@ -108,10 +108,10 @@ export interface TeamMember {
 }
 
 export const DEMO_TEAM: TeamMember[] = [
-  { uid: "u_001", name: "You (Superadmin)", email: "superadmin@demo.devforge", role: "superadmin", createdAt: "2026-06-01" },
-  { uid: "u_002", name: "Daniel Okafor",    email: "daniel@devforge.agency",      role: "admin",      createdAt: "2026-06-12" },
-  { uid: "u_003", name: "Mei Tanaka",       email: "mei@devforge.agency",         role: "admin",      createdAt: "2026-06-20" },
-  { uid: "u_004", name: "Sara Al-Mansoori", email: "sara@devforge.agency",        role: "admin",      createdAt: "2026-07-01" },
+  { uid: "u_001", name: "You (Superadmin)", email: "superadmin@demo.theshield", role: "superadmin", createdAt: "2026-06-01" },
+  { uid: "u_002", name: "Daniel Okafor",    email: "daniel@theshield.agency",      role: "admin",      createdAt: "2026-06-12" },
+  { uid: "u_003", name: "Mei Tanaka",       email: "mei@theshield.agency",         role: "admin",      createdAt: "2026-06-20" },
+  { uid: "u_004", name: "Sara Al-Mansoori", email: "sara@theshield.agency",        role: "admin",      createdAt: "2026-07-01" },
 ];
 
 export interface SiteConfig {
@@ -124,11 +124,11 @@ export interface SiteConfig {
 }
 
 export const DEMO_CONFIG: SiteConfig = {
-  heroTitle: "We build software that ships.",
-  heroSubtitle: "Senior-only product studio. Ship in weeks, not months.",
+  heroTitle: "Application Development",
+  heroSubtitle: "Bridging the gap between business and technology.",
   aboutText:
-    "DevForge is a senior-only software studio. We design, build, and ship production React apps with Firebase and role-based admin tooling.",
-  contactEmail: "hello@devforge.agency",
+    "The Shield bridges the gap between business and technology. We design, build, and ship production software across every technology domain.",
+  contactEmail: "hello@theshield.agency",
   logoUrl:
     "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png",
   mainBgUrl:

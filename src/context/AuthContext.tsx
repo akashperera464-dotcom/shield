@@ -49,7 +49,7 @@ export function useAuth() {
   return ctx;
 }
 
-const DEMO_KEY = "devforge:demo-session";
+const DEMO_KEY = "theshield:demo-session";
 
 function loadDemo(): Profile | null {
   if (typeof window === "undefined") return null;
@@ -99,8 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       name: override === "superadmin" ? "Demo Superadmin" : "Demo Admin",
       email:
         override === "superadmin"
-          ? "superadmin@demo.devforge"
-          : "admin@demo.devforge",
+          ? "superadmin@demo.theshield"
+          : "admin@demo.theshield",
       role: override,
     };
     saveDemo(p);

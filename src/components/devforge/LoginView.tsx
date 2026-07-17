@@ -63,7 +63,7 @@ export default function LoginView() {
           <div>
             <img
               src={LOGO_URL}
-              alt="DevForge"
+              alt="The Shield"
               className="h-14 w-14 rounded-xl object-cover ring-1 ring-mint-300/30"
             />
             <h1 className="mt-6 text-4xl font-bold leading-tight text-white">
@@ -92,7 +92,7 @@ export default function LoginView() {
           <div className="mb-8 lg:hidden">
             <img
               src={LOGO_URL}
-              alt="DevForge"
+              alt="The Shield"
               className="h-12 w-12 rounded-xl object-cover ring-1 ring-mint-300/30"
             />
           </div>
@@ -120,7 +120,7 @@ export default function LoginView() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@devforge.agency"
+                  placeholder="you@theshield.agency"
                   className="input-field pl-10"
                 />
               </div>

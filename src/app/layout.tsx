@@ -14,16 +14,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DevForge — Software Development Agency",
+  title: "The Shield — Software Development Agency",
   description:
-    "DevForge is a senior-only software studio. Submit your project, track status, and watch ideas ship — React, Next.js, Firebase.",
+    "The Shield bridges the gap between business and technology. Submit your project, track status, and watch ideas ship — AI, ML, Web, Mobile, and more.",
   keywords: [
-    "DevForge",
+    "The Shield",
     "software agency",
+    "AI",
+    "Machine Learning",
     "React",
     "Next.js",
     "Firebase",
     "web development",
+    "mobile apps",
   ],
   icons: {
     icon: "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png",

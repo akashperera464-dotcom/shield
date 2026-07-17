@@ -27,7 +27,7 @@ function Logo({ size = 36 }: { size?: number }) {
       />
       <img
         src={LOGO_URL}
-        alt="DevForge logo"
+        alt="The Shield logo"
         className="relative h-full w-full rounded-xl object-cover ring-1 ring-mint-300/30"
         style={{ width: size, height: size }}
       />
@@ -76,7 +76,7 @@ export default function Navbar() {
           <Logo size={36} />
           <div className="flex flex-col leading-tight">
             <span className="font-sans text-lg font-semibold tracking-tight text-white">
-              Dev<span className="text-gradient-animated">Forge</span>
+              The <span className="text-gradient-animated">Shield</span>
             </span>
             <span className="text-[10px] uppercase tracking-[0.2em] text-mint-300/60">
               Software Agency

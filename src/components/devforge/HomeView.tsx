@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   ArrowRight,
   Cloud,
@@ -24,7 +24,27 @@ import {
   CheckCircle2,
   Clock,
   Loader2,
-  Zap,
+  Brain,
+  Cpu,
+  Network,
+  Layout,
+  Megaphone,
+  ServerCog,
+  TrendingUp,
+  Building2,
+  ShoppingCart,
+  Landmark,
+  HeartPulse,
+  Truck,
+  Home as HomeIcon,
+  Plane,
+  GraduationCap,
+  Factory,
+  Bot,
+  Trophy,
+  Users,
+  MapPinned,
+  Calendar,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { CircularGauge, MiniAreaChart, MiniBarChart, Sparkline } from "./Charts";
@@ -33,49 +53,86 @@ const LOGO_URL =
   "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png";
 
 const STATS = [
-  { label: "Projects shipped", value: "120+", spark: [3, 5, 4, 7, 6, 9, 8, 12], color: "#64ffda" },
-  { label: "Avg. delivery",     value: "6 wks",  spark: [9, 8, 7, 8, 6, 7, 6, 6], color: "#667eea" },
-  { label: "Client retention",  value: "94%",    spark: [80, 82, 85, 88, 90, 92, 93, 94], color: "#9d8df1" },
-  { label: "Time zones",        value: "9",      spark: [4, 5, 6, 6, 7, 8, 8, 9], color: "#64ffda" },
+  { label: "Years Experience",        value: "10+", spark: [3, 4, 5, 6, 7, 8, 9, 10], color: "#64ffda" },
+  { label: "Apps, Software & Sites",  value: "100+", spark: [40, 50, 60, 70, 80, 85, 95, 100], color: "#667eea" },
+  { label: "Service Locations",       value: "15+",  spark: [5, 7, 9, 10, 11, 13, 14, 15], color: "#9d8df1" },
+  { label: "Happy Customers",         value: "45+",  spark: [10, 15, 20, 25, 30, 35, 40, 45], color: "#64ffda" },
 ];
 
 const SERVICES = [
   {
+    icon: Brain,
+    title: "Artificial Intelligence",
+    desc: "AI simulates human intelligence in machines, enabling them to think, learn, and make decisions to improve efficiency.",
+    tags: ["AI", "Automation", "Decision"],
+  },
+  {
+    icon: Cpu,
+    title: "Machine Learning",
+    desc: "Subset of AI that enables systems to learn from data, identify patterns, and make predictions with minimal human intervention.",
+    tags: ["ML", "Predictions", "Data"],
+  },
+  {
+    icon: Network,
+    title: "SharePoint Integration",
+    desc: "Connects SharePoint with applications to streamline management, collaboration, and workflows across teams.",
+    tags: ["SharePoint", "Collab", "Workflow"],
+  },
+  {
+    icon: ServerCog,
+    title: "NetSuite Integration",
+    desc: "Integrating NetSuite with systems unifies operations, automates data flow, and boosts productivity.",
+    tags: ["NetSuite", "ERP", "Automation"],
+  },
+  {
     icon: Code2,
-    title: "Web Apps",
-    desc: "Production React + Next.js apps with SSR, role-based auth, and scalable component systems.",
-    tags: ["React", "Next.js", "Vite"],
+    title: "Software Development",
+    desc: "Process involving creation, maintenance of applications, frameworks — design, programming, testing, and bug fixing.",
+    tags: ["Custom", "Full-cycle", "Maintenance"],
   },
   {
     icon: Smartphone,
-    title: "Mobile-First UX",
-    desc: "Pixel-perfect responsive design that ships beautifully from 320px phones to 4K monitors.",
-    tags: ["Tailwind", "Framer Motion", "PWA"],
+    title: "Mobile App Development",
+    desc: "Developing apps suitable for mobile devices — writing software for small, wireless computing devices.",
+    tags: ["iOS", "Android", "Hybrid"],
+  },
+  {
+    icon: Globe,
+    title: "Website Development",
+    desc: "Building and maintaining websites — makes the site look great, work quickly, with firm user experience.",
+    tags: ["Web", "Performance", "UX"],
+  },
+  {
+    icon: Layout,
+    title: "UI / UX Designing",
+    desc: "Increases user experience and customer satisfaction, which ultimately grows the number of customers and business.",
+    tags: ["Design", "UX", "UI"],
   },
   {
     icon: Database,
-    title: "Backend & APIs",
-    desc: "Firebase, Supabase, or custom Node/Express APIs with proper schemas and audit trails.",
-    tags: ["Firestore", "Node", "REST"],
+    title: "CRM Software Development",
+    desc: "Tools and techniques that help companies build healthy relationships with customers by organizing the data.",
+    tags: ["CRM", "Sales", "Data"],
   },
   {
-    icon: Palette,
-    title: "Brand & Design Systems",
-    desc: "Tokens, design docs, and reusable component libraries your team can actually maintain.",
-    tags: ["Figma", "Tokens", "Storybook"],
+    icon: Megaphone,
+    title: "Digital Marketing",
+    desc: "Strategy that uses multiple channels to attract, engage, and convert customers online.",
+    tags: ["SEO", "SEM", "Social"],
   },
-  {
-    icon: Cloud,
-    title: "Cloud & DevOps",
-    desc: "CI/CD pipelines, container deploys, and one-click releases to Vercel, Netlify, or AWS.",
-    tags: ["CI/CD", "GitHub Actions", "Vercel"],
-  },
-  {
-    icon: ShieldCheck,
-    title: "Security & Audits",
-    desc: "Role-based access, protected routes, and security audits baked into every codebase.",
-    tags: ["RBAC", "Auth", "OWASP"],
-  },
+];
+
+const INDUSTRIES = [
+  { icon: Cpu,            title: "Technology",          desc: "Next-gen software & IT solutions" },
+  { icon: ShoppingCart,   title: "Ecommerce",           desc: "Dynamic retail & digital storefronts" },
+  { icon: Landmark,       title: "Fintech & Banking",   desc: "Secure financial & payment platforms" },
+  { icon: HeartPulse,     title: "Healthcare",          desc: "Modern medical & patient portals" },
+  { icon: Truck,          title: "Logistics & Shipping",desc: "Smart supply chain & fleet systems" },
+  { icon: HomeIcon,       title: "Real Estate / PropTech", desc: "Smart property & brokerage tech" },
+  { icon: Bot,            title: "AI & Machine Learning", desc: "Predictive analytics & neural networks" },
+  { icon: Plane,          title: "Travel",              desc: "Seamless booking & trip planning" },
+  { icon: GraduationCap,  title: "Education",           desc: "Interactive e-learning environments" },
+  { icon: Factory,        title: "Manufacturing",       desc: "Automated production & ERP systems" },
 ];
 
 const PROCESS = [
@@ -86,13 +143,20 @@ const PROCESS = [
 ];
 
 const TECH = [
-  "React", "Next.js", "Vite", "TypeScript", "Tailwind", "Firebase",
-  "Node", "Supabase", "Prisma", "Framer Motion", "Vercel",
+  "Python", "Java", "JavaScript", "Vue.js", "AngularJS", "React",
+  "Solidity", "PHP", "React Native", "CSS", "Node.js", "Swift",
+  "HTML", "Golang", "Kotlin",
+];
+
+const TECH_AI = [
+  "Artificial Intelligence", "Machine Learning", "Deep Learning",
+  "NLP", "Computer Vision", "Generative AI",
+  "Big Data Analytics", "Cognitive Automation", "Robotics & RPA", "Predictive Modeling",
 ];
 
 const TESTIMONIALS = [
   {
-    quote: "DevForge took our Figma mess and shipped a polished React app in 5 weeks. The dashboard alone saved my team 12 hours a week.",
+    quote: "The Shield took our Figma mess and shipped a polished React app in 5 weeks. The dashboard alone saved my team 12 hours a week.",
     name: "Sara Al-Mansoori",
     role: "CEO, Layla Cosmetics",
     initial: "S",
@@ -137,27 +201,27 @@ export default function HomeView() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-300 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-mint-300" />
               </span>
-              Now accepting Q3 2026 projects
+              Bridging the gap between business and technology
             </div>
 
             <h1 className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl animate-fade-up stagger-2">
-              We build software
+              Application
               <br />
-              that <span className="text-gradient-animated text-shadow-glow">ships</span>.
+              <span className="text-gradient-animated text-shadow-glow">Development</span>
             </h1>
 
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-300 animate-fade-up stagger-3">
-              DevForge is a senior-only product studio. Bring us your wireframes — we&apos;ll
-              ship a production-ready React app with Firebase and role-based
-              admin tooling in weeks, not months.
+              We provide full-cycle software development services encompassing planning,
+              requirements definition, design and prototyping, software development,
+              testing, deployment, and application maintenance.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3 animate-fade-up stagger-4">
               <a href="#submit" className="btn-primary">
                 <Send className="h-4 w-4" /> Submit a Project
               </a>
-              <a href="#track" className="btn-ghost">
-                <Search className="h-4 w-4" /> Track Status
+              <a href="#services" className="btn-ghost">
+                <Sparkles className="h-4 w-4" /> Know More
               </a>
               {isAuthenticated && isAdmin && (
                 <button onClick={() => setView("dashboard")} className="btn-ghost">
@@ -185,7 +249,7 @@ export default function HomeView() {
                       <span className="h-3 w-3 rounded-full bg-amber-400/80" />
                       <span className="h-3 w-3 rounded-full bg-emerald-400/80" />
                     </div>
-                    <span className="font-mono text-[10px] text-ink-500">devforge.app/dashboard</span>
+                    <span className="font-mono text-[10px] text-ink-500">theshield.app/dashboard</span>
                   </div>
                 </div>
 
@@ -283,26 +347,39 @@ export default function HomeView() {
         </div>
       </section>
 
-      {/* ─────────── STATS with sparklines ─────────── */}
+      {/* ─────────── ACHIEVEMENTS / STATS ─────────── */}
       <section className="border-b border-white/5 bg-white/[0.015]">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-6 py-10 md:grid-cols-4">
-          {STATS.map((s, i) => (
-            <div
-              key={s.label}
-              className="glass-card-hover p-5 animate-fade-up"
-              style={{ animationDelay: `${i * 0.08}s` }}
-            >
-              <div className="flex items-end justify-between">
-                <div>
-                  <div className="text-3xl font-bold text-gradient-animated sm:text-4xl">
-                    {s.value}
+        <div className="mx-auto max-w-7xl px-6 py-10">
+          <div className="mb-8 text-center">
+            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-mint-300">
+              Our Milestones
+            </span>
+            <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl">
+              Achievements
+            </h2>
+            <p className="mt-2 text-sm text-ink-400">
+              Powering digital growth with innovation and trust
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {STATS.map((s, i) => (
+              <div
+                key={s.label}
+                className="glass-card-hover p-5 animate-fade-up"
+                style={{ animationDelay: `${i * 0.08}s` }}
+              >
+                <div className="flex items-end justify-between">
+                  <div>
+                    <div className="text-3xl font-bold text-gradient-animated sm:text-4xl">
+                      {s.value}
+                    </div>
+                    <div className="mt-1 text-xs uppercase tracking-wider text-ink-400">{s.label}</div>
                   </div>
-                  <div className="mt-1 text-xs uppercase tracking-wider text-ink-400">{s.label}</div>
+                  <Sparkline data={s.spark} color={s.color} width={64} height={24} />
                 </div>
-                <Sparkline data={s.spark} color={s.color} width={64} height={24} />
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
@@ -310,14 +387,13 @@ export default function HomeView() {
       <section id="services" className="mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
         <div className="mb-12 text-center">
           <span className="text-xs font-semibold uppercase tracking-[0.25em] text-mint-300">
-            What we build
+            Our Services
           </span>
           <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
-            Services that cover the whole stack
+            Transforming ideas into powerful digital solutions
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-ink-300">
-            From idea to deployment — every layer of the stack handled by senior engineers
-            who care about maintainability as much as they care about pixels.
+            Bridging the gap between business and technology — across every technology domain.
           </p>
         </div>
 
@@ -326,7 +402,7 @@ export default function HomeView() {
             <div
               key={s.title}
               className="glass-card-hover group p-6 animate-fade-up"
-              style={{ animationDelay: `${i * 0.08}s` }}
+              style={{ animationDelay: `${i * 0.06}s` }}
             >
               <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-mint-300/20 to-violet-600/15 ring-1 ring-white/10 transition-transform duration-500 group-hover:scale-110">
                 <s.icon className="h-6 w-6 text-mint-300" />
@@ -345,6 +421,36 @@ export default function HomeView() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ─────────── INDUSTRIES ─────────── */}
+      <section id="industries" className="border-y border-white/5 bg-white/[0.015]">
+        <div className="mx-auto max-w-7xl px-6 py-16 scroll-mt-20">
+          <div className="mb-10 text-center">
+            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
+              What We Serve
+            </span>
+            <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">Industries</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-ink-300">
+              Domain expertise across the verticals that move the modern economy.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {INDUSTRIES.map((it, i) => (
+              <div
+                key={it.title}
+                className="glass-card-hover group p-5 animate-fade-up"
+                style={{ animationDelay: `${i * 0.05}s` }}
+              >
+                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-violet-600/10 ring-1 ring-white/10 transition-transform duration-500 group-hover:scale-110">
+                  <it.icon className="h-5 w-5 text-violet-300" />
+                </div>
+                <h3 className="text-sm font-semibold text-white">{it.title}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-ink-400">{it.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -394,8 +500,12 @@ export default function HomeView() {
         <div className="mx-auto max-w-7xl px-6 py-12">
           <div className="mb-6 text-center">
             <span className="text-xs font-semibold uppercase tracking-[0.25em] text-ink-400">
-              The stack we ship with
+              Where Code Meets Intelligence
             </span>
+            <h3 className="mt-2 text-2xl font-bold text-white">Our Technology Stack</h3>
+            <p className="mt-2 text-sm text-ink-400">
+              Building powerful digital products with cutting-edge technologies
+            </p>
           </div>
           <div className="flex flex-wrap justify-center gap-2.5">
             {TECH.map((t, i) => (
@@ -408,6 +518,21 @@ export default function HomeView() {
               </span>
             ))}
           </div>
+          <div className="mx-auto mt-10 max-w-4xl rounded-2xl border border-violet-500/20 bg-violet-600/[0.04] p-6">
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-violet-300">
+              <Bot className="h-3.5 w-3.5" /> AI &amp; Data Technologies — Next-Gen Intelligent Tech
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {TECH_AI.map((t) => (
+                <span
+                  key={t}
+                  className="rounded-md bg-white/5 px-3 py-1 text-xs font-medium text-ink-200 hover:bg-violet-600/15 hover:text-white transition-colors"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -418,7 +543,7 @@ export default function HomeView() {
             Client love
           </span>
           <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
-            What founders say about DevForge
+            What founders say about The Shield
           </h2>
         </div>
 
@@ -460,82 +585,11 @@ export default function HomeView() {
         </div>
       </section>
 
-      {/* ─────────── SUBMIT ─────────── */}
-      <section id="submit" className="mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
-        <div className="glass-card overflow-hidden border-gradient">
-          <div className="grid lg:grid-cols-2">
-            <div className="relative p-10 lg:p-12">
-              <span className="inline-flex items-center gap-2 rounded-full bg-mint-300/10 px-3 py-1 text-xs font-medium text-mint-300">
-                <Rocket className="h-3.5 w-3.5" /> Step 3 · Coming next
-              </span>
-              <h2 className="mt-4 text-3xl font-bold text-white">Submit your project</h2>
-              <p className="mt-3 text-ink-300">
-                Fill in a quick form — no login, no file uploads. Share scope, budget,
-                and timeline and we&apos;ll reply within 48 hours with a clear estimate.
-              </p>
-              <ul className="mt-6 space-y-3 text-sm text-ink-200">
-                {["Multi-step wizard", "No login required", "Auto-saved to Firestore", "Email-based tracking"].map((t) => (
-                  <li key={t} className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" /> {t}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="relative border-t border-white/5 bg-navy-900/40 p-10 lg:border-l lg:border-t-0 lg:p-12">
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">Your name</label>
-                  <div className="h-10 rounded-lg bg-white/[0.03] ring-1 ring-white/10" />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">Email</label>
-                  <div className="h-10 rounded-lg bg-white/[0.03] ring-1 ring-white/10" />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">Project brief</label>
-                  <div className="h-24 rounded-lg bg-white/[0.03] ring-1 ring-white/10" />
-                </div>
-                <button disabled className="btn-primary w-full opacity-50">
-                  <Sparkles className="h-4 w-4" /> Multi-step form ships in Step 3
-                </button>
-                <p className="text-center text-[11px] text-ink-500">
-                  Share wireframes via email or Drive link — we don&apos;t host uploads.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ─────────── SUBMIT (now functional) ─────────── */}
+      <SubmitProjectSection />
 
       {/* ─────────── TRACK ─────────── */}
-      <section id="track" className="mx-auto max-w-4xl px-6 py-20 scroll-mt-20">
-        <div className="text-center">
-          <span className="inline-flex items-center gap-2 rounded-full bg-violet-600/10 px-3 py-1 text-xs font-medium text-violet-300">
-            <Search className="h-3.5 w-3.5" /> Step 4 · Coming next
-          </span>
-          <h2 className="mt-4 text-3xl font-bold text-white">Track your submission</h2>
-          <p className="mt-3 text-ink-300">
-            Enter the email you used to submit — we&apos;ll show every project and its live status.
-          </p>
-        </div>
-        <div className="mt-8 glass-card p-6">
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <input
-              type="email"
-              placeholder="you@company.com"
-              className="input-field flex-1"
-              disabled
-            />
-            <button disabled className="btn-primary opacity-50">
-              <Search className="h-4 w-4" /> Search
-            </button>
-          </div>
-          <p className="mt-3 text-center text-xs text-ink-500">
-            Real-time tracker wiring lands in Step 4.
-          </p>
-        </div>
-      </section>
+      <TrackStatusSection />
 
       {/* ─────────── CTA ─────────── */}
       <section className="mx-auto max-w-7xl px-6 py-16">
@@ -554,7 +608,7 @@ export default function HomeView() {
               <a href="#submit" className="btn-primary">
                 <Send className="h-4 w-4" /> Submit Project
               </a>
-              <a href="mailto:hello@devforge.agency" className="btn-ghost">
+              <a href="mailto:hello@theshield.agency" className="btn-ghost">
                 <Mail className="h-4 w-4" /> Email us
               </a>
             </div>
@@ -563,58 +617,486 @@ export default function HomeView() {
       </section>
 
       {/* ─────────── FOOTER ─────────── */}
-      <footer className="border-t border-white/5 px-6 py-12">
-        <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-4">
-          <div className="md:col-span-2">
-            <div className="flex items-center gap-3">
-              <img
-                src={LOGO_URL}
-                alt="DevForge logo"
-                className="h-9 w-9 rounded-xl object-cover ring-1 ring-white/15"
-              />
-              <span className="text-lg font-semibold text-white">
-                Dev<span className="text-gradient-animated">Forge</span>
-              </span>
+      <footer className="border-t border-white/5 bg-navy-950/40 px-6 py-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-10 md:grid-cols-4">
+            <div className="md:col-span-2">
+              <div className="flex items-center gap-3">
+                <img
+                  src={LOGO_URL}
+                  alt="The Shield logo"
+                  className="h-9 w-9 rounded-xl object-cover ring-1 ring-white/15"
+                />
+                <span className="text-lg font-semibold text-white">
+                  The <span className="text-gradient-animated">Shield</span>
+                </span>
+              </div>
+              <p className="mt-3 max-w-sm text-sm text-ink-400">
+                Bridging the gap between business and technology. We design, build,
+                and ship production software across every technology domain.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-ink-500">
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" /> 15+ service locations
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5" /> hello@theshield.agency
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5" /> +1 (555) 010-2026
+                </span>
+              </div>
             </div>
-            <p className="mt-3 max-w-sm text-sm text-ink-400">
-              Senior-only software studio building production React apps with Firebase
-              and role-based admin tooling. Ship in weeks, not months.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-4 text-xs text-ink-500">
-              <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Remote · 9 time zones</span>
-              <span className="inline-flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> hello@devforge.agency</span>
-              <span className="inline-flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> +1 (555) 010-2026</span>
+
+            <div>
+              <h4 className="text-sm font-semibold text-white">Company</h4>
+              <ul className="mt-3 space-y-2 text-sm text-ink-400">
+                <li><a href="#services" className="hover:text-white">Services</a></li>
+                <li><a href="#industries" className="hover:text-white">Industries</a></li>
+                <li><a href="#process" className="hover:text-white">Process</a></li>
+                <li><a href="#submit" className="hover:text-white">Submit Project</a></li>
+                <li><a href="#track" className="hover:text-white">Track Status</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-semibold text-white">Stack</h4>
+              <ul className="mt-3 space-y-2 text-sm text-ink-400">
+                <li>React + Next.js</li>
+                <li>Python · Node.js · Java</li>
+                <li>AI / ML / Data</li>
+                <li>Mobile · Web · Cloud</li>
+              </ul>
             </div>
           </div>
 
-          <div>
-            <h4 className="text-sm font-semibold text-white">Company</h4>
-            <ul className="mt-3 space-y-2 text-sm text-ink-400">
-              <li><a href="#services" className="hover:text-white">Services</a></li>
-              <li><a href="#process" className="hover:text-white">Process</a></li>
-              <li><a href="#submit"  className="hover:text-white">Submit Project</a></li>
-              <li><a href="#track"   className="hover:text-white">Track Status</a></li>
-            </ul>
+          {/* Aligned bottom bar */}
+          <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/5 pt-6 sm:flex-row">
+            <span className="text-sm text-ink-400">
+              © {new Date().getFullYear()} The Shield. All rights reserved.
+            </span>
+            <span className="flex items-center gap-2 text-sm text-ink-500">
+              <Sparkles className="h-4 w-4 text-mint-300" /> Built with Next.js + Tailwind + Firebase
+            </span>
           </div>
-
-          <div>
-            <h4 className="text-sm font-semibold text-white">Stack</h4>
-            <ul className="mt-3 space-y-2 text-sm text-ink-400">
-              <li>React + Next.js</li>
-              <li>Firebase + Firestore</li>
-              <li>Tailwind CSS</li>
-              <li>Vercel</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="mx-auto mt-10 flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-white/5 pt-6 text-sm text-ink-400 sm:flex-row">
-          <span>© {new Date().getFullYear()} DevForge — Built with Next.js + Tailwind + Firebase.</span>
-          <span className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-mint-300" /> Crafted with care.
-          </span>
         </div>
       </footer>
     </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* FUNCTIONAL SUBMIT PROJECT SECTION                                       */
+/* ─────────────────────────────────────────────────────────────────────── */
+
+function SubmitProjectSection() {
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    company: "",
+    service: "",
+    budget: "",
+    timeline: "",
+    brief: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const update = (k: keyof typeof form, v: string) =>
+    setForm((f) => ({ ...f, [k]: v }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!form.name.trim() || !form.email.trim() || !form.brief.trim()) {
+      setError("Name, email, and project brief are required.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    // Save to localStorage (demo persistence until Firestore wiring lands)
+    const submission = {
+      ...form,
+      id: "s_" + Math.random().toString(36).slice(2, 10),
+      status: "Pending",
+      createdAt: new Date().toISOString(),
+    };
+
+    try {
+      const KEY = "theshield_submissions";
+      const existing = JSON.parse(localStorage.getItem(KEY) || "[]");
+      existing.unshift(submission);
+      localStorage.setItem(KEY, JSON.stringify(existing));
+
+      // Simulate brief network latency for the spinner
+      await new Promise((r) => setTimeout(r, 700));
+
+      setSubmitting(false);
+      setDone(true);
+    } catch {
+      setSubmitting(false);
+      setError("Could not save submission locally. Please try again.");
+    }
+  };
+
+  const reset = () => {
+    setForm({
+      name: "",
+      email: "",
+      company: "",
+      service: "",
+      budget: "",
+      timeline: "",
+      brief: "",
+    });
+    setDone(false);
+    setError(null);
+  };
+
+  if (done) {
+    return (
+      <section id="submit" className="mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
+        <div className="glass-card border-gradient overflow-hidden">
+          <div className="grid lg:grid-cols-2">
+            <div className="relative p-10 lg:p-12">
+              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Submission received
+              </span>
+              <h2 className="mt-4 text-3xl font-bold text-white">
+                Thank you, {form.name.split(" ")[0] || "there"}!
+              </h2>
+              <p className="mt-3 text-ink-300">
+                Your project brief has been saved. We&apos;ll review it and reply to
+                <span className="font-mono text-mint-300"> {form.email} </span>
+                within 48 hours with a clear scope and estimate.
+              </p>
+              <ul className="mt-6 space-y-3 text-sm text-ink-200">
+                {[
+                  "Reference ID: " + form.email.split("@")[0].slice(0, 6).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase(),
+                  "Status: Pending review",
+                  "Next step: Discovery call within 48h",
+                ].map((t) => (
+                  <li key={t} className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400" /> {t}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-8 flex gap-3">
+                <button onClick={reset} className="btn-primary">
+                  <Send className="h-4 w-4" /> Submit another
+                </button>
+                <a href="#track" className="btn-ghost">
+                  <Search className="h-4 w-4" /> Track status
+                </a>
+              </div>
+            </div>
+            <div className="relative border-t border-white/5 bg-navy-900/40 p-10 lg:border-l lg:border-t-0 lg:p-12">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-400">
+                What you submitted
+              </h3>
+              <dl className="mt-4 space-y-3 text-sm">
+                <SummaryRow k="Name" v={form.name} />
+                <SummaryRow k="Email" v={form.email} />
+                {form.company && <SummaryRow k="Company" v={form.company} />}
+                {form.service && <SummaryRow k="Service" v={form.service} />}
+                {form.budget && <SummaryRow k="Budget" v={form.budget} />}
+                {form.timeline && <SummaryRow k="Timeline" v={form.timeline} />}
+                <div>
+                  <dt className="text-xs uppercase tracking-wider text-ink-500">Brief</dt>
+                  <dd className="mt-1 rounded-lg border border-white/5 bg-white/[0.02] p-3 text-ink-200">
+                    {form.brief}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section id="submit" className="mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
+      <div className="glass-card border-gradient overflow-hidden">
+        <div className="grid lg:grid-cols-2">
+          <div className="relative p-10 lg:p-12">
+            <span className="inline-flex items-center gap-2 rounded-full bg-mint-300/10 px-3 py-1 text-xs font-medium text-mint-300">
+              <Rocket className="h-3.5 w-3.5" /> Submit Project
+            </span>
+            <h2 className="mt-4 text-3xl font-bold text-white">Tell us about your project</h2>
+            <p className="mt-3 text-ink-300">
+              Fill in the form — no login, no file uploads. Share scope, budget,
+              and timeline and we&apos;ll reply within 48 hours with a clear estimate.
+            </p>
+            <ul className="mt-6 space-y-3 text-sm text-ink-200">
+              {[
+                "No login required",
+                "Saved locally for demo tracking",
+                "Email-based status updates",
+                "Share wireframes via email or Drive link",
+              ].map((t) => (
+                <li key={t} className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400" /> {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <form
+            onSubmit={handleSubmit}
+            className="relative border-t border-white/5 bg-navy-900/40 p-10 lg:border-l lg:border-t-0 lg:p-12"
+          >
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+                  Your name *
+                </label>
+                <input
+                  value={form.name}
+                  onChange={(e) => update("name", e.target.value)}
+                  required
+                  className="input-field"
+                  placeholder="Jane Doe"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => update("email", e.target.value)}
+                    required
+                    className="input-field"
+                    placeholder="you@company.com"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+                    Company
+                  </label>
+                  <input
+                    value={form.company}
+                    onChange={(e) => update("company", e.target.value)}
+                    className="input-field"
+                    placeholder="Acme Inc."
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+                    Service needed
+                  </label>
+                  <select
+                    value={form.service}
+                    onChange={(e) => update("service", e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="">Select a service…</option>
+                    {SERVICES.map((s) => (
+                      <option key={s.title} value={s.title}>{s.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+                    Budget
+                  </label>
+                  <select
+                    value={form.budget}
+                    onChange={(e) => update("budget", e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="">Select range…</option>
+                    <option value="< $5k">&lt; $5k</option>
+                    <option value="$5k – $15k">$5k – $15k</option>
+                    <option value="$15k – $40k">$15k – $40k</option>
+                    <option value="$40k – $100k">$40k – $100k</option>
+                    <option value="$100k+">$100k+</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+                  Timeline
+                </label>
+                <input
+                  value={form.timeline}
+                  onChange={(e) => update("timeline", e.target.value)}
+                  className="input-field"
+                  placeholder="e.g. 6 weeks, Q3 2026, ASAP…"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+                  Project brief *
+                </label>
+                <textarea
+                  rows={4}
+                  value={form.brief}
+                  onChange={(e) => update("brief", e.target.value)}
+                  required
+                  className="input-field resize-none"
+                  placeholder="What are you building? Any must-haves, links, or context we should know?"
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-200">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn-primary w-full"
+              >
+                {submitting ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/40 border-t-white" />
+                    Submitting…
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" /> Submit project
+                  </>
+                )}
+              </button>
+
+              <p className="text-center text-[11px] text-ink-500">
+                Demo mode — submissions are saved to your browser. Step 5 wiring will persist to Firestore.
+              </p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SummaryRow({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-white/5 pb-2">
+      <dt className="text-xs uppercase tracking-wider text-ink-500">{k}</dt>
+      <dd className="truncate text-right text-ink-200">{v}</dd>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* FUNCTIONAL TRACK STATUS SECTION                                         */
+/* ─────────────────────────────────────────────────────────────────────── */
+
+function TrackStatusSection() {
+  const [email, setEmail] = useState("");
+  const [results, setResults] = useState<
+    Array<{ id: string; projectTitle: string; status: string; createdAt: string }>
+  >([]);
+  const [searched, setSearched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Please enter a valid email address.");
+      setResults([]);
+      setSearched(false);
+      return;
+    }
+    try {
+      const KEY = "theshield_submissions";
+      const all = JSON.parse(localStorage.getItem(KEY) || "[]");
+      const matches = all.filter(
+        (s: { email: string; id: string; brief?: string; service?: string; status: string; createdAt: string }) =>
+          s.email.toLowerCase() === email.toLowerCase()
+      );
+      setResults(
+        matches.map((s: { id: string; brief?: string; service?: string; status: string; createdAt: string }) => ({
+          id: s.id,
+          projectTitle: s.service || s.brief?.slice(0, 60) || "Project",
+          status: s.status,
+          createdAt: s.createdAt,
+        }))
+      );
+      setSearched(true);
+    } catch {
+      setError("Could not read saved submissions.");
+    }
+  };
+
+  return (
+    <section id="track" className="mx-auto max-w-4xl px-6 py-20 scroll-mt-20">
+      <div className="text-center">
+        <span className="inline-flex items-center gap-2 rounded-full bg-violet-600/10 px-3 py-1 text-xs font-medium text-violet-300">
+          <Search className="h-3.5 w-3.5" /> Track Status
+        </span>
+        <h2 className="mt-4 text-3xl font-bold text-white">Track your submission</h2>
+        <p className="mt-3 text-ink-300">
+          Enter the email you used to submit — we&apos;ll show every project and its live status.
+        </p>
+      </div>
+      <form onSubmit={handleSearch} className="mt-8 glass-card p-6">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@company.com"
+            className="input-field flex-1"
+          />
+          <button type="submit" className="btn-primary">
+            <Search className="h-4 w-4" /> Search
+          </button>
+        </div>
+        {error && (
+          <p className="mt-3 text-center text-xs text-rose-300">{error}</p>
+        )}
+        {searched && !error && (
+          <div className="mt-6">
+            {results.length === 0 ? (
+              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-6 text-center text-sm text-ink-400">
+                No submissions found for <span className="font-mono text-ink-200">{email}</span>.
+                <br />
+                Try submitting a project above first.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-400">
+                  {results.length} submission{results.length === 1 ? "" : "s"} found
+                </h3>
+                {results.map((r) => (
+                  <div
+                    key={r.id}
+                    className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-white">{r.projectTitle}</div>
+                      <div className="font-mono text-[10px] text-ink-500">{r.id}</div>
+                    </div>
+                    <span className="badge badge-pending whitespace-nowrap">{r.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </form>
+    </section>
   );
 }

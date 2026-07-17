@@ -9,7 +9,7 @@ import React from "react";
  *  - MiniBarChart:  vertical bar chart with gradient bars
  *  - Sparkline:     tiny inline line chart for stat cards
  *
- *  All pure SVG, no deps. Colors come from the DevForge palette:
+ *  All pure SVG, no deps. Colors come from the The Shield palette:
  *  mint #64ffda · violet #667eea · purple #764ba2
  * ──────────────────────────────────────────────────────────────────────────── */
 

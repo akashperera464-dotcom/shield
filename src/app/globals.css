@@ -42,7 +42,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* ─── DevForge: Dark Premium Dashboard palette ───
+  /* ─── The Shield: Dark Premium Dashboard palette ───
    * Match reference screenshots: deep navy bg, mint cyan + purple gradient accents
    */
   --color-ink-50:  #f6f7fb;
