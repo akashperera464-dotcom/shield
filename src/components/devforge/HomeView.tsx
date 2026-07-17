@@ -680,7 +680,7 @@ export default function HomeView() {
               <a href="#submit" className="btn-primary">
                 <Send className="h-4 w-4" /> Submit Project
               </a>
-              <a href="mailto:hello@theshield.agency" className="btn-ghost">
+              <a href="mailto:akashperera464@gmail.com" className="btn-ghost">
                 <Mail className="h-4 w-4" /> Email us
               </a>
             </div>
@@ -712,10 +712,10 @@ export default function HomeView() {
                   <MapPin className="h-3.5 w-3.5" /> 15+ service locations
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Mail className="h-3.5 w-3.5" /> hello@theshield.agency
+                  <Mail className="h-3.5 w-3.5" /> akashperera464@gmail.com
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Phone className="h-3.5 w-3.5" /> +1 (555) 010-2026
+                  <Phone className="h-3.5 w-3.5" /> 0741622795
                 </span>
               </div>
             </div>

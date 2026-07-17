@@ -21,6 +21,11 @@ import {
   BarChart3,
   HardDrive,
   ChevronRight,
+  Phone,
+  Briefcase,
+  AtSign,
+  Pencil,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -35,7 +40,7 @@ const SIDEBAR_NAV = [
   { id: "home",       label: "Back to site",    icon: HomeIcon },
   { id: "dashboard",  label: "Dashboard",       icon: LayoutDashboard },
   { id: "cms",        label: "CMS Settings",    icon: Settings },
-  { id: "team",       label: "Team Admins",     icon: Users },
+  { id: "team",       label: "User Management", icon: Users },
   { id: "analytics",  label: "Analytics",       icon: Activity },
   { id: "storage",    label: "Storage",         icon: HardDrive },
 ] as const;
@@ -316,108 +321,357 @@ function CMSPanel({ isDemo }: { isDemo: boolean }) {
 
 /* ─────────────────────────────────────────────────────────────────────── */
 
+/* ─────────────────────────────────────────────────────────────────────── */
+/* USER MANAGEMENT — full CRUD                                            */
+/* • Superadmin (you) can never be deleted                                 */
+/* • Superadmin can add / edit / delete any other admin                    */
+/* • Persists to localStorage so changes survive reloads                   */
+/* ─────────────────────────────────────────────────────────────────────── */
+
+const TEAM_STORAGE_KEY = "theshield_team";
+const SUPERADMIN_UID = "u_001"; // matches DEMO_TEAM[0] — Akash Perera
+
+// Always-seed superadmin row (in case localStorage is empty)
+const SEED_SUPERADMIN: TeamMember = {
+  uid: SUPERADMIN_UID,
+  name: "Akash Perera",
+  email: "akashperera@shield.com",
+  role: "superadmin",
+  createdAt: "2026-06-01",
+  jobField: "Management",
+  mobile: "0741622795",
+  username: "akashperera",
+};
+
+function loadTeam(): TeamMember[] {
+  if (typeof window === "undefined") return DEMO_TEAM;
+  try {
+    const raw = localStorage.getItem(TEAM_STORAGE_KEY);
+    if (!raw) {
+      const seeded = [SEED_SUPERADMIN, ...DEMO_TEAM.filter((m) => m.uid !== SUPERADMIN_UID)];
+      localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(seeded));
+      return seeded;
+    }
+    const parsed = JSON.parse(raw) as TeamMember[];
+    // Always guarantee the superadmin exists & is unchanged
+    if (!parsed.some((m) => m.uid === SUPERADMIN_UID)) {
+      parsed.unshift(SEED_SUPERADMIN);
+      localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(parsed));
+    }
+    return parsed;
+  } catch {
+    return DEMO_TEAM;
+  }
+}
+
+function saveTeam(team: TeamMember[]) {
+  try {
+    localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(team));
+  } catch {}
+}
+
+const JOB_FIELDS = [
+  "Application Development",
+  "Software Development",
+  "Graphic Design",
+  "Mobile App Development",
+  "Website Development",
+  "UI / UX Designing",
+  "CRM Software Development",
+  "Digital Marketing",
+  "Artificial Intelligence",
+  "Machine Learning",
+  "SharePoint Integration",
+  "NetSuite Integration",
+  "Management",
+];
+
+interface AdminFormState {
+  name: string;
+  email: string;
+  username: string;
+  password: string;
+  mobile: string;
+  jobField: string;
+}
+
+const EMPTY_FORM: AdminFormState = {
+  name: "",
+  email: "",
+  username: "",
+  password: "",
+  mobile: "",
+  jobField: "",
+};
+
 function TeamPanel({ isDemo }: { isDemo: boolean }) {
-  const { registerAdmin } = useAuth();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [pass, setPass] = useState("");
-  const [show, setShow] = useState(false);
+  const { registerAdmin, profile } = useAuth();
+  const [team, setTeam] = useState<TeamMember[]>(() => loadTeam());
+  const [form, setForm] = useState<AdminFormState>(EMPTY_FORM);
+  const [editingUid, setEditingUid] = useState<string | null>(null);
+  const [showPass, setShowPass] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
-  const [team, setTeam] = useState<TeamMember[]>(DEMO_TEAM);
+  const [confirmDeleteUid, setConfirmDeleteUid] = useState<string | null>(null);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  // ── Helpers ───────────────────────────────────────────────
+  const isProtectedSuperadmin = (m: TeamMember) =>
+    m.role === "superadmin" && m.uid === SUPERADMIN_UID;
+
+  const update = <K extends keyof AdminFormState>(k: K, v: AdminFormState[K]) =>
+    setForm((f) => ({ ...f, [k]: v }));
+
+  const persist = (next: TeamMember[]) => {
+    setTeam(next);
+    saveTeam(next);
+  };
+
+  const validate = (): string | null => {
+    if (!form.name.trim()) return "Name is required.";
+    if (!form.email.trim()) return "Email is required.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return "Enter a valid email.";
+    if (!form.username.trim()) return "Username is required.";
+    if (!form.password.trim() && !editingUid) return "Password is required.";
+    if (form.password && form.password.length < 6) return "Password must be at least 6 characters.";
+    if (!form.jobField) return "Job field is required.";
+    // Unique email/username check
+    const dupe = team.find(
+      (m) =>
+        m.uid !== editingUid &&
+        (m.email.toLowerCase() === form.email.trim().toLowerCase() ||
+          (m.username || "").toLowerCase() === form.username.trim().toLowerCase())
+    );
+    if (dupe) return "Another admin already uses this email or username.";
+    return null;
+  };
+
+  // ── Create / Update ──────────────────────────────────────
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBusy(true);
     setMsg(null);
+    const v = validate();
+    if (v) {
+      setMsg({ type: "err", text: v });
+      return;
+    }
+
+    setBusy(true);
     try {
-      if (isDemo) {
+      if (editingUid) {
+        // ── UPDATE ──
+        const next = team.map((m) =>
+          m.uid === editingUid
+            ? {
+                ...m,
+                name: form.name.trim(),
+                email: form.email.trim(),
+                username: form.username.trim(),
+                mobile: form.mobile.trim(),
+                jobField: form.jobField,
+                // superadmin role is locked
+                role: m.uid === SUPERADMIN_UID ? "superadmin" : m.role,
+              }
+            : m
+        );
+        persist(next);
+        setMsg({ type: "ok", text: `Updated ${form.name}.` });
+        setEditingUid(null);
+        setForm(EMPTY_FORM);
+      } else {
+        // ── CREATE ──
+        if (registerAdmin && !isDemo) {
+          await registerAdmin({ name: form.name, email: form.email, password: form.password });
+        }
         const newMember: TeamMember = {
           uid: "u_" + Math.random().toString(36).slice(2, 8),
-          name,
-          email,
+          name: form.name.trim(),
+          email: form.email.trim(),
+          username: form.username.trim(),
+          mobile: form.mobile.trim(),
+          jobField: form.jobField,
           role: "admin",
           createdAt: new Date().toISOString().slice(0, 10),
         };
-        setTeam([newMember, ...team]);
-        setMsg({ type: "ok", text: `Admin added (demo): ${email}` });
-        setName(""); setEmail(""); setPass("");
-      } else if (registerAdmin) {
-        const p = await registerAdmin({ name, email, password: pass });
-        setMsg({ type: "ok", text: `Admin created: ${p.email}` });
-        setName(""); setEmail(""); setPass("");
+        persist([newMember, ...team]);
+        setMsg({ type: "ok", text: `Admin added: ${form.email}` });
+        setForm(EMPTY_FORM);
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to create admin.";
-      setMsg({ type: "err", text: msg });
+      const m = err instanceof Error ? err.message : "Failed to save admin.";
+      setMsg({ type: "err", text: m });
     } finally {
       setBusy(false);
     }
   };
 
-  const handleRemove = (uid: string) => {
-    if (isDemo) setTeam(team.filter((m) => m.uid !== uid));
+  // ── Edit ─────────────────────────────────────────────────
+  const startEdit = (m: TeamMember) => {
+    setEditingUid(m.uid);
+    setForm({
+      name: m.name,
+      email: m.email,
+      username: m.username || "",
+      password: "", // blank = keep current
+      mobile: m.mobile || "",
+      jobField: m.jobField || "",
+    });
+    setMsg(null);
+    setShowPass(false);
+    // Scroll to form
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
+  const cancelEdit = () => {
+    setEditingUid(null);
+    setForm(EMPTY_FORM);
+    setMsg(null);
+  };
+
+  // ── Delete ───────────────────────────────────────────────
+  const handleDelete = (m: TeamMember) => {
+    if (isProtectedSuperadmin(m)) {
+      setMsg({ type: "err", text: "The superadmin account cannot be deleted." });
+      return;
+    }
+    if (confirmDeleteUid !== m.uid) {
+      setConfirmDeleteUid(m.uid);
+      return;
+    }
+    persist(team.filter((x) => x.uid !== m.uid));
+    setConfirmDeleteUid(null);
+    setMsg({ type: "ok", text: `Removed ${m.name}.` });
+    if (editingUid === m.uid) cancelEdit();
+  };
+
+  // ── Render ───────────────────────────────────────────────
+  const editingTarget = editingUid ? team.find((m) => m.uid === editingUid) : null;
+
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <form onSubmit={handleCreate} className="glass-card p-6">
-        <h2 className="text-xl font-semibold text-white">Register new admin</h2>
+    <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
+      {/* ── LEFT: FORM ──────────────────────────────────────── */}
+      <form onSubmit={handleSubmit} className="glass-card p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-white">
+            {editingUid ? "Edit admin" : "Add new admin"}
+          </h2>
+          {editingUid && (
+            <button
+              type="button"
+              onClick={cancelEdit}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-ink-400 hover:bg-white/5 hover:text-white"
+            >
+              <X className="h-3.5 w-3.5" /> Cancel
+            </button>
+          )}
+        </div>
         <p className="mt-1 text-sm text-ink-400">
-          Creates a Firebase Auth user and writes a <code className="rounded bg-white/5 px-1.5 py-0.5 text-ink-200">users/uid</code> doc
-          with role=<span className="text-mint-300">admin</span>.
+          {editingUid && editingTarget && isProtectedSuperadmin(editingTarget)
+            ? "Editing your own superadmin profile. Role cannot be changed."
+            : "Creates a new admin login. Superadmin (you) has full control — admins can be edited or removed at any time."}
         </p>
-        <div className="mt-6 space-y-4">
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-ink-400">Full name</label>
+
+        <div className="mt-5 space-y-4">
+          {/* Name */}
+          <AdminField label="Full name" required>
             <div className="relative">
               <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
               <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={form.name}
+                onChange={(e) => update("name", e.target.value)}
                 required
                 className="input-field pl-10"
                 placeholder="Jane Doe"
               />
             </div>
+          </AdminField>
+
+          {/* Email + Username */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <AdminField label="Email" required>
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => update("email", e.target.value)}
+                  required
+                  className="input-field pl-10"
+                  placeholder="jane@theshield.agency"
+                />
+              </div>
+            </AdminField>
+            <AdminField label="Username" required>
+              <div className="relative">
+                <AtSign className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+                <input
+                  value={form.username}
+                  onChange={(e) => update("username", e.target.value)}
+                  required
+                  className="input-field pl-10"
+                  placeholder="jane_doe"
+                />
+              </div>
+            </AdminField>
           </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-ink-400">Email</label>
+
+          {/* Password + Mobile */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <AdminField label={editingUid ? "New password (leave blank to keep)" : "Password"} required={!editingUid}>
+              <div className="relative">
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+                <input
+                  type={showPass ? "text" : "password"}
+                  value={form.password}
+                  onChange={(e) => update("password", e.target.value)}
+                  required={!editingUid}
+                  minLength={form.password ? 6 : undefined}
+                  className="input-field pl-10 pr-10"
+                  placeholder={editingUid ? "•••••• (unchanged)" : "Min. 6 characters"}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass((s) => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-200"
+                  tabIndex={-1}
+                >
+                  {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </AdminField>
+            <AdminField label="Mobile (optional)">
+              <div className="relative">
+                <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+                <input
+                  type="tel"
+                  value={form.mobile}
+                  onChange={(e) => update("mobile", e.target.value)}
+                  className="input-field pl-10"
+                  placeholder="0741234567"
+                />
+              </div>
+            </AdminField>
+          </div>
+
+          {/* Job field */}
+          <AdminField label="Job field" required>
             <div className="relative">
-              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+              <Briefcase className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+              <select
+                value={form.jobField}
+                onChange={(e) => update("jobField", e.target.value)}
                 required
                 className="input-field pl-10"
-                placeholder="jane@theshield.agency"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-ink-400">Password</label>
-            <div className="relative">
-              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
-              <input
-                type={show ? "text" : "password"}
-                value={pass}
-                onChange={(e) => setPass(e.target.value)}
-                required
-                minLength={8}
-                className="input-field pl-10 pr-10"
-                placeholder="Min. 8 characters"
-              />
-              <button
-                type="button"
-                onClick={() => setShow((s) => !s)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-200"
-                tabIndex={-1}
               >
-                {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+                <option value="">Select a field…</option>
+                {JOB_FIELDS.map((j) => (
+                  <option key={j} value={j}>{j}</option>
+                ))}
+              </select>
             </div>
-          </div>
+          </AdminField>
+
           {msg && (
             <div
               className={`rounded-lg border p-3 text-xs ${
@@ -429,60 +683,174 @@ function TeamPanel({ isDemo }: { isDemo: boolean }) {
               {msg.text}
             </div>
           )}
-          <button type="submit" disabled={busy} className="btn-primary">
+
+          <button type="submit" disabled={busy} className="btn-primary w-full">
             {busy ? (
               <>
                 <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/40 border-t-white" />
-                Creating…
+                Saving…
               </>
             ) : (
               <>
-                <Plus className="h-4 w-4" /> {isDemo ? "Add to demo roster" : "Create admin"}
+                {editingUid ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                {editingUid ? "Save changes" : "Add admin"}
               </>
             )}
           </button>
-          {isDemo && (
+
+          {isDemo && !editingUid && (
             <p className="text-[11px] text-amber-300">
-              Demo mode — new admins are added locally only. Step 6 wiring will write to Firestore + Firebase Auth.
+              Demo mode — new admins are stored in your browser. They can sign in with the email + password you set here (any non-superadmin email works as an admin login in preview).
             </p>
           )}
         </div>
       </form>
 
+      {/* ── RIGHT: ROSTER ──────────────────────────────────── */}
       <div className="glass-card p-6">
-        <h3 className="text-lg font-semibold text-white">Team roster</h3>
-        <p className="mt-1 text-xs text-ink-400">All documents in the <code>users</code> collection.</p>
-        <div className="mt-4 space-y-3 max-h-[28rem] overflow-y-auto pr-1">
-          {team.map((m) => (
-            <div
-              key={m.uid}
-              className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3"
-            >
-              <GradientAvatar
-                initial={m.name.charAt(0)}
-                size={36}
-                variant={m.role === "superadmin" ? "violet" : "mint"}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="truncate text-sm font-medium text-white">{m.name}</div>
-                <div className="truncate text-xs text-ink-400">{m.email}</div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-white">User management</h3>
+            <p className="mt-1 text-xs text-ink-400">
+              {team.length} {team.length === 1 ? "user" : "users"} · superadmin is protected
+            </p>
+          </div>
+          {profile?.role === "superadmin" && (
+            <span className="badge badge-progress">
+              <Shield className="mr-1 h-3 w-3" /> Full CRUD
+            </span>
+          )}
+        </div>
+
+        <div className="mt-4 max-h-[36rem] space-y-3 overflow-y-auto pr-1">
+          {team.map((m) => {
+            const protectedAdmin = isProtectedSuperadmin(m);
+            const isConfirming = confirmDeleteUid === m.uid;
+            return (
+              <div
+                key={m.uid}
+                className={`rounded-xl border p-4 transition-colors ${
+                  protectedAdmin
+                    ? "border-violet-500/30 bg-violet-600/5"
+                    : "border-white/5 bg-white/[0.02]"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <GradientAvatar
+                    initial={m.name.charAt(0)}
+                    size={40}
+                    variant={m.role === "superadmin" ? "violet" : "mint"}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="truncate text-sm font-semibold text-white">{m.name}</span>
+                      <span
+                        className={
+                          m.role === "superadmin" ? "badge badge-progress" : "badge badge-pending"
+                        }
+                      >
+                        {m.role}
+                      </span>
+                      {protectedAdmin && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-violet-600/10 px-2 py-0.5 text-[10px] text-violet-300">
+                          <Shield className="h-3 w-3" /> you
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 grid grid-cols-1 gap-1 text-xs text-ink-400">
+                      <span className="inline-flex items-center gap-1.5 truncate">
+                        <Mail className="h-3 w-3 shrink-0" /> {m.email}
+                      </span>
+                      {m.username && (
+                        <span className="inline-flex items-center gap-1.5 truncate">
+                          <AtSign className="h-3 w-3 shrink-0" /> {m.username}
+                        </span>
+                      )}
+                      {m.jobField && (
+                        <span className="inline-flex items-center gap-1.5 truncate">
+                          <Briefcase className="h-3 w-3 shrink-0" /> {m.jobField}
+                        </span>
+                      )}
+                      {m.mobile && (
+                        <span className="inline-flex items-center gap-1.5 truncate">
+                          <Phone className="h-3 w-3 shrink-0" /> {m.mobile}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(m)}
+                      className="rounded-md p-1.5 text-ink-400 hover:bg-mint-300/10 hover:text-mint-300"
+                      title="Edit"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    {protectedAdmin ? (
+                      <button
+                        type="button"
+                        disabled
+                        title="Superadmin cannot be deleted"
+                        className="cursor-not-allowed rounded-md p-1.5 text-ink-600"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(m)}
+                        className={`rounded-md p-1.5 transition-colors ${
+                          isConfirming
+                            ? "bg-rose-500/20 text-rose-300"
+                            : "text-ink-400 hover:bg-rose-500/10 hover:text-rose-300"
+                        }`}
+                        title={isConfirming ? "Click again to confirm" : "Remove"}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {isConfirming && (
+                  <div className="mt-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                    Remove {m.name}? This cannot be undone.{" "}
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteUid(null)}
+                      className="ml-1 underline hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
-              <span className={m.role === "superadmin" ? "badge badge-progress" : "badge badge-pending"}>
-                {m.role}
-              </span>
-              {isDemo && m.role !== "superadmin" && (
-                <button
-                  onClick={() => handleRemove(m.uid)}
-                  className="rounded-md p-1.5 text-ink-500 hover:bg-rose-500/10 hover:text-rose-300"
-                  title="Remove (demo)"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* Tiny labelled field wrapper to keep the form tidy */
+function AdminField({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-ink-400">
+        {label} {required && <span className="text-mint-300">*</span>}
+      </label>
+      {children}
     </div>
   );
 }

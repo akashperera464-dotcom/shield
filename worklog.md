@@ -55,3 +55,38 @@ Stage Summary:
 - Attachments are stored on the submission record (localStorage now, Firestore later) and shown as clickable links in the success summary.
 - Vendor name is intentionally absent from all UI strings.
 - If env vars are missing, the dropzone shows "(disabled — ask admin to configure uploads)" and the submit handler shows a friendly error instead of trying to upload.
+
+---
+Task ID: contact-info-update+user-management-CRUD
+Agent: main
+Task: Update contact info (phone 0741622795, email akashperera464@gmail.com). Add a User Management section in the SuperAdmin panel with full CRUD — superadmin (Akash) cannot be deleted, but can add/edit/delete any other admin. Required fields: name, job field (select), username, password. Optional: mobile.
+
+Work Log:
+- HomeView.tsx: Updated mailto link, footer email, and footer phone to the new contact info.
+- demo.ts: Updated SiteConfig.contactEmail to akashperera464@gmail.com.
+- demo.ts: Extended TeamMember interface with optional jobField, mobile, username. Updated DEMO_TEAM seed to include Akash Perera as the superadmin (uid u_001) with his real contact info; other demo admins got jobField + username.
+- SuperAdminView.tsx: Added lucide imports — Phone, Briefcase, AtSign, Pencil, X.
+- SuperAdminView.tsx: Renamed sidebar entry from "Team Admins" to "User Management".
+- SuperAdminView.tsx: Completely replaced the old TeamPanel with a new full-CRUD version:
+  * Persists team to localStorage under "theshield_team" key (survives reloads).
+  * SEED_SUPERADMIN constant guarantees Akash's superadmin row always exists.
+  * SUPERADMIN_UID = "u_001" — the protected row that can never be deleted.
+  * AdminFormState carries name, email, username, password, mobile, jobField.
+  * JOB_FIELDS dropdown covers all 13 service categories from the website.
+  * validate() — checks required fields, email format, password length (≥6 chars), and uniqueness of email/username across the team.
+  * handleSubmit() — branches on editingUid: UPDATE maps over team and patches the matching row; CREATE prepends a new admin row. Superadmin role is always locked.
+  * startEdit() — populates form from existing row, blanks password (leave blank to keep), smooth-scrolls to top.
+  * handleDelete() — two-click confirmation pattern. Refuses to delete protected superadmin (shows error). Shows inline "Remove X? This cannot be undone" confirm banner.
+  * AdminField helper component (renamed to avoid collision with existing CMS Field) wraps a label + required asterisk + children.
+  * Roster card shows avatar, name, role badge, "you" pill for superadmin, and lines for email / username / jobField / mobile. Edit + trash buttons on the right. Protected superadmin's trash button is disabled with tooltip "Superadmin cannot be deleted".
+- SuperAdminView.tsx: Renamed local Field component to AdminField to avoid duplicate identifier with the existing Field used in CMSPanel.
+- Verified `npx tsc --noEmit` clean for project source; dev server returns 200 on :3000 and :81.
+
+Stage Summary:
+- Contact info swapped everywhere on the public site (footer + mailto + demo config).
+- SuperAdmin → User Management tab now has:
+  • Add form with name, email, username, password, mobile (optional), job field (select) — all validated.
+  • Edit mode reuses the same form with password shown as "leave blank to keep".
+  • Delete with two-click confirmation, blocked for the superadmin row.
+  • Roster persists to localStorage so added/edited/removed admins survive reloads.
+  • Superadmin (Akash Perera, uid u_001) is locked — cannot be deleted, role cannot be changed, but profile fields (name/email/mobile/jobField) can still be edited.
