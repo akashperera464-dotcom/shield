@@ -26,26 +26,36 @@ import {
   AtSign,
   Pencil,
   X,
+  FolderKanban,
+  ExternalLink,
+  Star,
+  ArrowUp,
+  ArrowDown,
+  Tag,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
   DEMO_CONFIG,
   DEMO_TEAM,
+  SHOWCASE_CATEGORIES,
   type SiteConfig,
   type TeamMember,
+  type ShowcaseProject,
 } from "@/data/demo";
 import { GradientAvatar, MiniAreaChart, CircularGauge } from "./Charts";
+import { loadShowcase, saveShowcase, newShowcaseId } from "@/lib/showcase";
 
 const SIDEBAR_NAV = [
   { id: "home",       label: "Back to site",    icon: HomeIcon },
   { id: "dashboard",  label: "Dashboard",       icon: LayoutDashboard },
   { id: "cms",        label: "CMS Settings",    icon: Settings },
+  { id: "projects",   label: "Projects",        icon: FolderKanban },
   { id: "team",       label: "User Management", icon: Users },
   { id: "analytics",  label: "Analytics",       icon: Activity },
   { id: "storage",    label: "Storage",         icon: HardDrive },
 ] as const;
 
-type TabId = "cms" | "team" | "analytics" | "storage";
+type TabId = "cms" | "projects" | "team" | "analytics" | "storage";
 
 const STORAGE_DATA = [42, 38, 55, 48, 65, 58, 72, 68, 85, 78, 92, 96];
 const TRAFFIC_DATA = [120, 145, 138, 168, 185, 172, 195, 210, 188, 232, 248, 268];
@@ -103,6 +113,7 @@ export default function SuperAdminView() {
               {SIDEBAR_NAV.map((item) => {
                 const isActive =
                   (item.id === "cms" && tab === "cms") ||
+                  (item.id === "projects" && tab === "projects") ||
                   (item.id === "team" && tab === "team") ||
                   (item.id === "analytics" && tab === "analytics") ||
                   (item.id === "storage" && tab === "storage");
@@ -851,6 +862,501 @@ function AdminField({
         {label} {required && <span className="text-mint-300">*</span>}
       </label>
       {children}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* SHOWCASE PANEL — manage the public "Our Projects" cards                */
+/* • Add / edit / delete project cards                                     */
+/* • Paste Cloudinary URL for the card image                               */
+/* • Paste project URL — clicking the card opens it                        */
+/* • Toggle featured, reorder, tag                                         */
+/* ─────────────────────────────────────────────────────────────────────── */
+
+interface ShowcaseFormState {
+  title: string;
+  category: string;
+  description: string;
+  imageUrl: string;
+  projectUrl: string;
+  tagsText: string; // comma-separated in the form, stored as array
+  featured: boolean;
+}
+
+const EMPTY_SHOWCASE_FORM: ShowcaseFormState = {
+  title: "",
+  category: "",
+  description: "",
+  imageUrl: "",
+  projectUrl: "",
+  tagsText: "",
+  featured: false,
+};
+
+function ShowcasePanel() {
+  const [projects, setProjects] = useState<ShowcaseProject[]>(() => loadShowcase());
+  const [form, setForm] = useState<ShowcaseFormState>(EMPTY_SHOWCASE_FORM);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const update = <K extends keyof ShowcaseFormState>(k: K, v: ShowcaseFormState[K]) =>
+    setForm((f) => ({ ...f, [k]: v }));
+
+  const persist = (next: ShowcaseProject[]) => {
+    setProjects(next);
+    saveShowcase(next);
+  };
+
+  const validate = (): string | null => {
+    if (!form.title.trim()) return "Title is required.";
+    if (!form.category) return "Category is required.";
+    if (!form.description.trim()) return "Description is required.";
+    if (form.imageUrl && !/^https?:\/\/.+/.test(form.imageUrl))
+      return "Image URL must start with http(s)://";
+    if (form.projectUrl && !/^https?:\/\/.+/.test(form.projectUrl))
+      return "Project URL must start with http(s)://";
+    return null;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMsg(null);
+    const v = validate();
+    if (v) {
+      setMsg({ type: "err", text: v });
+      return;
+    }
+    setBusy(true);
+    try {
+      const tags = form.tagsText
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+
+      if (editingId) {
+        const next = projects.map((p) =>
+          p.id === editingId
+            ? {
+                ...p,
+                title: form.title.trim(),
+                category: form.category,
+                description: form.description.trim(),
+                imageUrl: form.imageUrl.trim(),
+                projectUrl: form.projectUrl.trim(),
+                tags,
+                featured: form.featured,
+              }
+            : p
+        );
+        persist(next);
+        setMsg({ type: "ok", text: `Updated "${form.title}".` });
+      } else {
+        const newProject: ShowcaseProject = {
+          id: newShowcaseId(),
+          title: form.title.trim(),
+          category: form.category,
+          description: form.description.trim(),
+          imageUrl: form.imageUrl.trim(),
+          projectUrl: form.projectUrl.trim(),
+          tags,
+          featured: form.featured,
+          order: projects.length + 1,
+        };
+        persist([newProject, ...projects]);
+        setMsg({ type: "ok", text: `Added "${form.title}".` });
+      }
+      setForm(EMPTY_SHOWCASE_FORM);
+      setEditingId(null);
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "Failed to save project.";
+      setMsg({ type: "err", text: m });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const startEdit = (p: ShowcaseProject) => {
+    setEditingId(p.id);
+    setForm({
+      title: p.title,
+      category: p.category,
+      description: p.description,
+      imageUrl: p.imageUrl,
+      projectUrl: p.projectUrl,
+      tagsText: p.tags.join(", "),
+      featured: p.featured,
+    });
+    setMsg(null);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm(EMPTY_SHOWCASE_FORM);
+    setMsg(null);
+  };
+
+  const handleDelete = (p: ShowcaseProject) => {
+    if (confirmDeleteId !== p.id) {
+      setConfirmDeleteId(p.id);
+      return;
+    }
+    persist(projects.filter((x) => x.id !== p.id));
+    setConfirmDeleteId(null);
+    setMsg({ type: "ok", text: `Removed "${p.title}".` });
+    if (editingId === p.id) cancelEdit();
+  };
+
+  const toggleFeatured = (p: ShowcaseProject) => {
+    persist(
+      projects.map((x) => (x.id === p.id ? { ...x, featured: !x.featured } : x))
+    );
+  };
+
+  const move = (p: ShowcaseProject, dir: -1 | 1) => {
+    const sorted = [...projects].sort((a, b) => a.order - b.order);
+    const idx = sorted.findIndex((x) => x.id === p.id);
+    const target = idx + dir;
+    if (target < 0 || target >= sorted.length) return;
+    const swap = sorted[target];
+    const tmpOrder = sorted[idx].order;
+    sorted[idx] = { ...sorted[idx], order: swap.order };
+    sorted[target] = { ...swap, order: tmpOrder };
+    persist(sorted);
+  };
+
+  const sorted = [...projects].sort((a, b) => {
+    if (a.featured !== b.featured) return a.featured ? -1 : 1;
+    return a.order - b.order;
+  });
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+      {/* ── LEFT: FORM ──────────────────────────────────────── */}
+      <form onSubmit={handleSubmit} className="glass-card p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-white">
+            {editingId ? "Edit project" : "Add new project"}
+          </h2>
+          {editingId && (
+            <button
+              type="button"
+              onClick={cancelEdit}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-ink-400 hover:bg-white/5 hover:text-white"
+            >
+              <X className="h-3.5 w-3.5" /> Cancel
+            </button>
+          )}
+        </div>
+        <p className="mt-1 text-sm text-ink-400">
+          Add a project card to the homepage. Paste image + project URLs — clicking the card opens the project in a new tab.
+        </p>
+
+        <div className="mt-5 space-y-4">
+          <AdminField label="Title" required>
+            <input
+              value={form.title}
+              onChange={(e) => update("title", e.target.value)}
+              required
+              className="input-field"
+              placeholder="Layla Cosmetics — D2C Storefront"
+            />
+          </AdminField>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <AdminField label="Category" required>
+              <div className="relative">
+                <Tag className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+                <select
+                  value={form.category}
+                  onChange={(e) => update("category", e.target.value)}
+                  required
+                  className="input-field pl-10"
+                >
+                  <option value="">Select…</option>
+                  {SHOWCASE_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            </AdminField>
+            <AdminField label="Tags (comma-separated)">
+              <input
+                value={form.tagsText}
+                onChange={(e) => update("tagsText", e.target.value)}
+                className="input-field"
+                placeholder="Next.js, Shopify, AR"
+              />
+            </AdminField>
+          </div>
+
+          <AdminField label="Description" required>
+            <textarea
+              rows={3}
+              value={form.description}
+              onChange={(e) => update("description", e.target.value)}
+              required
+              className="input-field resize-none"
+              placeholder="Short summary of the project — what was built, stack, outcome."
+            />
+          </AdminField>
+
+          {/* Image URL with live preview */}
+          <AdminField label="Image URL" required={false}>
+            <div className="space-y-2">
+              <div className="relative">
+                <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+                <input
+                  value={form.imageUrl}
+                  onChange={(e) => update("imageUrl", e.target.value)}
+                  className="input-field pl-10 font-mono text-xs"
+                  placeholder="https://res.cloudinary.com/…/your-image.png"
+                />
+              </div>
+              {form.imageUrl && /^https?:\/\/.+/.test(form.imageUrl) ? (
+                <div className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={form.imageUrl}
+                    alt="preview"
+                    className="h-14 w-24 rounded-md object-cover ring-1 ring-white/10"
+                  />
+                  <div className="text-xs text-ink-400">
+                    <div className="flex items-center gap-1 text-emerald-300">
+                      <ImageIcon className="h-3 w-3" /> Image linked
+                    </div>
+                    <div className="mt-0.5 truncate font-mono text-[10px] text-ink-500">
+                      {form.imageUrl}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[10px] text-ink-500">
+                  Paste any image URL — recommended 16:10 ratio.
+                </p>
+              )}
+            </div>
+          </AdminField>
+
+          {/* Project URL */}
+          <AdminField label="Project URL (clicking the card opens this)" required={false}>
+            <div className="relative">
+              <ExternalLink className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+              <input
+                value={form.projectUrl}
+                onChange={(e) => update("projectUrl", e.target.value)}
+                className="input-field pl-10 font-mono text-xs"
+                placeholder="https://your-live-project.com"
+              />
+            </div>
+            {form.projectUrl && /^https?:\/\/.+/.test(form.projectUrl) && (
+              <a
+                href={form.projectUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-flex items-center gap-1 text-[10px] text-mint-300 hover:underline"
+              >
+                <ExternalLink className="h-3 w-3" /> Test link
+              </a>
+            )}
+          </AdminField>
+
+          {/* Featured toggle */}
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3">
+            <input
+              type="checkbox"
+              checked={form.featured}
+              onChange={(e) => update("featured", e.target.checked)}
+              className="h-4 w-4 rounded border-white/20 bg-navy-900 text-mint-300 focus:ring-mint-300"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-1.5 text-sm font-medium text-white">
+                <Star className="h-3.5 w-3.5 text-amber-300" /> Featured project
+              </div>
+              <div className="text-[10px] text-ink-500">
+                Featured cards appear first on the homepage.
+              </div>
+            </div>
+          </label>
+
+          {msg && (
+            <div
+              className={`rounded-lg border p-3 text-xs ${
+                msg.type === "ok"
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                  : "border-rose-500/30 bg-rose-500/10 text-rose-200"
+              }`}
+            >
+              {msg.text}
+            </div>
+          )}
+
+          <button type="submit" disabled={busy} className="btn-primary w-full">
+            {busy ? (
+              <>
+                <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/40 border-t-white" />
+                Saving…
+              </>
+            ) : (
+              <>
+                {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                {editingId ? "Save changes" : "Add project"}
+              </>
+            )}
+          </button>
+
+          <p className="text-[11px] text-amber-300">
+            Changes appear instantly on the public homepage (same browser session). Firestore wiring lands later for cross-device sync.
+          </p>
+        </div>
+      </form>
+
+      {/* ── RIGHT: ROSTER ──────────────────────────────────── */}
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-white">Project cards</h3>
+            <p className="mt-1 text-xs text-ink-400">
+              {projects.length} {projects.length === 1 ? "project" : "projects"} · drag is not supported — use ↑/↓ to reorder
+            </p>
+          </div>
+          <span className="badge badge-progress">
+            <FolderKanban className="mr-1 h-3 w-3" /> Live
+          </span>
+        </div>
+
+        <div className="mt-4 max-h-[40rem] space-y-3 overflow-y-auto pr-1">
+          {sorted.map((p) => {
+            const isConfirming = confirmDeleteId === p.id;
+            return (
+              <div
+                key={p.id}
+                className={`rounded-xl border p-3 transition-colors ${
+                  p.featured
+                    ? "border-amber-500/20 bg-amber-500/[0.03]"
+                    : "border-white/5 bg-white/[0.02]"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  {/* Thumbnail */}
+                  <div className="h-16 w-24 shrink-0 overflow-hidden rounded-md bg-navy-800 ring-1 ring-white/10">
+                    {/^https?:\/\/.+/.test(p.imageUrl) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.imageUrl} alt={p.title} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <ImageIcon className="h-5 w-5 text-ink-600" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="truncate text-sm font-semibold text-white">{p.title}</span>
+                      {p.featured && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+                          <Star className="h-3 w-3" /> Featured
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] text-ink-500">
+                      <span className="rounded bg-white/[0.03] px-1.5 py-0.5">{p.category}</span>
+                      {p.projectUrl && (
+                        <a
+                          href={p.projectUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-mint-300 hover:underline"
+                        >
+                          <ExternalLink className="h-3 w-3" /> live link
+                        </a>
+                      )}
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-xs text-ink-400">{p.description}</p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex shrink-0 flex-col items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => toggleFeatured(p)}
+                      className={`rounded-md p-1.5 transition-colors ${
+                        p.featured
+                          ? "bg-amber-500/15 text-amber-300"
+                          : "text-ink-500 hover:bg-amber-500/10 hover:text-amber-300"
+                      }`}
+                      title={p.featured ? "Unfeature" : "Mark as featured"}
+                    >
+                      <Star className="h-3.5 w-3.5" />
+                    </button>
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => move(p, -1)}
+                        className="rounded-md p-1 text-ink-500 hover:bg-white/5 hover:text-white"
+                        title="Move up"
+                      >
+                        <ArrowUp className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => move(p, 1)}
+                        className="rounded-md p-1 text-ink-500 hover:bg-white/5 hover:text-white"
+                        title="Move down"
+                      >
+                        <ArrowDown className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => startEdit(p)}
+                      className="rounded-md p-1.5 text-ink-400 hover:bg-mint-300/10 hover:text-mint-300"
+                      title="Edit"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(p)}
+                      className={`rounded-md p-1.5 transition-colors ${
+                        isConfirming
+                          ? "bg-rose-500/20 text-rose-300"
+                          : "text-ink-400 hover:bg-rose-500/10 hover:text-rose-300"
+                      }`}
+                      title={isConfirming ? "Click again to confirm" : "Remove"}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+                {isConfirming && (
+                  <div className="mt-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                    Remove "{p.title}"? This cannot be undone.{" "}
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteId(null)}
+                      className="ml-1 underline hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {projects.length === 0 && (
+            <div className="rounded-xl border border-dashed border-white/10 p-8 text-center text-sm text-ink-400">
+              No project cards yet. Add your first one using the form on the left.
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

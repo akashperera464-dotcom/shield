@@ -7,6 +7,9 @@ import {
   FileText,
   Image as ImageIcon,
   Loader2,
+  ArrowUpRight,
+  ExternalLink,
+  FolderKanban,
   ArrowRight,
   Cloud,
   Code2,
@@ -61,6 +64,8 @@ import {
   type UploadedFile,
   type UploadProgress,
 } from "@/lib/uploads";
+import { loadShowcase } from "@/lib/showcase";
+import type { ShowcaseProject } from "@/data/demo";
 
 const LOGO_URL =
   "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png";
@@ -220,6 +225,11 @@ const HERO_SLIDES = [
 export default function HomeView() {
   const { isAuthenticated, isAdmin, setView } = useAuth();
   const [slideIdx, setSlideIdx] = useState(0);
+  const [showcase, setShowcase] = useState<ShowcaseProject[]>([]);
+
+  useEffect(() => {
+    setShowcase(loadShowcase());
+  }, []);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -657,6 +667,9 @@ export default function HomeView() {
         </div>
       </section>
 
+      {/* ─────────── SHOWCASE / OUR PROJECTS ─────────── */}
+      <ShowcaseSection projects={showcase} />
+
       {/* ─────────── SUBMIT (now functional) ─────────── */}
       <SubmitProjectSection />
 
@@ -758,7 +771,140 @@ export default function HomeView() {
 }
 
 /* ─────────────────────────────────────────────────────────────────────── */
-/* FUNCTIONAL SUBMIT PROJECT SECTION                                       */
+/* SHOWCASE / OUR PROJECTS — public portfolio cards                      */
+/* ─────────────────────────────────────────────────────────────────────── */
+
+function ShowcaseSection({ projects }: { projects: ShowcaseProject[] }) {
+  const sorted = [...projects].sort((a, b) => {
+    if (a.featured !== b.featured) return a.featured ? -1 : 1;
+    return a.order - b.order;
+  });
+
+  if (sorted.length === 0) return null;
+
+  return (
+    <section id="projects" className="mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
+      <div className="mb-12 text-center">
+        <span className="inline-flex items-center gap-2 rounded-full bg-mint-300/10 px-3 py-1 text-xs font-medium text-mint-300">
+          <FolderKanban className="h-3.5 w-3.5" /> Our Projects
+        </span>
+        <h2 className="mt-4 text-3xl font-bold text-white sm:text-4xl">
+          Work we&apos;re proud of
+        </h2>
+        <p className="mx-auto mt-3 max-w-2xl text-ink-300">
+          A snapshot of recent products we&apos;ve shipped for clients across web, mobile, design, and software. Click any card to view the live project.
+        </p>
+      </div>
+
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {sorted.map((p, i) => (
+          <ShowcaseCard key={p.id} project={p} index={i} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ShowcaseCard({ project, index }: { project: ShowcaseProject; index: number }) {
+  const hasUrl = /^https?:\/\/.+/.test(project.projectUrl || "");
+  const hasImg = /^https?:\/\/.+/.test(project.imageUrl || "");
+
+  const CardInner = (
+    <>
+      {/* Image */}
+      <div className="relative aspect-[16/10] overflow-hidden rounded-t-2xl bg-navy-800">
+        {hasImg ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={project.imageUrl}
+            alt={project.title}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <ImageIcon className="h-10 w-10 text-ink-600" />
+          </div>
+        )}
+        {/* Top gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-navy-950/80 via-transparent to-transparent" />
+
+        {/* Category chip */}
+        <div className="absolute left-3 top-3">
+          <span className="inline-flex items-center gap-1 rounded-full bg-navy-950/80 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-mint-300 ring-1 ring-white/10 backdrop-blur">
+            {project.category}
+          </span>
+        </div>
+
+        {/* Featured star */}
+        {project.featured && (
+          <div className="absolute right-3 top-3">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-1 text-[10px] font-medium text-amber-300 ring-1 ring-amber-400/30 backdrop-blur">
+              <Star className="h-3 w-3" /> Featured
+            </span>
+          </div>
+        )}
+
+        {/* External link hint */}
+        {hasUrl && (
+          <div className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-mint-300/90 text-navy-950 opacity-0 shadow-lg transition-all duration-300 group-hover:opacity-100 group-hover:scale-110">
+            <ArrowUpRight className="h-4 w-4" />
+          </div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="flex flex-1 flex-col p-5">
+        <h3 className="text-base font-semibold leading-snug text-white group-hover:text-mint-200 transition-colors">
+          {project.title}
+        </h3>
+        <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-300">
+          {project.description}
+        </p>
+        {project.tags.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {project.tags.slice(0, 4).map((t) => (
+              <span
+                key={t}
+                className="rounded-md bg-white/[0.03] px-2 py-0.5 text-[10px] font-medium text-ink-400 ring-1 ring-white/5"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+        {hasUrl && (
+          <div className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-mint-300">
+            <ExternalLink className="h-3.5 w-3.5" /> View project
+          </div>
+        )}
+      </div>
+    </>
+  );
+
+  return (
+    <div
+      className="group animate-fade-up"
+      style={{ animationDelay: `${index * 0.08}s` }}
+    >
+      {hasUrl ? (
+        <a
+          href={project.projectUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] transition-all duration-300 hover:-translate-y-1 hover:border-mint-300/40 hover:bg-white/[0.04] hover:shadow-2xl hover:shadow-mint-300/5"
+        >
+          {CardInner}
+        </a>
+      ) : (
+        <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02]">
+          {CardInner}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─────────────────────────────────────────────────────────────────────── */
 
 function SubmitProjectSection() {

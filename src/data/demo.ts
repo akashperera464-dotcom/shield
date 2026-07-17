@@ -147,3 +147,112 @@ export const STATUS_CLASS: Record<Project["status"], string> = {
   "Under Review": "badge-review",
   Completed: "badge-completed",
 };
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* PROJECT SHOWCASE — public portfolio cards (CRUD via SuperAdmin)        */
+/* ─────────────────────────────────────────────────────────────────────── */
+
+export interface ShowcaseProject {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  imageUrl: string;     // Cloudinary URL — pasted in admin
+  projectUrl: string;   // External link — clicking the card opens this
+  tags: string[];
+  featured: boolean;
+  order: number;
+}
+
+export const SHOWCASE_CATEGORIES = [
+  "Web Development",
+  "Mobile App",
+  "Software Development",
+  "Graphic Design",
+  "UI / UX Design",
+  "Ecommerce",
+  "Branding",
+  "AI / ML",
+  "Other",
+];
+
+export const DEMO_SHOWCASE: ShowcaseProject[] = [
+  {
+    id: "sp_001",
+    title: "Layla Cosmetics — D2C Storefront",
+    category: "Ecommerce",
+    description:
+      "Headless Shopify React storefront with subscription checkout, AR try-on, and a superadmin CMS for product drops.",
+    imageUrl:
+      "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png",
+    projectUrl: "https://layla.example.com",
+    tags: ["Next.js", "Shopify", "AR"],
+    featured: true,
+    order: 1,
+  },
+  {
+    id: "sp_002",
+    title: "FleetIQ — Operations Dashboard",
+    category: "Web Development",
+    description:
+      "Real-time fleet tracking dashboard with role-based access for ops, drivers, and finance. WebSocket live updates.",
+    imageUrl:
+      "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png",
+    projectUrl: "https://fleetiq.example.com",
+    tags: ["React", "WebSocket", "Charts"],
+    featured: true,
+    order: 2,
+  },
+  {
+    id: "sp_003",
+    title: "Studio Mei — Portfolio + Booking",
+    category: "UI / UX Design",
+    description:
+      "Bilingual portfolio site with Calendly-style booking, Stripe deposits, and role-based admin CMS.",
+    imageUrl:
+      "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png",
+    projectUrl: "https://studiomei.example.com",
+    tags: ["Next.js", "Stripe", "i18n"],
+    featured: false,
+    order: 3,
+  },
+  {
+    id: "sp_004",
+    title: "BrightPath — LMS Mobile Web",
+    category: "Mobile App",
+    description:
+      "PWA learning management system with offline video, quiz engine, and parent dashboard.",
+    imageUrl:
+      "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png",
+    projectUrl: "https://brightpath.example.com",
+    tags: ["PWA", "Offline", "Video"],
+    featured: false,
+    order: 4,
+  },
+  {
+    id: "sp_005",
+    title: "Northwind — Brand Identity",
+    category: "Graphic Design",
+    description:
+      "Complete brand identity system — logo, colour palette, typography, and brand guidelines for an internal portal.",
+    imageUrl:
+      "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png",
+    projectUrl: "https://northwind.example.com",
+    tags: ["Branding", "Logo", "Identity"],
+    featured: false,
+    order: 5,
+  },
+  {
+    id: "sp_006",
+    title: "Northwind — Internal Admin Portal",
+    category: "Software Development",
+    description:
+      "Replace legacy PHP admin with a React + Firebase portal. RBAC, audit logs, CSV imports.",
+    imageUrl:
+      "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png",
+    projectUrl: "https://northwind-portal.example.com",
+    tags: ["React", "Firebase", "RBAC"],
+    featured: false,
+    order: 6,
+  },
+];

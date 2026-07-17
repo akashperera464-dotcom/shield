@@ -90,3 +90,42 @@ Stage Summary:
   • Delete with two-click confirmation, blocked for the superadmin row.
   • Roster persists to localStorage so added/edited/removed admins survive reloads.
   • Superadmin (Akash Perera, uid u_001) is locked — cannot be deleted, role cannot be changed, but profile fields (name/email/mobile/jobField) can still be edited.
+
+---
+Task ID: project-showcase-section+admin-crud
+Agent: main
+Task: Add an "Our Projects" section to the homepage that displays project cards with images. Each card must be editable from the SuperAdmin panel — admin pastes Cloudinary image URL + project URL, and clicking the card on the public site opens the project.
+
+Work Log:
+- /home/z/my-project/src/data/demo.ts: Added ShowcaseProject interface (id, title, category, description, imageUrl, projectUrl, tags[], featured, order). Added SHOWCASE_CATEGORIES list (9 categories). Seeded DEMO_SHOWCASE with 6 demo projects.
+- /home/z/my-project/src/lib/showcase.ts: New shared helper — loadShowcase() reads from localStorage (falls back to DEMO_SHOWCASE), saveShowcase() writes, newShowcaseId() generates sp_xxxxxx IDs. Used by both HomeView (read) and SuperAdminView (CRUD).
+- HomeView.tsx: Added loadShowcase + ShowcaseProject imports. Added useState for showcase + useEffect that loads on mount. Added new lucide imports (ArrowUpRight, ExternalLink, FolderKanban).
+- HomeView.tsx: New ShowcaseSection component — section id="projects", heading "Work we're proud of", 3-col responsive grid. Sorts by featured-first then order.
+- HomeView.tsx: New ShowcaseCard component — 16:10 image with hover-zoom, gradient overlay, category chip, "Featured" star badge, hover-revealed external link button, title, 3-line description, tag chips, "View project" link. Card is wrapped in <a> when projectUrl is set (opens new tab), otherwise a plain div. Falls back gracefully when image/project URL is missing.
+- HomeView.tsx: Inserted <ShowcaseSection projects={showcase} /> between TESTIMONIALS and SubmitProjectSection.
+- SuperAdminView.tsx: Added new lucide imports (FolderKanban, ExternalLink, Star, ArrowUp, ArrowDown, Tag). Added ShowcaseProject + SHOWCASE_CATEGORIES imports. Added loadShowcase, saveShowcase, newShowcaseId imports.
+- SuperAdminView.tsx: Added "projects" entry to SIDEBAR_NAV (FolderKanban icon, "Projects" label). Extended TabId union. Updated isActive check to handle projects tab. Updated content router to render ShowcasePanel when tab === "projects".
+- SuperAdminView.tsx: Updated quick stats row — replaced "CMS Drafts" with "Showcase Projects" count (reads from loadShowcase()).
+- SuperAdminView.tsx: New ShowcasePanel component (full CRUD):
+  * Form fields: title, category (select), tags (comma-separated), description, image URL (with live preview thumbnail), project URL (with "Test link" shortcut), featured checkbox.
+  * validate() — checks required fields + URL format for both imageUrl and projectUrl.
+  * handleSubmit — branches on editingId for create vs update.
+  * startEdit — pre-fills form, scrolls to top.
+  * handleDelete — two-click confirmation pattern.
+  * toggleFeatured — quick star toggle from roster.
+  * move(p, ±1) — reorders via order field swap.
+  * Roster shows thumbnail, title, featured badge, category, live link, 2-line description, and action buttons (star, up, down, edit, delete).
+  * Persists to localStorage (same key HomeView reads from) so changes are reflected on the public homepage instantly.
+- Verified `npx tsc --noEmit` clean for project source; dev server returns 200 on :3000 and :81.
+
+Stage Summary:
+- Homepage now has an "Our Projects" section showing portfolio cards with images, category chips, tags, and clickable links to live projects.
+- SuperAdmin → Projects tab provides full CRUD:
+  • Add new project (title, category, tags, description, image URL with live preview, project URL with test link, featured flag).
+  • Edit existing project (same form, pre-filled).
+  • Delete with two-click confirmation.
+  • Quick-toggle featured star from roster.
+  • Reorder with up/down arrows.
+  • Image URL and project URL are paste-only (admin uses Cloudinary dashboard URL).
+- Changes persist to localStorage and appear instantly on the public homepage (same browser session). Firestore wiring lands later for cross-device sync.
+- 6 demo projects pre-seeded so the section looks populated on first load.
