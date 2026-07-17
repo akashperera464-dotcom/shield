@@ -54,7 +54,8 @@ import {
   Calendar,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { CircularGauge, MiniAreaChart, MiniBarChart, Sparkline } from "./Charts";
+import { Sparkline } from "./Charts";
+import HeroLivePanel from "./HeroLivePanel";
 import {
   uploadFile,
   validateFile,
@@ -203,15 +204,6 @@ const TESTIMONIALS = [
   },
 ];
 
-const STATUS_FLOW = [
-  { label: "Pending",      icon: Clock,         className: "badge-pending" },
-  { label: "In Progress",  icon: Loader2,       className: "badge-progress" },
-  { label: "Under Review", icon: Search,        className: "badge-review" },
-  { label: "Completed",    icon: CheckCircle2,  className: "badge-completed" },
-];
-
-const DELIVERY_DATA = [38, 42, 35, 50, 45, 58, 52, 65, 60, 72, 68, 80];
-
 const HERO_SLIDES = [
   "Application Development",
   "Graphic Design",
@@ -327,102 +319,11 @@ export default function HomeView() {
             </div>
           </div>
 
-          {/* Floating preview card — dashboard-style with gauges + charts */}
+          {/* Live system data panel — pulls real numbers from the same
+              localStorage the admin panel reads/writes. Updates in real time
+              via storage events + 5s safety-net polling. */}
           <div className="lg:col-span-5">
-            <div className="relative animate-scale-in stagger-3">
-              <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-mint-300/20 via-violet-600/15 to-violet-500/10 blur-2xl animate-pulse-glow" />
-              <div className="relative glass-card border-gradient overflow-hidden p-1">
-                {/* Window chrome */}
-                <div className="rounded-t-[15px] border-b border-white/5 bg-navy-900/60 px-5 py-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full bg-rose-400/80" />
-                      <span className="h-3 w-3 rounded-full bg-amber-400/80" />
-                      <span className="h-3 w-3 rounded-full bg-emerald-400/80" />
-                    </div>
-                    <span className="font-mono text-[10px] text-ink-500">theshield.app/dashboard</span>
-                  </div>
-                </div>
-
-                {/* Card body */}
-                <div className="bg-navy-900/40 p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-[10px] uppercase tracking-wider text-ink-500">Project status</div>
-                      <div className="text-sm font-semibold text-white">Live overview</div>
-                    </div>
-                    <span className="badge badge-progress">
-                      <span className="h-1.5 w-1.5 animate-ping rounded-full bg-mint-300" />
-                      Active
-                    </span>
-                  </div>
-
-                  {/* Stat tiles */}
-                  <div className="mt-4 grid grid-cols-3 gap-2">
-                    {[
-                      { l: "Active",   v: "12", c: "text-mint-300" },
-                      { l: "Pending",  v: "4",  c: "text-amber-300" },
-                      { l: "Shipped",  v: "38", c: "text-emerald-300" },
-                    ].map((s) => (
-                      <div
-                        key={s.l}
-                        className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2"
-                      >
-                        <div className="text-[9px] uppercase tracking-wider text-ink-500">{s.l}</div>
-                        <div className={`text-lg font-bold ${s.c}`}>{s.v}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Gauge + chart */}
-                  <div className="mt-4 flex items-center gap-4 rounded-lg border border-white/5 bg-white/[0.02] p-4">
-                    <CircularGauge
-                      value={78}
-                      size={96}
-                      stroke={9}
-                      sublabel="on time"
-                    />
-                    <div className="flex-1">
-                      <div className="text-[10px] uppercase tracking-wider text-ink-500">
-                        Delivery trend
-                      </div>
-                      <div className="mt-1 text-xl font-bold text-white">
-                        94<span className="text-xs font-normal text-ink-400">% on-time</span>
-                      </div>
-                      <MiniAreaChart
-                        data={DELIVERY_DATA}
-                        width={180}
-                        height={44}
-                        stroke="#64ffda"
-                        fillFrom="rgba(100, 255, 218, 0.35)"
-                        fillTo="rgba(100, 255, 218, 0)"
-                        showDot={false}
-                        strokeWidth={1.5}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Status flow */}
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    {STATUS_FLOW.map((s, i) => (
-                      <div
-                        key={s.label}
-                        className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 animate-fade-up"
-                        style={{ animationDelay: `${0.4 + i * 0.08}s` }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <s.icon
-                            className={`h-3.5 w-3.5 ${i === 1 ? "animate-spin-fast" : ""} text-ink-400`}
-                          />
-                          <span className="text-xs text-ink-200">{s.label}</span>
-                        </div>
-                        <span className={s.className}>{i + 1}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <HeroLivePanel />
           </div>
         </div>
       </section>
