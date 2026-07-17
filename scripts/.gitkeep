@@ -1,0 +1,2 @@
+// Screenshot helper: inject demo session localStorage then capture dashboard + superadmin
+const { chromium } = require('/home/z/.cache/ms-playwright/chromium-1200/chrome-linux64/chrome');

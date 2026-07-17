@@ -1,0 +1,28 @@
+{
+  "layout": "header with logo and navigation, left sidebar with menu, main content area with dashboard widgets (cards, charts, progress bars), no visible footer",
+  "palette": {
+    "background": "#1a1b2e",
+    "primary": "#3a3b5c",
+    "accent": "#00d4ff",
+    "text": "#ffffff",
+    "secondary": "#2a2b3e",
+    "gradients": "subtle blue-to-purple gradients on charts (e.g., line graphs, progress bars)"
+  },
+  "typography": {
+    "headings": "sans-serif, medium weight, 18-24px",
+    "body": "sans-serif, regular weight",
+    "style": "sans-serif, clean and modern"
+  },
+  "visual_style": "dark premium with a focus on data visualization, using contrasting colors for readability and a sleek, professional aesthetic",
+  "ui_elements": {
+    "buttons": "rounded rectangles, primary buttons in accent color (#00d4ff), hover with slight opacity increase",
+    "cards": "dark gray (#2a2b3e) with subtle shadows, rounded corners",
+    "nav": "vertical sidebar with icons and text, active item highlighted",
+    "forms": "not visible"
+  },
+  "background": "solid dark navy (#1a1b2e) with a subtle gradient border on the main container",
+  "spacing": "normal spacing with a grid system for dashboard widgets, consistent padding between elements",
+  "unique_features": "circular progress indicator (304.56) with gradient fill, interactive charts with hover effects, color-coded data points (blue, purple, orange) for differentiation",
+  "overall_mood": "professional and data-driven, with a modern, tech-focused vibe",
+  "replication_notes": "use CSS Grid/Flexbox for layout, implement custom chart libraries (e.g., Chart.js) for graphs, apply box shadows for depth, use CSS variables for color consistency"
+}

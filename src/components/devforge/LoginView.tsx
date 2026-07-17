@@ -47,14 +47,16 @@ export default function LoginView() {
 
   return (
     <div className="relative mx-auto flex min-h-[80vh] max-w-6xl items-center justify-center px-6 py-12">
-      <div className="grid w-full overflow-hidden rounded-3xl border border-white/10 bg-ink-900/40 backdrop-blur-xl lg:grid-cols-2">
+      <div className="grid w-full overflow-hidden rounded-3xl border border-white/10 bg-navy-900/60 backdrop-blur-xl lg:grid-cols-2">
         {/* Left brand panel */}
         <div className="relative hidden flex-col justify-between p-12 lg:flex">
-          <div className="absolute inset-0 -z-10 bg-gradient-to-br from-ink-800 via-ink-900 to-ink-950" />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-br from-navy-800 via-navy-900 to-ink-950" />
           <div className="absolute inset-0 -z-10 grid-backdrop opacity-60" />
+          <div className="absolute -top-20 -left-20 -z-10 h-72 w-72 rounded-full bg-mint-300/10 blur-3xl" />
+          <div className="absolute -bottom-20 -right-10 -z-10 h-72 w-72 rounded-full bg-violet-600/15 blur-3xl" />
           <button
             onClick={() => setView("home")}
-            className="inline-flex w-fit items-center gap-2 text-sm text-ink-300 hover:text-white"
+            className="inline-flex w-fit items-center gap-2 text-sm text-ink-300 hover:text-mint-300"
           >
             <ArrowLeft className="h-4 w-4" /> Back to site
           </button>
@@ -62,10 +64,10 @@ export default function LoginView() {
             <img
               src={LOGO_URL}
               alt="DevForge"
-              className="h-14 w-14 rounded-xl object-cover ring-1 ring-white/15"
+              className="h-14 w-14 rounded-xl object-cover ring-1 ring-mint-300/30"
             />
             <h1 className="mt-6 text-4xl font-bold leading-tight text-white">
-              Admin Portal
+              Admin <span className="text-gradient-animated">Portal</span>
             </h1>
             <p className="mt-3 max-w-sm text-ink-300">
               Sign in to manage project submissions, update statuses, and (for superadmins)
@@ -77,10 +79,10 @@ export default function LoginView() {
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Firebase Auth · session-persisted
             </div>
             <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-400" /> Role-based route guards
+              <span className="h-1.5 w-1.5 rounded-full bg-mint-300" /> Role-based route guards
             </div>
             <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent-400" /> Audit-trail notes per project
+              <span className="h-1.5 w-1.5 rounded-full bg-violet-400" /> Audit-trail notes per project
             </div>
           </div>
         </div>
@@ -91,7 +93,7 @@ export default function LoginView() {
             <img
               src={LOGO_URL}
               alt="DevForge"
-              className="h-12 w-12 rounded-xl object-cover ring-1 ring-white/15"
+              className="h-12 w-12 rounded-xl object-cover ring-1 ring-mint-300/30"
             />
           </div>
           <h2 className="text-2xl font-semibold text-white">Welcome back</h2>
@@ -183,20 +185,20 @@ export default function LoginView() {
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => handleDemo("superadmin")}
-              className="group relative overflow-hidden rounded-xl border border-brand-400/30 bg-brand-500/10 px-4 py-3 text-left transition-all duration-300 hover:border-brand-400/60 hover:bg-brand-500/15"
+              className="group relative overflow-hidden rounded-xl border border-mint-300/30 bg-mint-300/5 px-4 py-3 text-left transition-all duration-300 hover:border-mint-300/60 hover:bg-mint-300/10"
             >
               <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-brand-300" />
+                <Shield className="h-4 w-4 text-mint-300" />
                 <span className="text-sm font-semibold text-white">Demo Superadmin</span>
               </div>
               <p className="mt-1 text-[11px] text-ink-400">Full CMS + team manager access</p>
             </button>
             <button
               onClick={() => handleDemo("admin")}
-              className="group relative overflow-hidden rounded-xl border border-accent-400/30 bg-accent-500/10 px-4 py-3 text-left transition-all duration-300 hover:border-accent-400/60 hover:bg-accent-500/15"
+              className="group relative overflow-hidden rounded-xl border border-violet-400/30 bg-violet-600/5 px-4 py-3 text-left transition-all duration-300 hover:border-violet-400/60 hover:bg-violet-600/10"
             >
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-accent-400" />
+                <User className="h-4 w-4 text-violet-300" />
                 <span className="text-sm font-semibold text-white">Demo Admin</span>
               </div>
               <p className="mt-1 text-[11px] text-ink-400">Project queue + notes access</p>
@@ -204,7 +206,7 @@ export default function LoginView() {
           </div>
 
           <p className="mt-6 text-center text-xs text-ink-500">
-            Need a real account? Ask the <span className="text-brand-300">Superadmin</span> to provision your access.
+            Need a real account? Ask the <span className="text-mint-300">Superadmin</span> to provision your access.
           </p>
         </div>
       </div>

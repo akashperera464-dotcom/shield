@@ -22,13 +22,13 @@ function Logo({ size = 36 }: { size?: number }) {
       style={{ width: size, height: size }}
     >
       <span
-        className="absolute inset-0 rounded-xl bg-brand-500/40 blur-xl animate-pulse-glow"
+        className="absolute inset-0 rounded-xl bg-mint-300/40 blur-xl animate-pulse-glow"
         aria-hidden
       />
       <img
         src={LOGO_URL}
         alt="DevForge logo"
-        className="relative h-full w-full rounded-xl object-cover ring-1 ring-white/15"
+        className="relative h-full w-full rounded-xl object-cover ring-1 ring-mint-300/30"
         style={{ width: size, height: size }}
       />
     </div>
@@ -55,7 +55,7 @@ export default function Navbar() {
 
   const navBtn = (active: boolean) =>
     `relative px-3 py-2 text-sm font-medium transition-colors duration-200 ${
-      active ? "text-white" : "text-ink-300 hover:text-white"
+      active ? "text-mint-300" : "text-ink-300 hover:text-white"
     }`;
 
   const goSection = (id: string) => {
@@ -67,7 +67,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/5 bg-ink-950/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/5 bg-navy-900/80 backdrop-blur-xl">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
         <button
           onClick={() => setView("home")}
@@ -78,7 +78,7 @@ export default function Navbar() {
             <span className="font-sans text-lg font-semibold tracking-tight text-white">
               Dev<span className="text-gradient-animated">Forge</span>
             </span>
-            <span className="text-[10px] uppercase tracking-[0.2em] text-ink-400">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-mint-300/60">
               Software Agency
             </span>
           </div>
@@ -109,6 +109,9 @@ export default function Navbar() {
               <span className="inline-flex items-center gap-1.5">
                 <LayoutDashboard className="h-4 w-4" /> Dashboard
               </span>
+              {view === "dashboard" && (
+                <span className="absolute -bottom-0.5 left-3 right-3 h-0.5 rounded-full bg-gradient-to-r from-mint-300 to-violet-600" />
+              )}
             </button>
           )}
           {isAuthenticated && isSuperadmin && (
@@ -119,6 +122,9 @@ export default function Navbar() {
               <span className="inline-flex items-center gap-1.5">
                 <Shield className="h-4 w-4" /> Superadmin
               </span>
+              {view === "superadmin" && (
+                <span className="absolute -bottom-0.5 left-3 right-3 h-0.5 rounded-full bg-gradient-to-r from-mint-300 to-violet-600" />
+              )}
             </button>
           )}
         </div>
@@ -129,25 +135,25 @@ export default function Navbar() {
               <FlaskConical className="h-3 w-3" /> Demo
             </span>
           )}
+          {isAuthenticated && (
+            <div className="hidden lg:flex flex-col items-end leading-tight">
+              <span className="text-sm font-medium text-white">
+                {profile?.name || "Admin"}
+              </span>
+              <span className="text-[11px] uppercase tracking-wide text-mint-300">
+                {profile?.role}
+              </span>
+            </div>
+          )}
 
           {!isAuthenticated ? (
             <button onClick={() => setView("login")} className="btn-primary text-sm">
               <LogIn className="h-4 w-4" /> Login
             </button>
           ) : (
-            <div className="flex items-center gap-3">
-              <div className="hidden lg:flex flex-col items-end leading-tight">
-                <span className="text-sm font-medium text-white">
-                  {profile?.name || "Admin"}
-                </span>
-                <span className="text-[11px] uppercase tracking-wide text-brand-300">
-                  {profile?.role}
-                </span>
-              </div>
-              <button onClick={handleLogout} className="btn-ghost text-sm" title="Log out">
-                <LogOut className="h-4 w-4" /> Logout
-              </button>
-            </div>
+            <button onClick={handleLogout} className="btn-ghost text-sm" title="Log out">
+              <LogOut className="h-4 w-4" /> Logout
+            </button>
           )}
         </div>
 
@@ -161,7 +167,7 @@ export default function Navbar() {
       </nav>
 
       {open && (
-        <div className="border-t border-white/5 bg-ink-950/95 px-6 py-4 md:hidden animate-fade-in">
+        <div className="border-t border-white/5 bg-navy-900/95 px-6 py-4 md:hidden animate-fade-in">
           <div className="flex flex-col gap-2">
             <button onClick={() => { setView("home"); setOpen(false); }} className="rounded-lg px-3 py-2 text-left text-ink-200 hover:bg-white/5">
               Home

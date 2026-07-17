@@ -1,0 +1,616 @@
+     1→"use client";
+     2→
+     3→import React from "react";
+     4→import {
+     5→  ArrowRight,
+     6→  Cloud,
+     7→  Code2,
+     8→  Database,
+     9→  Smartphone,
+    10→  Palette,
+    11→  GitBranch,
+    12→  Globe,
+    13→  Quote,
+    14→  Star,
+    15→  Mail,
+    16→  MessageSquare,
+    17→  MapPin,
+    18→  Phone,
+    19→  Send,
+    20→  Search,
+    21→  Sparkles,
+    22→  ShieldCheck,
+    23→  Rocket,
+    24→  CheckCircle2,
+    25→  Clock,
+    26→  Loader2,
+    27→  Zap,
+    28→} from "lucide-react";
+    29→import { useAuth } from "@/context/AuthContext";
+    30→import { CircularGauge, MiniAreaChart, MiniBarChart, Sparkline } from "./Charts";
+    31→
+    32→const LOGO_URL =
+    33→  "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png";
+    34→
+    35→const STATS = [
+    36→  { label: "Projects shipped", value: "120+", spark: [3, 5, 4, 7, 6, 9, 8, 12], color: "#64ffda" },
+    37→  { label: "Avg. delivery",     value: "6 wks",  spark: [9, 8, 7, 8, 6, 7, 6, 6], color: "#667eea" },
+    38→  { label: "Client retention",  value: "94%",    spark: [80, 82, 85, 88, 90, 92, 93, 94], color: "#9d8df1" },
+    39→  { label: "Time zones",        value: "9",      spark: [4, 5, 6, 6, 7, 8, 8, 9], color: "#64ffda" },
+    40→];
+    41→
+    42→const SERVICES = [
+    43→  {
+    44→    icon: Code2,
+    45→    title: "Web Apps",
+    46→    desc: "Production React + Next.js apps with SSR, role-based auth, and scalable component systems.",
+    47→    tags: ["React", "Next.js", "Vite"],
+    48→  },
+    49→  {
+    50→    icon: Smartphone,
+    51→    title: "Mobile-First UX",
+    52→    desc: "Pixel-perfect responsive design that ships beautifully from 320px phones to 4K monitors.",
+    53→    tags: ["Tailwind", "Framer Motion", "PWA"],
+    54→  },
+    55→  {
+    56→    icon: Database,
+    57→    title: "Backend & APIs",
+    58→    desc: "Firebase, Supabase, or custom Node/Express APIs with proper schemas and audit trails.",
+    59→    tags: ["Firestore", "Node", "REST"],
+    60→  },
+    61→  {
+    62→    icon: Palette,
+    63→    title: "Brand & Design Systems",
+    64→    desc: "Tokens, design docs, and reusable component libraries your team can actually maintain.",
+    65→    tags: ["Figma", "Tokens", "Storybook"],
+    66→  },
+    67→  {
+    68→    icon: Cloud,
+    69→    title: "Cloud & DevOps",
+    70→    desc: "Cloudinary media pipelines, CI/CD, and one-click deploys to Vercel, Netlify, or AWS.",
+    71→    tags: ["Cloudinary", "GitHub Actions", "Vercel"],
+    72→  },
+    73→  {
+    74→    icon: ShieldCheck,
+    75→    title: "Security & Audits",
+    76→    desc: "Role-based access, protected routes, and security audits baked into every codebase.",
+    77→    tags: ["RBAC", "Auth", "OWASP"],
+    78→  },
+    79→];
+    80→
+    81→const PROCESS = [
+    82→  { n: "01", icon: Send,          title: "Submit Project",    desc: "Drop your wireframes via Cloudinary and tell us about scope, budget, and timeline." },
+    83→  { n: "02", icon: MessageSquare, title: "Discovery Call",    desc: "Within 48h we schedule a call to align on milestones, deliverables, and success metrics." },
+    84→  { n: "03", icon: GitBranch,     title: "Build Sprint",      desc: "Two-week sprints with weekly demos. You watch your product come alive in real time." },
+    85→  { n: "04", icon: Rocket,        title: "Launch & Support",  desc: "We ship to production, hand over docs, and stay on retainer for iteration sprints." },
+    86→];
+    87→
+    88→const TECH = [
+    89→  "React", "Next.js", "Vite", "TypeScript", "Tailwind", "Firebase",
+    90→  "Cloudinary", "Node", "Supabase", "Prisma", "Framer Motion", "Vercel",
+    91→];
+    92→
+    93→const TESTIMONIALS = [
+    94→  {
+    95→    quote: "DevForge took our Figma mess and shipped a polished React app in 5 weeks. The dashboard alone saved my team 12 hours a week.",
+    96→    name: "Sara Al-Mansoori",
+    97→    role: "CEO, Layla Cosmetics",
+    98→    initial: "S",
+    99→    variant: "mint" as const,
+   100→  },
+   101→  {
+   102→    quote: "The role-based admin panel is exactly what we needed. Superadmin can edit copy live, my ops team manages submissions — perfect.",
+   103→    name: "Daniel Okafor",
+   104→    role: "COO, FleetIQ",
+   105→    initial: "D",
+   106→    variant: "violet" as const,
+   107→  },
+   108→  {
+   109→    quote: "Cloudinary uploads worked flawlessly from day one. Our clients upload 50MB wireframes and they appear in the admin instantly.",
+   110→    name: "Mei Tanaka",
+   111→    role: "Founder, Studio Mei",
+   112→    initial: "M",
+   113→    variant: "purple" as const,
+   114→  },
+   115→];
+   116→
+   117→const STATUS_FLOW = [
+   118→  { label: "Pending",      icon: Clock,         className: "badge-pending" },
+   119→  { label: "In Progress",  icon: Loader2,       className: "badge-progress" },
+   120→  { label: "Under Review", icon: Search,        className: "badge-review" },
+   121→  { label: "Completed",    icon: CheckCircle2,  className: "badge-completed" },
+   122→];
+   123→
+   124→const DELIVERY_DATA = [38, 42, 35, 50, 45, 58, 52, 65, 60, 72, 68, 80];
+   125→
+   126→export default function HomeView() {
+   127→  const { isAuthenticated, isAdmin, setView } = useAuth();
+   128→
+   129→  return (
+   130→    <div className="relative">
+   131→      {/* ─────────── HERO ─────────── */}
+   132→      <section className="relative mx-auto max-w-7xl px-6 pt-12 pb-20">
+   133→        <div className="grid items-center gap-10 lg:grid-cols-12">
+   134→          <div className="lg:col-span-7">
+   135→            <div className="inline-flex items-center gap-2 rounded-full border border-mint-300/30 bg-mint-300/5 px-4 py-1.5 text-xs font-medium text-mint-300 animate-fade-up stagger-1">
+   136→              <span className="relative flex h-2 w-2">
+   137→                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-300 opacity-75" />
+   138→                <span className="relative inline-flex h-2 w-2 rounded-full bg-mint-300" />
+   139→              </span>
+   140→              Now accepting Q3 2026 projects
+   141→            </div>
+   142→
+   143→            <h1 className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl animate-fade-up stagger-2">
+   144→              We build software
+   145→              <br />
+   146→              that <span className="text-gradient-animated text-shadow-glow">ships</span>.
+   147→            </h1>
+   148→
+   149→            <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-300 animate-fade-up stagger-3">
+   150→              DevForge is a senior-only product studio. Bring us your wireframes — we&apos;ll
+   151→              ship a production-ready React app with Firebase, Cloudinary, and role-based
+   152→              admin tooling in weeks, not months.
+   153→            </p>
+   154→
+   155→            <div className="mt-8 flex flex-wrap items-center gap-3 animate-fade-up stagger-4">
+   156→              <a href="#submit" className="btn-primary">
+   157→                <Send className="h-4 w-4" /> Submit a Project
+   158→              </a>
+   159→              <a href="#track" className="btn-ghost">
+   160→                <Search className="h-4 w-4" /> Track Status
+   161→              </a>
+   162→              {isAuthenticated && isAdmin && (
+   163→                <button onClick={() => setView("dashboard")} className="btn-ghost">
+   164→                  Dashboard <ArrowRight className="h-4 w-4" />
+   165→                </button>
+   166→              )}
+   167→            </div>
+   168→
+   169→            <div className="mt-6 inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 animate-fade-in">
+   170→              <Cloud className="h-4 w-4" />
+   171→              Preview mode — Firebase creds will be added later. Use Login → Demo Mode to explore the dashboard.
+   172→            </div>
+   173→          </div>
+   174→
+   175→          {/* Floating preview card — dashboard-style with gauges + charts */}
+   176→          <div className="lg:col-span-5">
+   177→            <div className="relative animate-scale-in stagger-3">
+   178→              <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-mint-300/20 via-violet-600/15 to-violet-500/10 blur-2xl animate-pulse-glow" />
+   179→              <div className="relative glass-card border-gradient overflow-hidden p-1">
+   180→                {/* Window chrome */}
+   181→                <div className="rounded-t-[15px] border-b border-white/5 bg-navy-900/60 px-5 py-3">
+   182→                  <div className="flex items-center justify-between">
+   183→                    <div className="flex items-center gap-2">
+   184→                      <span className="h-3 w-3 rounded-full bg-rose-400/80" />
+   185→                      <span className="h-3 w-3 rounded-full bg-amber-400/80" />
+   186→                      <span className="h-3 w-3 rounded-full bg-emerald-400/80" />
+   187→                    </div>
+   188→                    <span className="font-mono text-[10px] text-ink-500">devforge.app/dashboard</span>
+   189→                  </div>
+   190→                </div>
+   191→
+   192→                {/* Card body */}
+   193→                <div className="bg-navy-900/40 p-5">
+   194→                  <div className="flex items-center justify-between">
+   195→                    <div>
+   196→                      <div className="text-[10px] uppercase tracking-wider text-ink-500">Project status</div>
+   197→                      <div className="text-sm font-semibold text-white">Live overview</div>
+   198→                    </div>
+   199→                    <span className="badge badge-progress">
+   200→                      <span className="h-1.5 w-1.5 animate-ping rounded-full bg-mint-300" />
+   201→                      Active
+   202→                    </span>
+   203→                  </div>
+   204→
+   205→                  {/* Stat tiles */}
+   206→                  <div className="mt-4 grid grid-cols-3 gap-2">
+   207→                    {[
+   208→                      { l: "Active",   v: "12", c: "text-mint-300" },
+   209→                      { l: "Pending",  v: "4",  c: "text-amber-300" },
+   210→                      { l: "Shipped",  v: "38", c: "text-emerald-300" },
+   211→                    ].map((s) => (
+   212→                      <div
+   213→                        key={s.l}
+   214→                        className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2"
+   215→                      >
+   216→                        <div className="text-[9px] uppercase tracking-wider text-ink-500">{s.l}</div>
+   217→                        <div className={`text-lg font-bold ${s.c}`}>{s.v}</div>
+   218→                      </div>
+   219→                    ))}
+   220→                  </div>
+   221→
+   222→                  {/* Gauge + chart */}
+   223→                  <div className="mt-4 flex items-center gap-4 rounded-lg border border-white/5 bg-white/[0.02] p-4">
+   224→                    <CircularGauge
+   225→                      value={78}
+   226→                      size={96}
+   227→                      stroke={9}
+   228→                      sublabel="on time"
+   229→                    />
+   230→                    <div className="flex-1">
+   231→                      <div className="text-[10px] uppercase tracking-wider text-ink-500">
+   232→                        Delivery trend
+   233→                      </div>
+   234→                      <div className="mt-1 text-xl font-bold text-white">
+   235→                        94<span className="text-xs font-normal text-ink-400">% on-time</span>
+   236→                      </div>
+   237→                      <MiniAreaChart
+   238→                        data={DELIVERY_DATA}
+   239→                        width={180}
+   240→                        height={44}
+   241→                        stroke="#64ffda"
+   242→                        fillFrom="rgba(100, 255, 218, 0.35)"
+   243→                        fillTo="rgba(100, 255, 218, 0)"
+   244→                        showDot={false}
+   245→                        strokeWidth={1.5}
+   246→                      />
+   247→                    </div>
+   248→                  </div>
+   249→
+   250→                  {/* Status flow */}
+   251→                  <div className="mt-3 grid grid-cols-2 gap-2">
+   252→                    {STATUS_FLOW.map((s, i) => (
+   253→                      <div
+   254→                        key={s.label}
+   255→                        className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 animate-fade-up"
+   256→                        style={{ animationDelay: `${0.4 + i * 0.08}s` }}
+   257→                      >
+   258→                        <div className="flex items-center gap-2">
+   259→                          <s.icon
+   260→                            className={`h-3.5 w-3.5 ${i === 1 ? "animate-spin-fast" : ""} text-ink-400`}
+   261→                          />
+   262→                          <span className="text-xs text-ink-200">{s.label}</span>
+   263→                        </div>
+   264→                        <span className={s.className}>{i + 1}</span>
+   265→                      </div>
+   266→                    ))}
+   267→                  </div>
+   268→                </div>
+   269→              </div>
+   270→            </div>
+   271→          </div>
+   272→        </div>
+   273→      </section>
+   274→
+   275→      {/* ─────────── MARQUEE ─────────── */}
+   276→      <section className="border-y border-white/5 bg-white/[0.015] py-6 overflow-hidden">
+   277→        <div className="flex items-center gap-12 whitespace-nowrap animate-marquee">
+   278→          {[...TECH, ...TECH].map((t, i) => (
+   279→            <span key={i} className="inline-flex items-center gap-2 text-sm font-medium text-ink-400">
+   280→              <span className="h-1 w-1 rounded-full bg-mint-300/60" /> {t}
+   281→            </span>
+   282→          ))}
+   283→        </div>
+   284→      </section>
+   285→
+   286→      {/* ─────────── STATS with sparklines ─────────── */}
+   287→      <section className="border-b border-white/5 bg-white/[0.015]">
+   288→        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-6 py-10 md:grid-cols-4">
+   289→          {STATS.map((s, i) => (
+   290→            <div
+   291→              key={s.label}
+   292→              className="glass-card-hover p-5 animate-fade-up"
+   293→              style={{ animationDelay: `${i * 0.08}s` }}
+   294→            >
+   295→              <div className="flex items-end justify-between">
+   296→                <div>
+   297→                  <div className="text-3xl font-bold text-gradient-animated sm:text-4xl">
+   298→                    {s.value}
+   299→                  </div>
+   300→                  <div className="mt-1 text-xs uppercase tracking-wider text-ink-400">{s.label}</div>
+   301→                </div>
+   302→                <Sparkline data={s.spark} color={s.color} width={64} height={24} />
+   303→              </div>
+   304→            </div>
+   305→          ))}
+   306→        </div>
+   307→      </section>
+   308→
+   309→      {/* ─────────── SERVICES ─────────── */}
+   310→      <section id="services" className="mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
+   311→        <div className="mb-12 text-center">
+   312→          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-mint-300">
+   313→            What we build
+   314→          </span>
+   315→          <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
+   316→            Services that cover the whole stack
+   317→          </h2>
+   318→          <p className="mx-auto mt-3 max-w-2xl text-ink-300">
+   319→            From idea to deployment — every layer of the stack handled by senior engineers
+   320→            who care about maintainability as much as they care about pixels.
+   321→          </p>
+   322→        </div>
+   323→
+   324→        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+   325→          {SERVICES.map((s, i) => (
+   326→            <div
+   327→              key={s.title}
+   328→              className="glass-card-hover group p-6 animate-fade-up"
+   329→              style={{ animationDelay: `${i * 0.08}s` }}
+   330→            >
+   331→              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-mint-300/20 to-violet-600/15 ring-1 ring-white/10 transition-transform duration-500 group-hover:scale-110">
+   332→                <s.icon className="h-6 w-6 text-mint-300" />
+   333→              </div>
+   334→              <h3 className="text-lg font-semibold text-white">{s.title}</h3>
+   335→              <p className="mt-2 text-sm leading-relaxed text-ink-300">{s.desc}</p>
+   336→              <div className="mt-4 flex flex-wrap gap-1.5">
+   337→                {s.tags.map((t) => (
+   338→                  <span
+   339→                    key={t}
+   340→                    className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-ink-300"
+   341→                  >
+   342→                    {t}
+   343→                  </span>
+   344→                ))}
+   345→              </div>
+   346→            </div>
+   347→          ))}
+   348→        </div>
+   349→      </section>
+   350→
+   351→      {/* ─────────── PROCESS ─────────── */}
+   352→      <section id="process" className="relative mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
+   353→        <div className="mb-12 text-center">
+   354→          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
+   355→            How we work
+   356→          </span>
+   357→          <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
+   358→            A 4-step path from idea to launch
+   359→          </h2>
+   360→          <p className="mx-auto mt-3 max-w-2xl text-ink-300">
+   361→            Transparent sprints. Real-time status tracking. No black boxes.
+   362→          </p>
+   363→        </div>
+   364→
+   365→        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+   366→          {PROCESS.map((p, i) => (
+   367→            <div
+   368→              key={p.n}
+   369→              className="relative glass-card-hover p-6 animate-fade-up"
+   370→              style={{ animationDelay: `${i * 0.1}s` }}
+   371→            >
+   372→              <div className="absolute -top-4 left-6 text-5xl font-bold text-white/10">
+   373→                {p.n}
+   374→              </div>
+   375→              <div className="relative">
+   376→                <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-mint-300/20 to-violet-600/15 ring-1 ring-white/10">
+   377→                  <p.icon className="h-5 w-5 text-mint-300" />
+   378→                </div>
+   379→                <h3 className="text-lg font-semibold text-white">{p.title}</h3>
+   380→                <p className="mt-2 text-sm leading-relaxed text-ink-300">{p.desc}</p>
+   381→              </div>
+   382→              {i < PROCESS.length - 1 && (
+   383→                <div className="absolute -right-3 top-1/2 hidden -translate-y-1/2 text-ink-600 lg:block">
+   384→                  <ArrowRight className="h-5 w-5" />
+   385→                </div>
+   386→              )}
+   387→            </div>
+   388→          ))}
+   389→        </div>
+   390→      </section>
+   391→
+   392→      {/* ─────────── TECH STACK ─────────── */}
+   393→      <section className="border-y border-white/5 bg-white/[0.015]">
+   394→        <div className="mx-auto max-w-7xl px-6 py-12">
+   395→          <div className="mb-6 text-center">
+   396→            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-ink-400">
+   397→              The stack we ship with
+   398→            </span>
+   399→          </div>
+   400→          <div className="flex flex-wrap justify-center gap-2.5">
+   401→            {TECH.map((t, i) => (
+   402→              <span
+   403→                key={t}
+   404→                className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-ink-200 transition-all duration-300 hover:border-mint-300/40 hover:bg-mint-300/5 hover:text-white animate-fade-up"
+   405→                style={{ animationDelay: `${i * 0.04}s` }}
+   406→              >
+   407→                {t}
+   408→              </span>
+   409→            ))}
+   410→          </div>
+   411→        </div>
+   412→      </section>
+   413→
+   414→      {/* ─────────── TESTIMONIALS ─────────── */}
+   415→      <section className="mx-auto max-w-7xl px-6 py-20">
+   416→        <div className="mb-12 text-center">
+   417→          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-mint-300">
+   418→            Client love
+   419→          </span>
+   420→          <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
+   421→            What founders say about DevForge
+   422→          </h2>
+   423→        </div>
+   424→
+   425→        <div className="grid gap-6 md:grid-cols-3">
+   426→          {TESTIMONIALS.map((t, i) => (
+   427→            <div
+   428→              key={t.name}
+   429→              className="glass-card-hover p-6 animate-fade-up"
+   430→              style={{ animationDelay: `${i * 0.1}s` }}
+   431→            >
+   432→              <Quote className="h-7 w-7 text-mint-300/60" />
+   433→              <p className="mt-3 text-sm leading-relaxed text-ink-200">&ldquo;{t.quote}&rdquo;</p>
+   434→              <div className="mt-5 flex items-center gap-3">
+   435→                <div
+   436→                  className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white ring-1 ring-white/10"
+   437→                  style={{
+   438→                    background:
+   439→                      t.variant === "mint"
+   440→                        ? "linear-gradient(135deg, rgba(100, 255, 218, 0.30), rgba(102, 126, 234, 0.15))"
+   441→                        : t.variant === "violet"
+   442→                          ? "linear-gradient(135deg, rgba(102, 126, 234, 0.30), rgba(118, 75, 162, 0.15))"
+   443→                          : "linear-gradient(135deg, rgba(155, 126, 234, 0.30), rgba(118, 75, 162, 0.10))",
+   444→                  }}
+   445→                >
+   446→                  {t.initial}
+   447→                </div>
+   448→                <div>
+   449→                  <div className="text-sm font-semibold text-white">{t.name}</div>
+   450→                  <div className="text-xs text-ink-400">{t.role}</div>
+   451→                </div>
+   452→                <div className="ml-auto flex gap-0.5">
+   453→                  {Array.from({ length: 5 }).map((_, j) => (
+   454→                    <Star key={j} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+   455→                  ))}
+   456→                </div>
+   457→              </div>
+   458→            </div>
+   459→          ))}
+   460→        </div>
+   461→      </section>
+   462→
+   463→      {/* ─────────── SUBMIT ─────────── */}
+   464→      <section id="submit" className="mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
+   465→        <div className="glass-card overflow-hidden border-gradient">
+   466→          <div className="grid lg:grid-cols-2">
+   467→            <div className="relative p-10 lg:p-12">
+   468→              <span className="inline-flex items-center gap-2 rounded-full bg-mint-300/10 px-3 py-1 text-xs font-medium text-mint-300">
+   469→                <Rocket className="h-3.5 w-3.5" /> Step 3 · Coming next
+   470→              </span>
+   471→              <h2 className="mt-4 text-3xl font-bold text-white">Submit your project</h2>
+   472→              <p className="mt-3 text-ink-300">
+   473→                Drag-and-drop your wireframes straight to Cloudinary — no login required.
+   474→                We&apos;ll reply within 48 hours with a scope + estimate.
+   475→              </p>
+   476→              <ul className="mt-6 space-y-3 text-sm text-ink-200">
+   477→                {["Multi-step wizard", "Direct Cloudinary upload", "Auto-saved to Firestore", "Email-based tracking"].map((t) => (
+   478→                  <li key={t} className="flex items-center gap-2">
+   479→                    <CheckCircle2 className="h-4 w-4 text-emerald-400" /> {t}
+   480→                  </li>
+   481→                ))}
+   482→              </ul>
+   483→            </div>
+   484→
+   485→            <div className="relative border-t border-white/5 bg-navy-900/40 p-10 lg:border-l lg:border-t-0 lg:p-12">
+   486→              <div className="space-y-4">
+   487→                <div className="rounded-xl border-2 border-dashed border-white/10 bg-white/[0.02] p-8 text-center transition-colors hover:border-mint-300/40">
+   488→                  <Cloud className="mx-auto h-8 w-8 text-ink-400" />
+   489→                  <p className="mt-2 text-sm text-ink-300">Drop wireframes here</p>
+   490→                  <p className="text-xs text-ink-500">PNG, JPG, PDF — up to 25MB</p>
+   491→                </div>
+   492→                <div className="grid grid-cols-2 gap-3">
+   493→                  <div className="h-10 rounded-lg bg-white/5" />
+   494→                  <div className="h-10 rounded-lg bg-white/5" />
+   495→                </div>
+   496→                <div className="h-10 rounded-lg bg-white/5" />
+   497→                <button disabled className="btn-primary w-full opacity-50">
+   498→                  <Sparkles className="h-4 w-4" /> Multi-step form ships in Step 3
+   499→                </button>
+   500→              </div>
+   501→            </div>
+   502→          </div>
+   503→        </div>
+   504→      </section>
+   505→
+   506→      {/* ─────────── TRACK ─────────── */}
+   507→      <section id="track" className="mx-auto max-w-4xl px-6 py-20 scroll-mt-20">
+   508→        <div className="text-center">
+   509→          <span className="inline-flex items-center gap-2 rounded-full bg-violet-600/10 px-3 py-1 text-xs font-medium text-violet-300">
+   510→            <Search className="h-3.5 w-3.5" /> Step 4 · Coming next
+   511→          </span>
+   512→          <h2 className="mt-4 text-3xl font-bold text-white">Track your submission</h2>
+   513→          <p className="mt-3 text-ink-300">
+   514→            Enter the email you used to submit — we&apos;ll show every project and its live status.
+   515→          </p>
+   516→        </div>
+   517→        <div className="mt-8 glass-card p-6">
+   518→          <div className="flex flex-col gap-3 sm:flex-row">
+   519→            <input
+   520→              type="email"
+   521→              placeholder="you@company.com"
+   522→              className="input-field flex-1"
+   523→              disabled
+   524→            />
+   525→            <button disabled className="btn-primary opacity-50">
+   526→              <Search className="h-4 w-4" /> Search
+   527→            </button>
+   528→          </div>
+   529→          <p className="mt-3 text-center text-xs text-ink-500">
+   530→            Real-time tracker wiring lands in Step 4.
+   531→          </p>
+   532→        </div>
+   533→      </section>
+   534→
+   535→      {/* ─────────── CTA ─────────── */}
+   536→      <section className="mx-auto max-w-7xl px-6 py-16">
+   537→        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-navy-800 via-navy-900 to-ink-950 p-10 sm:p-14">
+   538→          <div className="absolute inset-0 -z-10 grid-backdrop opacity-60" />
+   539→          <div className="relative flex flex-col items-center gap-6 text-center md:flex-row md:text-left">
+   540→            <div className="flex-1">
+   541→              <h2 className="text-3xl font-bold text-white sm:text-4xl">
+   542→                Got a project in mind?
+   543→              </h2>
+   544→              <p className="mt-2 max-w-xl text-ink-300">
+   545→                Tell us what you&apos;re building. We&apos;ll reply within 48 hours with a scope, timeline, and transparent quote.
+   546→              </p>
+   547→            </div>
+   548→            <div className="flex flex-wrap items-center justify-center gap-3">
+   549→              <a href="#submit" className="btn-primary">
+   550→                <Send className="h-4 w-4" /> Submit Project
+   551→              </a>
+   552→              <a href="mailto:hello@devforge.agency" className="btn-ghost">
+   553→                <Mail className="h-4 w-4" /> Email us
+   554→              </a>
+   555→            </div>
+   556→          </div>
+   557→        </div>
+   558→      </section>
+   559→
+   560→      {/* ─────────── FOOTER ─────────── */}
+   561→      <footer className="border-t border-white/5 px-6 py-12">
+   562→        <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-4">
+   563→          <div className="md:col-span-2">
+   564→            <div className="flex items-center gap-3">
+   565→              <img
+   566→                src={LOGO_URL}
+   567→                alt="DevForge logo"
+   568→                className="h-9 w-9 rounded-xl object-cover ring-1 ring-white/15"
+   569→              />
+   570→              <span className="text-lg font-semibold text-white">
+   571→                Dev<span className="text-gradient-animated">Forge</span>
+   572→              </span>
+   573→            </div>
+   574→            <p className="mt-3 max-w-sm text-sm text-ink-400">
+   575→              Senior-only software studio building production React apps with Firebase, Cloudinary,
+   576→              and role-based admin tooling. Ship in weeks, not months.
+   577→            </p>
+   578→            <div className="mt-4 flex flex-wrap gap-4 text-xs text-ink-500">
+   579→              <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Remote · 9 time zones</span>
+   580→              <span className="inline-flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> hello@devforge.agency</span>
+   581→              <span className="inline-flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> +1 (555) 010-2026</span>
+   582→            </div>
+   583→          </div>
+   584→
+   585→          <div>
+   586→            <h4 className="text-sm font-semibold text-white">Company</h4>
+   587→            <ul className="mt-3 space-y-2 text-sm text-ink-400">
+   588→              <li><a href="#services" className="hover:text-white">Services</a></li>
+   589→              <li><a href="#process" className="hover:text-white">Process</a></li>
+   590→              <li><a href="#submit"  className="hover:text-white">Submit Project</a></li>
+   591→              <li><a href="#track"   className="hover:text-white">Track Status</a></li>
+   592→            </ul>
+   593→          </div>
+   594→
+   595→          <div>
+   596→            <h4 className="text-sm font-semibold text-white">Stack</h4>
+   597→            <ul className="mt-3 space-y-2 text-sm text-ink-400">
+   598→              <li>React + Next.js</li>
+   599→              <li>Firebase + Firestore</li>
+   600→              <li>Cloudinary</li>
+   601→              <li>Tailwind CSS</li>
+   602→            </ul>
+   603→          </div>
+   604→        </div>
+   605→
+   606→        <div className="mx-auto mt-10 flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-white/5 pt-6 text-sm text-ink-400 sm:flex-row">
+   607→          <span>© {new Date().getFullYear()} DevForge — Built with Next.js + Tailwind + Firebase.</span>
+   608→          <span className="flex items-center gap-2">
+   609→            <Sparkles className="h-4 w-4 text-mint-300" /> Crafted with care.
+   610→          </span>
+   611→        </div>
+   612→      </footer>
+   613→    </div>
+   614→  );
+   615→}
+   616→
