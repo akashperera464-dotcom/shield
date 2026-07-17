@@ -94,7 +94,6 @@
   --animate-aurora-drift-1: aurora-drift-1 22s ease-in-out infinite;
   --animate-aurora-drift-2: aurora-drift-2 28s ease-in-out infinite;
   --animate-aurora-drift-3: aurora-drift-3 32s ease-in-out infinite;
-  --animate-border-rotate: border-rotate 6s linear infinite;
   --animate-view-fade: view-fade 0.45s ease-out both;
   --animate-skeleton: skeleton 1.6s ease-in-out infinite;
   --animate-shine-sweep: shine-sweep 4.5s ease-in-out infinite;
@@ -567,38 +566,6 @@
   left: 30vw;
   background: radial-gradient(circle, #9d8df1 0%, transparent 70%);
   animation: aurora-drift-3 32s ease-in-out infinite;
-}
-
-/* ─── Animated gradient border (rotating conic) ──────────────────────── */
-/* Wraps the hero live panel. Conic gradient slowly rotates around the    */
-/* border, giving a premium "energy field" feel.                          */
-@keyframes border-rotate {
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-.border-gradient-animated {
-  position: relative;
-  isolation: isolate;
-}
-.border-gradient-animated::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1.5px;
-  background: conic-gradient(
-    from 0deg,
-    rgba(100, 255, 218, 0.7),
-    rgba(102, 126, 234, 0.5),
-    rgba(157, 141, 241, 0.6),
-    rgba(100, 255, 218, 0.7)
-  );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  animation: border-rotate 6s linear infinite;
-  pointer-events: none;
-  z-index: 1;
 }
 
 /* ─── View transition (fade between home / login / dashboard) ────────── */

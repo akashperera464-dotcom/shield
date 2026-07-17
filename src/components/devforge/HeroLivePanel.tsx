@@ -203,7 +203,7 @@ export default function HeroLivePanel() {
     return (
       <div className="relative animate-scale-in stagger-3">
         <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-mint-300/20 via-violet-600/15 to-violet-500/10 blur-2xl animate-pulse-glow" />
-        <div className="relative glass-card border-gradient-animated overflow-hidden p-1">
+        <div className="relative glass-card overflow-hidden p-1">
           <div className="rounded-t-[15px] border-b border-white/5 bg-navy-900/60 px-5 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -267,7 +267,7 @@ export default function HeroLivePanel() {
       {/* Glow */}
       <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-mint-300/20 via-violet-600/15 to-violet-500/10 blur-2xl animate-pulse-glow" />
 
-      <div className="relative glass-card border-gradient-animated overflow-hidden p-1">
+      <div className="relative glass-card overflow-hidden p-1">
         {/* Window chrome */}
         <div className="rounded-t-[15px] border-b border-white/5 bg-navy-900/60 px-5 py-3">
           <div className="flex items-center justify-between">

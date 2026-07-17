@@ -129,3 +129,23 @@ Stage Summary:
   • Image URL and project URL are paste-only (admin uses Cloudinary dashboard URL).
 - Changes persist to localStorage and appear instantly on the public homepage (same browser session). Firestore wiring lands later for cross-device sync.
 - 6 demo projects pre-seeded so the section looks populated on first load.
+
+---
+Task ID: remove-animated-gradient-border
+Agent: main (continuation)
+Task: User wants to drop only #2 (Animated gradient border on the hero live panel) from the previously-installed top-10 visual effects. Keep the other 9 effects intact.
+
+Work Log:
+- Verified current state: all 10 effects were already wired up — aurora blobs (page.tsx), animated gradient border (HeroLivePanel.tsx), scroll reveal (Reveal.tsx), count-up counters (StatCard), cursor tilt (ShowcaseCard + HeroLivePanel), skeleton loaders (HeroLivePanel loading state), scroll progress bar (ScrollProgress.tsx), card hover (showcase-card class), shimmer CTAs (shine-sweep class).
+- Removed `border-gradient-animated` class from HeroLivePanel.tsx — both occurrences (skeleton-loader branch line ~206, and main panel wrapper line ~270). Panel now uses the plain `glass-card` border styling instead of the rotating conic gradient ring.
+- Removed orphaned CSS from globals.css:
+  * Deleted `--animate-border-rotate` token from `@theme inline` block.
+  * Deleted the entire `@keyframes border-rotate`, `.border-gradient-animated`, and `.border-gradient-animated::before` rule block (~30 lines).
+- Confirmed zero remaining references to `border-gradient-animated`, `border-rotate`, or `--animate-border-rotate` anywhere in /src.
+- TypeScript: `npx tsc --noEmit` clean (no project-source errors).
+- Dev server: HTTP 200 on :3000 and :81.
+
+Stage Summary:
+- The hero live panel now has a clean glass-card border (no rotating conic gradient). Skeleton loader version also updated to match.
+- The other 9 visual effects remain fully intact: drifting aurora blobs, scroll-triggered fade-up, count-up counters, cursor tilt on showcase + hero cards, skeleton loaders, top scroll progress bar, card hover lift+glow+image-zoom, shimmer on CTAs, and parallax tilt on the hero panel.
+- Orphaned CSS rules cleaned up to keep the stylesheet tidy. Build remains green.
