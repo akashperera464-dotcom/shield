@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Shield,
   LogIn,
-  FlaskConical,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -40,7 +39,6 @@ export default function Navbar() {
     isAuthenticated,
     isAdmin,
     isSuperadmin,
-    isDemo,
     logout,
     profile,
     view,
@@ -130,11 +128,6 @@ export default function Navbar() {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          {isAuthenticated && isDemo && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-300">
-              <FlaskConical className="h-3 w-3" /> Demo
-            </span>
-          )}
           {isAuthenticated && (
             <div className="hidden lg:flex flex-col items-end leading-tight">
               <span className="text-sm font-medium text-white">

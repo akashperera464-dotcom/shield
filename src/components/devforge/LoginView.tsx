@@ -9,8 +9,6 @@ import {
   Eye,
   EyeOff,
   ArrowLeft,
-  User,
-  Shield,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -18,7 +16,7 @@ const LOGO_URL =
   "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png";
 
 export default function LoginView() {
-  const { login, demoLogin, setView } = useAuth();
+  const { login, setView } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
@@ -40,10 +38,7 @@ export default function LoginView() {
     }
   };
 
-  const handleDemo = (role: "superadmin" | "admin") => {
-    demoLogin(role);
-    setView(role === "superadmin" ? "superadmin" : "dashboard");
-  };
+
 
   return (
     <div className="relative mx-auto flex min-h-[80vh] max-w-6xl items-center justify-center px-6 py-12">
@@ -76,7 +71,7 @@ export default function LoginView() {
           </div>
           <div className="space-y-3 text-sm text-ink-300">
             <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Firebase Auth · session-persisted
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Secure session-persisted auth
             </div>
             <div className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-mint-300" /> Role-based route guards
@@ -98,17 +93,6 @@ export default function LoginView() {
           </div>
           <h2 className="text-2xl font-semibold text-white">Welcome back</h2>
           <p className="mt-1 text-sm text-ink-400">Sign in with your agency email.</p>
-
-          <div className="mt-6 flex items-start gap-2 rounded-lg border border-mint-300/30 bg-mint-300/5 p-3 text-xs text-mint-100">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>
-              <strong>Superadmin test creds:</strong>{" "}
-              <code className="font-mono text-mint-200">akashperera@shield.com</code>{" / "}
-              <code className="font-mono text-mint-200">akashperera123*#</code>
-              <br />
-              Any other email/password signs you in as a regular <strong>Admin</strong>.
-            </span>
-          </div>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
@@ -175,38 +159,6 @@ export default function LoginView() {
               )}
             </button>
           </form>
-
-          {/* Demo mode divider */}
-          <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-white/5" />
-            <span className="text-xs uppercase tracking-wider text-ink-500">
-              or preview without firebase
-            </span>
-            <div className="h-px flex-1 bg-white/5" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => handleDemo("superadmin")}
-              className="group relative overflow-hidden rounded-xl border border-mint-300/30 bg-mint-300/5 px-4 py-3 text-left transition-all duration-300 hover:border-mint-300/60 hover:bg-mint-300/10"
-            >
-              <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-mint-300" />
-                <span className="text-sm font-semibold text-white">Demo Superadmin</span>
-              </div>
-              <p className="mt-1 text-[11px] text-ink-400">Full CMS + team manager access</p>
-            </button>
-            <button
-              onClick={() => handleDemo("admin")}
-              className="group relative overflow-hidden rounded-xl border border-violet-400/30 bg-violet-600/5 px-4 py-3 text-left transition-all duration-300 hover:border-violet-400/60 hover:bg-violet-600/10"
-            >
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-violet-300" />
-                <span className="text-sm font-semibold text-white">Demo Admin</span>
-              </div>
-              <p className="mt-1 text-[11px] text-ink-400">Project queue + notes access</p>
-            </button>
-          </div>
 
           <p className="mt-6 text-center text-xs text-ink-500">
             Need a real account? Ask the <span className="text-mint-300">Superadmin</span> to provision your access.

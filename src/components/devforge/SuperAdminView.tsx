@@ -105,7 +105,7 @@ export default function SuperAdminView() {
                   online
                 </span>
                 <span>·</span>
-                <span>{isDemo ? "demo session" : "live"}</span>
+                <span>live</span>
               </div>
             </div>
 
@@ -175,11 +175,6 @@ export default function SuperAdminView() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-violet-600/10 px-3 py-1 text-xs font-medium text-violet-300">
                 <Shield className="h-3.5 w-3.5" /> Superadmin Console
-                {isDemo && (
-                  <span className="ml-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300">
-                    Demo
-                  </span>
-                )}
               </div>
               <h1 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
                 Console <span className="text-gradient-animated">overview</span>
@@ -309,9 +304,6 @@ function CMSPanel({ isDemo }: { isDemo: boolean }) {
             <button type="submit" className="btn-primary">
               <Save className="h-4 w-4" /> {saved ? "Saved!" : "Save changes"}
             </button>
-            {isDemo && (
-              <span className="text-xs text-amber-300">Demo mode — changes are local only.</span>
-            )}
           </div>
         </div>
       </form>
@@ -723,12 +715,6 @@ function TeamPanel({ isDemo }: { isDemo: boolean }) {
               </>
             )}
           </button>
-
-          {isDemo && !editingUid && (
-            <p className="text-[11px] text-amber-300">
-              Demo mode — new admins are stored in your browser. They can sign in with the email + password you set here (any non-superadmin email works as an admin login in preview).
-            </p>
-          )}
         </div>
       </form>
 
@@ -1224,10 +1210,6 @@ function ShowcasePanel() {
               </>
             )}
           </button>
-
-          <p className="text-[11px] text-amber-300">
-            Changes appear instantly on the public homepage (same browser session). Firestore wiring lands later for cross-device sync.
-          </p>
         </div>
       </form>
 

@@ -11,7 +11,6 @@ import {
   ExternalLink,
   FolderKanban,
   ArrowRight,
-  Cloud,
   Code2,
   Database,
   Smartphone,
@@ -311,11 +310,6 @@ export default function HomeView() {
                   Dashboard <ArrowRight className="h-4 w-4" />
                 </button>
               )}
-            </div>
-
-            <div className="mt-6 inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 animate-fade-in">
-              <Cloud className="h-4 w-4" />
-              Preview mode — Firebase creds will be added later. Use Login → Demo Mode to explore the dashboard.
             </div>
           </div>
 
@@ -671,7 +665,7 @@ export default function HomeView() {
               © {new Date().getFullYear()} The Shield. All rights reserved.
             </span>
             <span className="flex items-center gap-2 text-sm text-ink-500">
-              <Sparkles className="h-4 w-4 text-mint-300" /> Built with Next.js + Tailwind + Firebase
+              <Sparkles className="h-4 w-4 text-mint-300" /> Crafted by The Shield team
             </span>
           </div>
         </div>
@@ -1176,10 +1170,6 @@ function SubmitProjectSection() {
                   </>
                 )}
               </button>
-
-              <p className="text-center text-[11px] text-ink-500">
-                Submissions are saved locally for demo tracking. Firestore wiring lands next.
-              </p>
             </div>
           </form>
         </div>

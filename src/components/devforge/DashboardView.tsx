@@ -70,7 +70,7 @@ const WEEKLY_BARS = [
 ];
 
 export default function DashboardView() {
-  const { profile, isSuperadmin, isDemo, setView } = useAuth();
+  const { profile, isSuperadmin, setView } = useAuth();
   const [projects] = useState<Project[]>(DEMO_PROJECTS);
   const [filter, setFilter] = useState<string>("All");
   const [query, setQuery] = useState("");
@@ -181,7 +181,7 @@ export default function DashboardView() {
                   online
                 </span>
                 <span>·</span>
-                <span>{isDemo ? "demo session" : "live"}</span>
+                <span>live</span>
               </div>
             </div>
 
@@ -243,11 +243,6 @@ export default function DashboardView() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-mint-300/10 px-3 py-1 text-xs font-medium text-mint-300">
                 <LayoutDashboard className="h-3.5 w-3.5" /> Admin Dashboard
-                {isDemo && (
-                  <span className="ml-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300">
-                    Demo
-                  </span>
-                )}
               </div>
               <h1 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
                 Welcome back, {profile?.name?.split(" ")[0] || "Admin"} 👋
@@ -490,7 +485,7 @@ export default function DashboardView() {
 
           {/* Detail drawer */}
           {selected && (
-            <DetailDrawer project={selected} onClose={() => setSelected(null)} isDemo={isDemo} />
+            <DetailDrawer project={selected} onClose={() => setSelected(null)} />
           )}
           </>
           )}
@@ -503,11 +498,9 @@ export default function DashboardView() {
 function DetailDrawer({
   project,
   onClose,
-  isDemo,
 }: {
   project: Project;
   onClose: () => void;
-  isDemo: boolean;
 }) {
   const [note, setNote] = useState("");
   const [localNotes, setLocalNotes] = useState<ProjectNote[]>(project.notes);
@@ -603,11 +596,6 @@ function DetailDrawer({
                 </button>
               ))}
             </div>
-            {isDemo && (
-              <p className="mt-2 text-[11px] text-ink-500">
-                Demo mode — status changes are local only. Step 5 wiring will persist to Firestore.
-              </p>
-            )}
           </section>
 
           <section>
