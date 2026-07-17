@@ -112,8 +112,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(
-    async (_email: string, _password: string) => demoLogin("superadmin"),
-    [demoLogin]
+    async (email: string, password: string) => {
+      const normalized = email.trim().toLowerCase();
+
+      // Superadmin test credentials (per user request — replace with Firebase Auth later)
+      const SUPERADMIN_EMAIL = "akashperera@shield.com";
+      const SUPERADMIN_PASSWORD = "akashperera123*#";
+
+      if (normalized === SUPERADMIN_EMAIL && password === SUPERADMIN_PASSWORD) {
+        const p: Profile = {
+          uid: "superadmin-akash",
+          name: "Akash Perera",
+          email: SUPERADMIN_EMAIL,
+          role: "superadmin",
+        };
+        saveDemo(p);
+        setIsDemo(true);
+        setUser({ uid: p.uid, email: p.email, isDemo: true });
+        setProfile(p);
+        setRole(p.role);
+        return p;
+      }
+
+      // Any other recognised-looking email/password → demote to admin (demo)
+      if (normalized && password) {
+        const p: Profile = {
+          uid: "demo-admin-" + Date.now(),
+          name: email.split("@")[0] || "Admin",
+          email: normalized,
+          role: "admin",
+        };
+        saveDemo(p);
+        setIsDemo(true);
+        setUser({ uid: p.uid, email: p.email, isDemo: true });
+        setProfile(p);
+        setRole(p.role);
+        return p;
+      }
+
+      throw new Error("Invalid email or password.");
+    },
+    []
   );
 
   const logout = useCallback(async () => {

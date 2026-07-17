@@ -99,11 +99,14 @@ export default function LoginView() {
           <h2 className="text-2xl font-semibold text-white">Welcome back</h2>
           <p className="mt-1 text-sm text-ink-400">Sign in with your agency email.</p>
 
-          <div className="mt-6 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+          <div className="mt-6 flex items-start gap-2 rounded-lg border border-mint-300/30 bg-mint-300/5 p-3 text-xs text-mint-100">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
-              Firebase isn&apos;t configured yet. Use <strong>Demo Mode</strong> below to preview the
-              dashboard + superadmin console — no credentials needed.
+              <strong>Superadmin test creds:</strong>{" "}
+              <code className="font-mono text-mint-200">akashperera@shield.com</code>{" / "}
+              <code className="font-mono text-mint-200">akashperera123*#</code>
+              <br />
+              Any other email/password signs you in as a regular <strong>Admin</strong>.
             </span>
           </div>
 
@@ -167,7 +170,7 @@ export default function LoginView() {
                 </>
               ) : (
                 <>
-                  <LogIn className="h-4 w-4" /> Sign in (any input works in preview)
+                  <LogIn className="h-4 w-4" /> Sign in
                 </>
               )}
             </button>

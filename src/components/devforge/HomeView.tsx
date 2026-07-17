@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ArrowRight,
   Cloud,
@@ -85,6 +85,12 @@ const SERVICES = [
     tags: ["NetSuite", "ERP", "Automation"],
   },
   {
+    icon: Palette,
+    title: "Graphic Design",
+    desc: "Creative visual design for brands — logos, marketing collateral, social media assets, and complete brand identity systems that captivate and convert.",
+    tags: ["Branding", "Logo", "Visual Identity"],
+  },
+  {
     icon: Code2,
     title: "Software Development",
     desc: "Process involving creation, maintenance of applications, frameworks — design, programming, testing, and bug fixing.",
@@ -136,7 +142,7 @@ const INDUSTRIES = [
 ];
 
 const PROCESS = [
-  { n: "01", icon: Send,          title: "Submit Project",    desc: "Tell us about scope, budget, and timeline — no login or file upload required." },
+  { n: "01", icon: Send,          title: "Submit Project",    desc: "Tell us about scope and timeline — no login or file upload required." },
   { n: "02", icon: MessageSquare, title: "Discovery Call",    desc: "Within 48h we schedule a call to align on milestones, deliverables, and success metrics." },
   { n: "03", icon: GitBranch,     title: "Build Sprint",      desc: "Two-week sprints with weekly demos. You watch your product come alive in real time." },
   { n: "04", icon: Rocket,        title: "Launch & Support",  desc: "We ship to production, hand over docs, and stay on retainer for iteration sprints." },
@@ -187,8 +193,27 @@ const STATUS_FLOW = [
 
 const DELIVERY_DATA = [38, 42, 35, 50, 45, 58, 52, 65, 60, 72, 68, 80];
 
+const HERO_SLIDES = [
+  "Application Development",
+  "Graphic Design",
+  "Software Development",
+  "Mobile App Development",
+  "Website Development",
+  "UI / UX Designing",
+  "Digital Marketing",
+  "AI & Machine Learning",
+];
+
 export default function HomeView() {
   const { isAuthenticated, isAdmin, setView } = useAuth();
+  const [slideIdx, setSlideIdx] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setSlideIdx((i) => (i + 1) % HERO_SLIDES.length);
+    }, 2600);
+    return () => clearInterval(t);
+  }, []);
 
   return (
     <div className="relative">
@@ -205,10 +230,44 @@ export default function HomeView() {
             </div>
 
             <h1 className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl animate-fade-up stagger-2">
-              Application
-              <br />
-              <span className="text-gradient-animated text-shadow-glow">Development</span>
+              <span className="block">We craft</span>
+              <span className="relative block min-h-[1.1em] overflow-hidden">
+                {HERO_SLIDES.map((slide, i) => (
+                  <span
+                    key={slide}
+                    aria-hidden={i !== slideIdx}
+                    className={`text-gradient-animated text-shadow-glow absolute inset-0 transition-all duration-700 ${
+                      i === slideIdx
+                        ? "opacity-100 translate-y-0"
+                        : "opacity-0 translate-y-4 pointer-events-none"
+                    }`}
+                  >
+                    {slide}
+                  </span>
+                ))}
+                {/* Spacer to size the rotating slot to the tallest slide */}
+                <span className="text-gradient-animated text-shadow-glow opacity-0">
+                  {HERO_SLIDES.reduce((a, b) => (a.length > b.length ? a : b), "")}
+                </span>
+              </span>
             </h1>
+
+            {/* Slide indicators */}
+            <div className="mt-4 flex flex-wrap gap-1.5 animate-fade-up stagger-3">
+              {HERO_SLIDES.map((s, i) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSlideIdx(i)}
+                  aria-label={`Show ${s}`}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i === slideIdx
+                      ? "w-8 bg-mint-300"
+                      : "w-3 bg-white/20 hover:bg-white/40"
+                  }`}
+                />
+              ))}
+            </div>
 
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-300 animate-fade-up stagger-3">
               We provide full-cycle software development services encompassing planning,
@@ -695,7 +754,6 @@ function SubmitProjectSection() {
     email: "",
     company: "",
     service: "",
-    budget: "",
     timeline: "",
     brief: "",
   });
@@ -752,7 +810,6 @@ function SubmitProjectSection() {
       email: "",
       company: "",
       service: "",
-      budget: "",
       timeline: "",
       brief: "",
     });
@@ -806,7 +863,6 @@ function SubmitProjectSection() {
                 <SummaryRow k="Email" v={form.email} />
                 {form.company && <SummaryRow k="Company" v={form.company} />}
                 {form.service && <SummaryRow k="Service" v={form.service} />}
-                {form.budget && <SummaryRow k="Budget" v={form.budget} />}
                 {form.timeline && <SummaryRow k="Timeline" v={form.timeline} />}
                 <div>
                   <dt className="text-xs uppercase tracking-wider text-ink-500">Brief</dt>
@@ -832,8 +888,8 @@ function SubmitProjectSection() {
             </span>
             <h2 className="mt-4 text-3xl font-bold text-white">Tell us about your project</h2>
             <p className="mt-3 text-ink-300">
-              Fill in the form — no login, no file uploads. Share scope, budget,
-              and timeline and we&apos;ll reply within 48 hours with a clear estimate.
+              Fill in the form — no login, no file uploads. Share scope and
+              timeline and we&apos;ll reply within 48 hours with a clear estimate.
             </p>
             <ul className="mt-6 space-y-3 text-sm text-ink-200">
               {[
@@ -894,39 +950,20 @@ function SubmitProjectSection() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
-                    Service needed
-                  </label>
-                  <select
-                    value={form.service}
-                    onChange={(e) => update("service", e.target.value)}
-                    className="input-field"
-                  >
-                    <option value="">Select a service…</option>
-                    {SERVICES.map((s) => (
-                      <option key={s.title} value={s.title}>{s.title}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
-                    Budget
-                  </label>
-                  <select
-                    value={form.budget}
-                    onChange={(e) => update("budget", e.target.value)}
-                    className="input-field"
-                  >
-                    <option value="">Select range…</option>
-                    <option value="< $5k">&lt; $5k</option>
-                    <option value="$5k – $15k">$5k – $15k</option>
-                    <option value="$15k – $40k">$15k – $40k</option>
-                    <option value="$40k – $100k">$40k – $100k</option>
-                    <option value="$100k+">$100k+</option>
-                  </select>
-                </div>
+              <div>
+                <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+                  Service needed
+                </label>
+                <select
+                  value={form.service}
+                  onChange={(e) => update("service", e.target.value)}
+                  className="input-field"
+                >
+                  <option value="">Select a service…</option>
+                  {SERVICES.map((s) => (
+                    <option key={s.title} value={s.title}>{s.title}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
