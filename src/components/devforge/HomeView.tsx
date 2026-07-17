@@ -2,6 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import {
+  Paperclip,
+  X,
+  FileText,
+  Image as ImageIcon,
+  Loader2,
   ArrowRight,
   Cloud,
   Code2,
@@ -23,7 +28,6 @@ import {
   Rocket,
   CheckCircle2,
   Clock,
-  Loader2,
   Brain,
   Cpu,
   Network,
@@ -48,6 +52,15 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { CircularGauge, MiniAreaChart, MiniBarChart, Sparkline } from "./Charts";
+import {
+  uploadFile,
+  validateFile,
+  formatBytes,
+  UPLOAD_CONFIGURED,
+  MAX_FILES,
+  type UploadedFile,
+  type UploadProgress,
+} from "@/lib/uploads";
 
 const LOGO_URL =
   "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png";
@@ -760,6 +773,9 @@ function SubmitProjectSection() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploads, setUploads] = useState<UploadedFile[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
+  const [dragOver, setDragOver] = useState(false);
 
   const update = (k: keyof typeof form, v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -779,22 +795,21 @@ function SubmitProjectSection() {
 
     setSubmitting(true);
 
-    // Save to localStorage (demo persistence until Firestore wiring lands)
-    const submission = {
-      ...form,
-      id: "s_" + Math.random().toString(36).slice(2, 10),
-      status: "Pending",
-      createdAt: new Date().toISOString(),
-    };
-
     try {
+      const submission = {
+        ...form,
+        attachments: uploads,
+        id: "s_" + Math.random().toString(36).slice(2, 10),
+        status: "Pending",
+        createdAt: new Date().toISOString(),
+      };
+
       const KEY = "theshield_submissions";
       const existing = JSON.parse(localStorage.getItem(KEY) || "[]");
       existing.unshift(submission);
       localStorage.setItem(KEY, JSON.stringify(existing));
 
-      // Simulate brief network latency for the spinner
-      await new Promise((r) => setTimeout(r, 700));
+      await new Promise((r) => setTimeout(r, 400));
 
       setSubmitting(false);
       setDone(true);
@@ -813,6 +828,8 @@ function SubmitProjectSection() {
       timeline: "",
       brief: "",
     });
+    setUploads([]);
+    setUploadProgress([]);
     setDone(false);
     setError(null);
   };
@@ -864,6 +881,32 @@ function SubmitProjectSection() {
                 {form.company && <SummaryRow k="Company" v={form.company} />}
                 {form.service && <SummaryRow k="Service" v={form.service} />}
                 {form.timeline && <SummaryRow k="Timeline" v={form.timeline} />}
+                {uploads.length > 0 && (
+                  <div>
+                    <dt className="text-xs uppercase tracking-wider text-ink-500">
+                      Attachments ({uploads.length})
+                    </dt>
+                    <dd className="mt-2 space-y-1.5">
+                      {uploads.map((f) => (
+                        <a
+                          key={f.url}
+                          href={f.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 rounded-md border border-white/5 bg-white/[0.02] px-3 py-2 text-xs text-ink-200 transition-colors hover:border-mint-300/40 hover:text-mint-200"
+                        >
+                          {f.type.startsWith("image/") ? (
+                            <ImageIcon className="h-3.5 w-3.5 shrink-0" />
+                          ) : (
+                            <FileText className="h-3.5 w-3.5 shrink-0" />
+                          )}
+                          <span className="truncate">{f.name}</span>
+                          <span className="ml-auto shrink-0 text-ink-500">{formatBytes(f.size)}</span>
+                        </a>
+                      ))}
+                    </dd>
+                  </div>
+                )}
                 <div>
                   <dt className="text-xs uppercase tracking-wider text-ink-500">Brief</dt>
                   <dd className="mt-1 rounded-lg border border-white/5 bg-white/[0.02] p-3 text-ink-200">
@@ -980,6 +1023,63 @@ function SubmitProjectSection() {
 
               <div>
                 <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+                  Attachments {UPLOAD_CONFIGURED ? "(optional)" : "(disabled — ask admin to configure uploads)"}
+                </label>
+                <FileDropzone
+                  uploads={uploads}
+                  progress={uploadProgress}
+                  dragOver={dragOver}
+                  setDragOver={setDragOver}
+                  onAddFiles={async (files) => {
+                    if (!UPLOAD_CONFIGURED) {
+                      setError("File uploads are not configured yet. Please email files directly.");
+                      return;
+                    }
+                    setError(null);
+                    const list = Array.from(files);
+                    if (uploads.length + list.length > MAX_FILES) {
+                      setError(`Max ${MAX_FILES} files per submission.`);
+                      return;
+                    }
+                    for (const file of list) {
+                      const v = validateFile(file);
+                      if (v) {
+                        setError(v);
+                        continue;
+                      }
+                      setUploadProgress((p) => [
+                        ...p,
+                        { fileName: file.name, progress: 0, status: "uploading" },
+                      ]);
+                      try {
+                        const result = await uploadFile(file, (prog) => {
+                          setUploadProgress((p) =>
+                            p.map((it) =>
+                              it.fileName === file.name ? prog : it
+                            )
+                          );
+                        });
+                        setUploads((u) => [...u, result]);
+                      } catch {
+                        // error already reflected in progress entry
+                      }
+                    }
+                    // Clear out errored entries after a beat
+                    setTimeout(() => {
+                      setUploadProgress((p) => p.filter((it) => it.status === "uploading"));
+                    }, 1500);
+                  }}
+                  onRemove={(idx) => {
+                    setUploads((u) => u.filter((_, i) => i !== idx));
+                  }}
+                />
+                <p className="mt-1 text-[10px] text-ink-500">
+                  PNG, JPG, GIF, WebP, PDF, ZIP, DOC, DOCX — up to 25 MB each, max {MAX_FILES} files.
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
                   Project brief *
                 </label>
                 <textarea
@@ -1000,13 +1100,17 @@ function SubmitProjectSection() {
 
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || uploadProgress.some((p) => p.status === "uploading")}
                 className="btn-primary w-full"
               >
                 {submitting ? (
                   <>
                     <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/40 border-t-white" />
                     Submitting…
+                  </>
+                ) : uploadProgress.some((p) => p.status === "uploading") ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Uploading files…
                   </>
                 ) : (
                   <>
@@ -1016,7 +1120,7 @@ function SubmitProjectSection() {
               </button>
 
               <p className="text-center text-[11px] text-ink-500">
-                Demo mode — submissions are saved to your browser. Step 5 wiring will persist to Firestore.
+                Submissions are saved locally for demo tracking. Firestore wiring lands next.
               </p>
             </div>
           </form>
@@ -1031,6 +1135,148 @@ function SummaryRow({ k, v }: { k: string; v: string }) {
     <div className="flex items-center justify-between gap-3 border-b border-white/5 pb-2">
       <dt className="text-xs uppercase tracking-wider text-ink-500">{k}</dt>
       <dd className="truncate text-right text-ink-200">{v}</dd>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* FILE DROPZONE — drag/drop or click to upload, with per-file progress    */
+/* ─────────────────────────────────────────────────────────────────────── */
+
+function FileDropzone({
+  uploads,
+  progress,
+  dragOver,
+  setDragOver,
+  onAddFiles,
+  onRemove,
+}: {
+  uploads: UploadedFile[];
+  progress: UploadProgress[];
+  dragOver: boolean;
+  setDragOver: (v: boolean) => void;
+  onAddFiles: (files: FileList | File[]) => void;
+  onRemove: (idx: number) => void;
+}) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="space-y-2">
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          if (e.dataTransfer.files?.length) onAddFiles(e.dataTransfer.files);
+        }}
+        onClick={() => inputRef.current?.click()}
+        className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors ${
+          dragOver
+            ? "border-mint-300 bg-mint-300/5"
+            : "border-white/10 bg-white/[0.02] hover:border-white/20"
+        }`}
+      >
+        <Paperclip className="h-5 w-5 text-ink-400" />
+        <p className="mt-2 text-xs text-ink-300">
+          <span className="font-semibold text-mint-300">Click to attach</span> or drag & drop
+        </p>
+        <p className="mt-0.5 text-[10px] text-ink-500">Files are uploaded securely</p>
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          className="hidden"
+          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.zip,.doc,.docx"
+          onChange={(e) => {
+            if (e.target.files?.length) onAddFiles(e.target.files);
+            e.target.value = "";
+          }}
+        />
+      </div>
+
+      {/* Active upload progress */}
+      {progress.length > 0 && (
+        <div className="space-y-1.5">
+          {progress.map((p, i) => (
+            <div
+              key={p.fileName + i}
+              className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2"
+            >
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="truncate text-ink-200">{p.fileName}</span>
+                <span
+                  className={`ml-2 shrink-0 ${
+                    p.status === "error"
+                      ? "text-rose-300"
+                      : p.status === "done"
+                      ? "text-emerald-300"
+                      : "text-ink-400"
+                  }`}
+                >
+                  {p.status === "error"
+                    ? "Failed"
+                    : p.status === "done"
+                    ? "Done"
+                    : `${p.progress}%`}
+                </span>
+              </div>
+              {p.status === "uploading" && (
+                <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/5">
+                  <div
+                    className="h-full rounded-full bg-mint-300 transition-all duration-200"
+                    style={{ width: `${p.progress}%` }}
+                  />
+                </div>
+              )}
+              {p.status === "error" && (
+                <p className="mt-1 text-[10px] text-rose-300">{p.error}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Already-uploaded files */}
+      {uploads.length > 0 && (
+        <div className="space-y-1.5">
+          {uploads.map((f, i) => (
+            <div
+              key={f.url}
+              className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 text-xs"
+            >
+              {f.type.startsWith("image/") ? (
+                <ImageIcon className="h-3.5 w-3.5 shrink-0 text-mint-300" />
+              ) : (
+                <FileText className="h-3.5 w-3.5 shrink-0 text-mint-300" />
+              )}
+              <a
+                href={f.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="truncate text-ink-200 hover:text-mint-200"
+              >
+                {f.name}
+              </a>
+              <span className="ml-auto shrink-0 text-ink-500">{formatBytes(f.size)}</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(i);
+                }}
+                className="text-ink-500 hover:text-rose-300"
+                aria-label={`Remove ${f.name}`}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

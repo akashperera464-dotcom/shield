@@ -21,3 +21,37 @@ Stage Summary:
 - Superadmin login: akashperera@shield.com / akashperera123*# (any other email → admin).
 - LoginView shows the test credentials in a mint banner above the form.
 - TypeScript build clean; dev server healthy on :3000 and :81.
+
+---
+Task ID: cloudinary-client-uploads
+Agent: main
+Task: Add client-side file uploads to the Submit Project form using an unsigned upload preset. No mention of the vendor name anywhere in the UI.
+
+Work Log:
+- Created .env.local with NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=dhd06wdov and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=akash123.
+- Created /home/z/my-project/src/lib/uploads.ts — pure helper module:
+  * UPLOAD_CONFIGURED flag (true when both env vars are present)
+  * MAX_FILE_SIZE = 25 MB, MAX_FILES = 5, ALLOWED_TYPES allow-list
+  * validateFile() — checks size + MIME/extension
+  * uploadFile() — XHR-based POST to the unsigned upload endpoint, fires progress callbacks, parses secure_url + public_id
+  * formatBytes() helper
+  * UploadedFile and UploadProgress interfaces exported
+- Patched HomeView.tsx SubmitProjectSection:
+  * Added uploads + uploadProgress + dragOver state
+  * Submissions now persist an `attachments: UploadedFile[]` field
+  * New FileDropzone component (drag-and-drop + click to browse, accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.zip,.doc,.docx")
+  * Per-file progress bar with XHR upload progress (0–100%)
+  * Submit button disabled while uploads are in-flight; shows "Uploading files…" state
+  * Success summary now lists attachments as clickable links with file icons + size
+  * Reset clears uploads + progress too
+  * Acceptance hint: "PNG, JPG, GIF, WebP, PDF, ZIP, DOC, DOCX — up to 25 MB each, max 5 files."
+- UI mentions only "Click to attach or drag & drop" and "Files are uploaded securely" — no vendor name anywhere.
+- Fixed duplicate Loader2 import, missing closing backticks on two className template literals (caught by tsc).
+- Restarted dev server to load .env.local. Verified: `npx tsc --noEmit` clean for project source; `curl localhost:3000` returns 200.
+
+Stage Summary:
+- Clients can now attach up to 5 files (PNG/JPG/GIF/WebP/PDF/ZIP/DOC/DOCX, 25 MB each) when submitting a project.
+- Files upload directly to the configured account via unsigned preset, with live progress bars per file.
+- Attachments are stored on the submission record (localStorage now, Firestore later) and shown as clickable links in the success summary.
+- Vendor name is intentionally absent from all UI strings.
+- If env vars are missing, the dropzone shows "(disabled — ask admin to configure uploads)" and the submit handler shows a friendly error instead of trying to upload.
