@@ -214,3 +214,27 @@ Stage Summary:
 - The existing aurora blobs + dot grid continue to drift on top of the image, so the ambient premium feel is preserved.
 - The image only appears on the homepage (`view === "home"`). Admin dashboard, superadmin console, and login pages keep their clean dark-navy backgrounds.
 - Image is `background-attachment: fixed`, so it stays put while the user scrolls — content slides over it.
+
+---
+Task ID: homepage-fixed-bg-fix
+Agent: main (continuation)
+Task: User reported "nothing changed yet" — the homepage background image was effectively invisible due to over-aggressive opacity + overlay stacking. Fix the visibility while preserving text contrast.
+
+Work Log:
+- Root cause analysis: my original .homepage-bg rule set opacity: 0.18 on the image, THEN stacked a 65-90% dark ::after overlay on top of that, all sitting above the body's solid #0a192f navy + 3 radial gradients. The image was crushed to near-invisibility (image at 18% over solid navy, then 65-90% dark overlay = essentially the same as the previous navy background).
+- Fix in /home/z/my-project/src/app/globals.css:
+  * Removed `opacity: 0.18` from `.homepage-bg` — image is now at full strength.
+  * Lightened the `.homepage-bg::after` overlay: was 65-90% dark, now 45% in the middle (30-70% range) and 78-85% at the very top/bottom for navbar/footer legibility. Removed the extra radial-gradient overlay layer.
+  * Added `body:has(.homepage-bg) { background-image: none; }` so the body's own radial gradients don't compete with the image on the homepage. Body keeps its solid #0a192f as a fallback base.
+- Dev server had been serving stale CSS (Turbopack cache held the old opacity: 0.18 rule even after the file was updated). Cleared .next/cache + .next and restarted the dev server using the double-fork daemon pattern.
+- Verified the fresh CSS bundle now serves the correct rules:
+  * .homepage-bg — no opacity line, image at full strength.
+  * .homepage-bg::after — lighter overlay (rgba 0.45 in middle, 0.78-0.85 at edges).
+  * body:has(.homepage-bg) — background-image: none.
+- TypeScript clean, dev server HTTP 200 on :3000 and :81.
+
+Stage Summary:
+- Homepage background image is now actually visible — the Cloudinary image renders at full strength, with a dark navy gradient overlay that's 45% dark in the middle (image clearly visible) and 78-85% dark at the top/bottom (navbar + footer text stays crisp).
+- Body's competing radial gradients are suppressed on the homepage via :has() selector so they don't fight the image.
+- Admin + login views unaffected — they keep the clean dark-navy background.
+- User may need to hard-refresh their browser (Ctrl+Shift+R / Cmd+Shift+R) to bypass any cached CSS from the earlier broken version.

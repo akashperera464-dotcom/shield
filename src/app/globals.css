@@ -544,7 +544,7 @@
 /* ─── Homepage fixed background image ────────────────────────────────── */
 /* Sits behind the aurora blobs (z-index -3) so the colored glows still  */
 /* drift over it. A dark gradient overlay sits on top of the image       */
-/* (z-index -2.5 via the ::after pseudo) to guarantee text contrast.     */
+/* (via the ::after pseudo) to guarantee text contrast.                  */
 /* Only mounted on the homepage — admin + login views keep their clean   */
 /* dark-navy backgrounds.                                                */
 .homepage-bg {
@@ -556,26 +556,37 @@
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
-  opacity: 0.18; /* very faint — image is just a texture, not the focus */
+  /* No opacity here — image is at full strength, the ::after overlay
+     controls how much of it shows through. This way the image actually
+     reads as a visible texture instead of being crushed by transparency
+     stacked on top of a solid body background. */
   pointer-events: none;
 }
 .homepage-bg::after {
   content: '';
   position: absolute;
   inset: 0;
-  /* Dark navy gradient overlay — strongest at top + bottom for navbar /
-     footer legibility, slightly lighter in the middle so the image is
-     still visible. */
+  /* Dark navy overlay — strong enough to keep text crisp, light enough
+     that the underlying image is clearly visible as a textured backdrop.
+     Stronger at top + bottom for navbar/footer legibility, lighter in
+     the middle so the image shows. */
   background:
     linear-gradient(180deg,
-      rgba(7, 8, 21, 0.85) 0%,
-      rgba(10, 25, 47, 0.65) 35%,
-      rgba(10, 25, 47, 0.65) 65%,
-      rgba(7, 8, 21, 0.90) 100%
-    ),
-    radial-gradient(ellipse at center, rgba(10, 25, 47, 0.30), rgba(7, 8, 21, 0.55));
+      rgba(7, 8, 21, 0.78) 0%,
+      rgba(10, 25, 47, 0.45) 30%,
+      rgba(10, 25, 47, 0.45) 70%,
+      rgba(7, 8, 21, 0.85) 100%
+    );
   pointer-events: none;
 }
+
+/* When the homepage background image is mounted, drop the body's own
+   background-image gradients so they don't fight with the image. The
+   body's solid #0a192f fallback stays as a base. */
+body:has(.homepage-bg) {
+  background-image: none;
+}
+
 .aurora-blob {
   position: absolute;
   width: 42rem;
