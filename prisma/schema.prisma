@@ -1,32 +1,87 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Prisma schema — MongoDB Atlas
+// Docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ───────────────────────────────────────────────────────────────────────
+// SUBMISSIONS — public "Submit Project" form writes here; admin inbox reads.
+// ───────────────────────────────────────────────────────────────────────
+model Submission {
+  id          String     @id @map("_id")
+  name        String
+  email       String
+  company     String?
+  service     String
+  timeline    String?
+  brief       String
+  attachments Json       // SubmissionAttachment[]
+  status      String     // "Pending" | "In Progress" | "Under Review" | "Completed"
+  createdAt   String     // ISO string — sortable + timezone-safe
+  notes       Json?      // ProjectNote[]
+  readAt      String?    // ISO timestamp when admin first opened it
+  archived    Boolean    @default(false)
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
 }
 
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ───────────────────────────────────────────────────────────────────────
+// FEEDBACK — client-submitted testimonials. status pending→approved/rejected
+// ───────────────────────────────────────────────────────────────────────
+model Feedback {
+  id        String   @id @map("_id")
+  name      String
+  role      String
+  rating    Int
+  quote     String
+  variant   String   // "mint" | "violet" | "purple"
+  status    String   // "pending" | "approved" | "rejected"
+  featured  Boolean  @default(false)
+  createdAt String   // ISO timestamp
+  source    String?  // "seed" | "client"
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// SHOWCASE — public portfolio cards, editable from SuperAdmin panel.
+// ───────────────────────────────────────────────────────────────────────
+model Showcase {
+  id          String  @id @map("_id")
+  title       String
+  category    String
+  description String
+  imageUrl    String
+  projectUrl  String
+  tags        Json    // string[]
+  featured    Boolean @default(false)
+  order       Int     @default(0)
+
+  @@index([featured])
+  @@index([order])
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// TEAM — admin users. Superadmin (uid "u_001") is protected.
+// ───────────────────────────────────────────────────────────────────────
+model TeamMember {
+  uid       String @id @map("_id")
+  name      String
+  email     String @unique
+  role      String // "superadmin" | "admin"
+  createdAt String
+  jobField  String?
+  mobile    String?
+  username  String?
+
+  @@index([role])
 }
