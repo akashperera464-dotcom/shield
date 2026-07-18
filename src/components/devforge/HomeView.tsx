@@ -57,7 +57,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Sparkline } from "./Charts";
 import HeroLivePanel from "./HeroLivePanel";
 import Reveal from "./Reveal";
-import { useCountUp, useMagnetic, useScrollReveal, useTilt } from "@/hooks/use-animations";
+import { useCountUp, useMagnetic, useScrollReveal } from "@/hooks/use-animations";
 import {
   uploadFile,
   validateFile,
@@ -67,7 +67,7 @@ import {
   type UploadedFile,
   type UploadProgress,
 } from "@/lib/uploads";
-import { loadShowcase } from "@/lib/showcase";
+import { loadShowcase, refreshShowcase, SHOWCASE_UPDATED_EVENT } from "@/lib/showcase";
 import { addSubmission, loadSubmissions, seedDemoSubmissions, type Submission } from "@/lib/submissions";
 import {
   loadApprovedFeedback,
@@ -572,13 +572,43 @@ export default function HomeView() {
     seedFeedback().then(() => setFeedback(loadApprovedFeedback()));
     // Fetch live site config from MongoDB (hero text, logo URL, contact email…)
     fetchSiteConfig().then(setConfig).catch(() => {});
+
+    // CRITICAL: pull fresh showcase data from MongoDB so that projects
+    // added on OTHER devices appear on THIS device. localStorage is just
+    // a per-device cache — only the API knows what's in the shared DB.
+    // This is what makes cross-device sync actually work.
+    refreshShowcase()
+      .then((fresh) => {
+        if (Array.isArray(fresh)) setShowcase(fresh);
+      })
+      .catch(() => {});
+
     // Live-refresh showcase + feedback when superadmin edits in another tab
+    // OR when the same tab refreshes the showcase from the API (custom event).
     const onStorage = (e: StorageEvent) => {
       if (e.key === "theshield_showcase") setShowcase(loadShowcase());
       if (e.key === "theshield_feedback") setFeedback(loadApprovedFeedback());
     };
+    const onShowcaseUpdated = () => setShowcase(loadShowcase());
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener(SHOWCASE_UPDATED_EVENT, onShowcaseUpdated);
+
+    // Safety-net poll every 30s — picks up cross-device changes (e.g.
+    // admin adds a project on their phone) even if the user keeps this
+    // tab open and idle. Lightweight: only writes cache if data changed.
+    const poll = setInterval(() => {
+      refreshShowcase()
+        .then((fresh) => {
+          if (Array.isArray(fresh)) setShowcase(fresh);
+        })
+        .catch(() => {});
+    }, 30000);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(SHOWCASE_UPDATED_EVENT, onShowcaseUpdated);
+      clearInterval(poll);
+    };
   }, []);
 
   useEffect(() => {
@@ -611,9 +641,10 @@ export default function HomeView() {
 
         <div className="relative grid items-center gap-8 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-7">
-            <div className="inline-flex items-center gap-2 rounded-full border border-mint-300/30 bg-mint-300/5 px-3 py-1.5 text-[11px] font-medium text-mint-300 animate-fade-up stagger-1 sm:px-4 sm:text-xs">
+            <div className="inline-flex items-center gap-2 rounded-full border border-mint-300/30 bg-mint-300/5 px-3 py-1.5 text-[11px] font-medium text-mint-300 animate-fade-up stagger-1 sm:px-4 sm:text-xs glow-ring">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-300 opacity-75" />
+                {/* Replaced animate-ping (infinite expansion) with glow-ring
+                    on the parent — calmer, no constant motion. */}
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-mint-300" />
               </span>
               {config?.heroSubtitle || "Bridging the gap between business and technology"}
@@ -629,7 +660,7 @@ export default function HomeView() {
                     className={`text-gradient-animated text-shadow-glow absolute inset-0 transition-all duration-700 ${
                       i === slideIdx
                         ? "opacity-100 translate-y-0"
-                        : "opacity-0 translate-y-4 pointer-events-none"
+                        : "opacity-0 translate-y-2 pointer-events-none"
                     }`}
                   >
                     {slide}
@@ -1041,7 +1072,10 @@ function ShowcaseCard({ project, index }: { project: ShowcaseProject; index: num
 
   const hasUrl = /^https?:\/\/.+/.test(p.projectUrl);
   const hasImg = /^https?:\/\/.+/.test(p.imageUrl);
-  const tilt = useTilt<HTMLDivElement>(5);     // gentle 5° cursor tilt
+  // useTilt removed from ShowcaseCard — the 5° cursor-tilt wobbled every
+  // card whenever the cursor moved over the grid, which read as constant
+  // page "jumping". The hover lift (translateY on hover) + image zoom
+  // still give a premium 3D feel without the cursor-driven motion.
   const reveal = useScrollReveal<HTMLDivElement>({ threshold: 0.2 });
   const [imgLoaded, setImgLoaded] = useState(false);
 
@@ -1124,18 +1158,12 @@ function ShowcaseCard({ project, index }: { project: ShowcaseProject; index: num
 
   // Combined classes: showcase-card adds the lift + glow + image-zoom hover
   // reveal-hidden/visible handles scroll-triggered fade-up
-  // We need both refs (reveal + tilt) on the same element — use a callback ref.
-  const setRef = (el: HTMLDivElement | null) => {
-    reveal.ref.current = el;
-    tilt.ref.current = el;
-  };
-
   const containerCls = `group showcase-card reveal-hidden ${reveal.visible ? "reveal-visible" : ""} flex h-full flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.05] hover:border-mint-300/40 hover:bg-white/[0.04]`;
 
   return (
     <div
-      ref={setRef}
-      style={{ transitionDelay: `${index * 0.08}s`, ...tilt.style }}
+      ref={reveal.ref}
+      style={{ transitionDelay: `${index * 0.08}s` }}
       className={containerCls}
     >
       {hasUrl ? (

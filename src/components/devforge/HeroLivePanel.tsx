@@ -39,9 +39,11 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { loadSubmissions, type Submission } from "@/lib/submissions";
-import { loadShowcase } from "@/lib/showcase";
+import { loadShowcase, refreshShowcase, SHOWCASE_UPDATED_EVENT } from "@/lib/showcase";
 import { CircularGauge, MiniBarChart } from "./Charts";
-import { useTilt } from "@/hooks/use-animations";
+// useTilt removed — was the #1 cause of "jumping/shaking". When the user
+// scrolled the page or moved the cursor, the hero panel wobbled in 3D
+// which read as constant page motion. Kept all the other premium feel.
 
 interface SystemStats {
   total: number;
@@ -150,7 +152,6 @@ export default function HeroLivePanel() {
   const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
   const [tick, setTick] = useState(0); // forces "Xs ago" re-render
   const mountedRef = useRef(true);
-  const tilt = useTilt<HTMLDivElement>(4); // gentle 4° tilt on cursor move
 
   useEffect(() => {
     mountedRef.current = true;
@@ -171,6 +172,12 @@ export default function HeroLivePanel() {
     };
     pull();
 
+    // CRITICAL: pull fresh showcase from MongoDB so cross-device changes
+    // (admin adds project on phone) reflect in the hero stats here.
+    refreshShowcase()
+      .then(() => pull())
+      .catch(() => {});
+
     // Live: re-pull whenever localStorage changes in another tab
     const onStorage = (e: StorageEvent) => {
       if (
@@ -182,7 +189,10 @@ export default function HeroLivePanel() {
         pull();
       }
     };
+    // Also listen for our custom same-tab showcase update event
+    const onShowcaseUpdated = () => pull();
     window.addEventListener("storage", onStorage);
+    window.addEventListener(SHOWCASE_UPDATED_EVENT, onShowcaseUpdated);
 
     // Safety-net poll every 5s (also refreshes "Xs ago")
     const interval = setInterval(() => {
@@ -193,6 +203,7 @@ export default function HeroLivePanel() {
     return () => {
       mountedRef.current = false;
       window.removeEventListener("storage", onStorage);
+      window.removeEventListener(SHOWCASE_UPDATED_EVENT, onShowcaseUpdated);
       clearInterval(interval);
     };
   }, []);
@@ -210,7 +221,8 @@ export default function HeroLivePanel() {
   if (!stats) {
     return (
       <div className="relative animate-scale-in stagger-3">
-        <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-mint-300/20 via-violet-600/15 to-violet-500/10 blur-2xl animate-pulse-glow" />
+        {/* Calm static glow — no breathing animation, prevents visual jitter */}
+        <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-mint-300/20 via-violet-600/15 to-violet-500/10 blur-2xl opacity-60" />
         <div className="relative glass-card overflow-hidden p-1">
           <div className="rounded-t-[15px] border-b border-white/5 bg-navy-900/60 px-5 py-3">
             <div className="flex items-center justify-between">
@@ -271,9 +283,11 @@ export default function HeroLivePanel() {
   ];
 
   return (
-    <div className="relative animate-scale-in stagger-3" ref={tilt.ref} style={tilt.style}>
-      {/* Glow */}
-      <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-mint-300/20 via-violet-600/15 to-violet-500/10 blur-2xl animate-pulse-glow" />
+    <div className="relative animate-scale-in stagger-3">
+      {/* Calm static glow — removed pulse-glow (scale on a large blurred
+          element caused visible breathing/jitter). Static opacity keeps
+          the premium glow without motion. */}
+      <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-mint-300/20 via-violet-600/15 to-violet-500/10 blur-2xl opacity-60" />
 
       <div className="relative glass-card overflow-hidden p-1">
         {/* Window chrome */}
@@ -296,9 +310,11 @@ export default function HeroLivePanel() {
               <div className="text-[10px] uppercase tracking-wider text-ink-500">System pulse</div>
               <div className="text-sm font-semibold text-white">Real-time overview</div>
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-300">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-300 glow-ring">
               <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                {/* Replaced animate-ping (infinite expansion) with a calm
+                    glow-ring pulse. The constant expansion ring was reading
+                    as page motion. */}
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
               </span>
               LIVE
@@ -371,7 +387,7 @@ export default function HeroLivePanel() {
                 <div className="flex items-center gap-2">
                   <span className={`flex h-6 w-6 items-center justify-center rounded-md ${s.bg}`}>
                     <s.icon
-                      className={`h-3 w-3 ${s.spin ? "animate-spin-fast" : ""} ${s.color}`}
+                      className={`h-3 w-3 ${s.color}`}
                     />
                   </span>
                   <span className="text-xs text-ink-200">{s.label}</span>

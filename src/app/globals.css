@@ -145,8 +145,11 @@
   100% { transform: rotate(360deg); }
 }
 @keyframes pulse-glow {
-  0%, 100% { opacity: 0.35; transform: translate3d(0,0,0) scale(1); }
-  50%      { opacity: 0.65; transform: translate3d(0,0,0) scale(1.04); }
+  /* Opacity-only — no scale. Scaling a large blurred element causes
+     visible "breathing" that reads as page jitter. Opacity pulse gives
+     the same glow effect without any geometric motion. */
+  0%, 100% { opacity: 0.40; }
+  50%      { opacity: 0.65; }
 }
 /* NEW: floating orb — used for hero ambient particles. Uses translate3d
    for GPU compositing so it never triggers layout/paint. */

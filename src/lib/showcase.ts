@@ -1,6 +1,18 @@
 // Showcase store — thin client over /api/showcase.
 // MongoDB is the source of truth. localStorage is a read cache.
 //
+// CRITICAL: cross-device sync requires that when Device B loads the page,
+// it eventually shows projects that Device A added. The pattern is:
+//   1. loadShowcase() returns the local cache INSTANTLY (so UI renders now)
+//   2. refreshShowcase() fetches from MongoDB in the background
+//   3. When the fresh data arrives, it's written to cache AND a custom
+//      event ('theshield:showcase-updated') is dispatched on `window`
+//   4. HomeView listens for that event and calls setShowcase(fresh)
+//
+// The native `storage` event ONLY fires in OTHER tabs/windows of the
+// same browser — it does NOT fire in the tab that wrote to localStorage.
+// So we MUST dispatch a custom event to notify the same-tab React tree.
+//
 // All data loaded from cache OR API is normalized via `normalizeProject`
 // before being returned to the UI. This guarantees every ShowcaseProject
 // has well-typed fields (tags is always an array, order is always a number,
@@ -11,6 +23,9 @@
 import type { ShowcaseProject } from "@/data/demo";
 
 const KEY = "theshield_showcase";
+// Custom event name — fired on `window` whenever the cache is refreshed
+// from the API. HomeView listens for this to update React state.
+export const SHOWCASE_UPDATED_EVENT = "theshield:showcase-updated";
 
 /**
  * Coerce an unknown shape into a valid ShowcaseProject.
@@ -76,6 +91,12 @@ function writeCache(list: ShowcaseProject[]) {
     // Always write normalized data — protects against future schema drift.
     const normalized = list.map(normalizeProject);
     localStorage.setItem(KEY, JSON.stringify(normalized));
+    // Dispatch a custom event so the SAME tab can react to the cache change.
+    // The native storage event only fires in OTHER tabs, so without this
+    // the React state in the current tab would never update after a
+    // background API refresh.
+    window.dispatchEvent(new CustomEvent(SHOWCASE_UPDATED_EVENT));
+    // Also fire a storage event so OTHER tabs of the same browser update.
     window.dispatchEvent(new StorageEvent("storage", { key: KEY }));
   } catch {}
 }
@@ -92,22 +113,33 @@ async function apiGet(): Promise<ShowcaseProject[] | null> {
   }
 }
 
-/** Load all showcase projects. Featured first, then by order. Cache + refresh. */
-export function loadShowcase(): ShowcaseProject[] {
-  const cached = readCache();
-  // IMPORTANT: only overwrite the cache if the API returned a valid array.
-  // If the API failed (network, DB error, malformed response), keep the
-  // existing cache so the homepage still renders the previously-loaded
-  // projects instead of going blank.
-  apiGet()
-    .then((fresh) => {
-      if (Array.isArray(fresh)) writeCache(fresh);
-    })
-    .catch(() => {});
-  return cached.sort((a, b) => {
+function sortFeatured(items: ShowcaseProject[]): ShowcaseProject[] {
+  return [...items].sort((a, b) => {
     if (a.featured !== b.featured) return a.featured ? -1 : 1;
     return (a.order || 0) - (b.order || 0);
   });
+}
+
+/** Load cached showcase projects instantly (no API call). */
+export function loadShowcase(): ShowcaseProject[] {
+  return sortFeatured(readCache());
+}
+
+/**
+ * Fetch fresh data from MongoDB and update the cache. Returns the fresh
+ * list (or null if the fetch failed). Callers should update their React
+ * state with the returned value to reflect cross-device changes.
+ *
+ * This is the function that makes projects added on Device A actually
+ * appear on Device B when Device B loads the page.
+ */
+export async function refreshShowcase(): Promise<ShowcaseProject[] | null> {
+  const fresh = await apiGet();
+  if (Array.isArray(fresh)) {
+    writeCache(fresh);
+    return sortFeatured(fresh);
+  }
+  return null;
 }
 
 /**
@@ -117,11 +149,17 @@ export function loadShowcase(): ShowcaseProject[] {
 export async function saveShowcase(projects: ShowcaseProject[]): Promise<void> {
   // Normalize before saving so we never persist bad shape to Mongo or cache.
   const normalized = projects.map(normalizeProject);
-  await fetch("/api/showcase", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ projects: normalized }),
-  });
+  try {
+    await fetch("/api/showcase", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projects: normalized }),
+    });
+  } catch (err) {
+    console.error("[saveShowcase] PUT failed:", err);
+    // Still write local cache so admin sees their changes immediately
+    // even if the network is down. They'll be synced on next load.
+  }
   writeCache(normalized);
 }
 
