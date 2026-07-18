@@ -38,7 +38,12 @@ import {
   Zap,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { loadSubmissions, type Submission } from "@/lib/submissions";
+import {
+  loadSubmissions,
+  refreshSubmissions,
+  SUBMISSIONS_UPDATED_EVENT,
+  type Submission,
+} from "@/lib/submissions";
 import { loadShowcase, refreshShowcase, SHOWCASE_UPDATED_EVENT } from "@/lib/showcase";
 import { CircularGauge, MiniBarChart } from "./Charts";
 // useTilt removed — was the #1 cause of "jumping/shaking". When the user
@@ -172,27 +177,28 @@ export default function HeroLivePanel() {
     };
     pull();
 
-    // CRITICAL: pull fresh showcase from MongoDB so cross-device changes
-    // (admin adds project on phone) reflect in the hero stats here.
-    refreshShowcase()
-      .then(() => pull())
-      .catch(() => {});
+    // CRITICAL: pull fresh showcase + submissions from MongoDB so
+    // cross-device changes (admin adds project on phone, client submits
+    // project from another device) reflect in the hero stats here.
+    refreshShowcase().then(() => pull()).catch(() => {});
+    refreshSubmissions().then(() => pull()).catch(() => {});
 
     // Live: re-pull whenever localStorage changes in another tab
     const onStorage = (e: StorageEvent) => {
       if (
         e.key === "theshield_submissions" ||
-        e.key === "theshield_submissions_meta" ||
         e.key === "theshield_showcase" ||
         e.key === null
       ) {
         pull();
       }
     };
-    // Also listen for our custom same-tab showcase update event
+    // Also listen for our custom same-tab events (showcase + submissions)
     const onShowcaseUpdated = () => pull();
+    const onSubmissionsUpdated = () => pull();
     window.addEventListener("storage", onStorage);
     window.addEventListener(SHOWCASE_UPDATED_EVENT, onShowcaseUpdated);
+    window.addEventListener(SUBMISSIONS_UPDATED_EVENT, onSubmissionsUpdated);
 
     // Safety-net poll every 5s (also refreshes "Xs ago")
     const interval = setInterval(() => {
@@ -204,6 +210,7 @@ export default function HeroLivePanel() {
       mountedRef.current = false;
       window.removeEventListener("storage", onStorage);
       window.removeEventListener(SHOWCASE_UPDATED_EVENT, onShowcaseUpdated);
+      window.removeEventListener(SUBMISSIONS_UPDATED_EVENT, onSubmissionsUpdated);
       clearInterval(interval);
     };
   }, []);

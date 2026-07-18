@@ -3,18 +3,17 @@
 // FeedbackPanel — superadmin moderation queue for client-submitted
 // testimonials.
 //
-// Lives inside the SuperAdmin console (a new "Feedback" tab).
-// Reads from /home/z/my-project/src/lib/feedback.ts (localStorage-backed
-// for now; Firestore swap is a drop-in once it lands).
+// Lives inside the SuperAdmin console (Feedback tab).
+// Reads from /home/z/my-project/src/lib/feedback.ts (MongoDB-backed via
+// /api/feedback, with localStorage as a read cache).
 //
-// Features:
-//   • Live list of every feedback entry, newest first
-//   • Filter chips: All / Pending / Approved / Featured / Rejected
-//   • Pending count badge in the sidebar
-//   • Approve / Reject / Toggle-featured / Delete buttons per row
-//   • Full quote text + rating + author info per row
-//   • Live-updates when a new feedback is submitted from another tab
-//   • Toast when a new pending feedback arrives while panel is open
+// Cross-device sync:
+//   • refreshFeedback("all") pulls from MongoDB on mount + every 30s
+//   • Custom 'theshield:feedback-updated' event fires whenever the cache
+//     is refreshed — same-tab updates are instant
+//   • Native 'storage' event fires in OTHER tabs of the same browser
+//   • Approve/Reject/Feature/Delete all write to MongoDB + refresh cache
+//     so changes propagate cross-device on next poll
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -31,11 +30,13 @@ import {
 } from "lucide-react";
 import {
   loadAllFeedback,
+  refreshFeedback,
   approveFeedback,
   rejectFeedback,
   toggleFeatured,
   deleteFeedback,
   countPendingFeedback,
+  FEEDBACK_UPDATED_EVENT,
   type Feedback,
   type FeedbackStatus,
 } from "@/lib/feedback";
@@ -92,6 +93,9 @@ export default function FeedbackPanel() {
     refresh();
     previousPendingRef.current = countPendingFeedback();
 
+    // Cross-device: pull fresh from MongoDB on mount
+    refreshFeedback("all").catch(() => {});
+
     const onStorage = (e: StorageEvent) => {
       if (e.key === "theshield_feedback" || e.key === null) {
         refresh();
@@ -105,8 +109,30 @@ export default function FeedbackPanel() {
         previousPendingRef.current = newPending;
       }
     };
+    const onCustom = () => {
+      refresh();
+      const newPending = countPendingFeedback();
+      if (newPending > previousPendingRef.current) {
+        setToast(
+          `New feedback submitted — ${newPending - previousPendingRef.current} awaiting review`
+        );
+        setTimeout(() => setToast(null), 5000);
+      }
+      previousPendingRef.current = newPending;
+    };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener(FEEDBACK_UPDATED_EVENT, onCustom);
+
+    // Safety-net poll every 30s — catches cross-device changes
+    const interval = setInterval(() => {
+      refreshFeedback("all").catch(() => {});
+    }, 30000);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(FEEDBACK_UPDATED_EVENT, onCustom);
+      clearInterval(interval);
+    };
   }, []);
 
   const filtered = useMemo(() => {

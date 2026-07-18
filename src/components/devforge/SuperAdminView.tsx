@@ -34,11 +34,12 @@ import {
   Tag,
   Bell,
   MessageSquare,
+  Download,
+  Search,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
   DEMO_CONFIG,
-  DEMO_TEAM,
   SHOWCASE_CATEGORIES,
   type SiteConfig,
   type TeamMember,
@@ -46,11 +47,60 @@ import {
 } from "@/data/demo";
 import { GradientAvatar, MiniAreaChart, CircularGauge } from "./Charts";
 import { loadShowcase, saveShowcase, newShowcaseId } from "@/lib/showcase";
-import { loadSubmissions, getMeta } from "@/lib/submissions";
-import { countPendingFeedback } from "@/lib/feedback";
 import { fetchSiteConfig, saveSiteConfig, clearConfigCache } from "@/lib/config";
 import NotificationsPanel from "./NotificationsPanel";
 import FeedbackPanel from "./FeedbackPanel";
+
+// ── Analytics fetcher + types ──────────────────────────────────────────
+// Lives here (not in a separate lib) because the shape is only consumed
+// by this component. If other components need it later, move to lib/analytics.ts.
+interface AnalyticsResponse {
+  pageviews: {
+    total: number;
+    last30d: number;
+    uniqueVisitors30d: number;
+    series30d: number[];
+    growthPct: number;
+  };
+  submissions: { total: number; last30d: number };
+  feedback: { total: number; last30d: number };
+  showcase: { total: number; clicks30d: number };
+  engagement: {
+    satisfactionPct: number;
+    completionPct: number;
+    avgRating: number;
+    referralPct: number;
+  };
+  storage: {
+    submissions: number;
+    feedback: number;
+    showcase: number;
+    team: number;
+    sessions: number;
+    activityLog: number;
+    analyticsEvents: number;
+    totalDocuments: number;
+  };
+  series7d: { label: string; pageviews: number; uniqueVisitors: number; submissions: number }[];
+}
+
+async function fetchAnalytics(): Promise<AnalyticsResponse> {
+  const res = await fetch("/api/analytics", { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to load analytics");
+  return (await res.json()) as AnalyticsResponse;
+}
+
+interface ActivityEntry {
+  id: string;
+  uid: string;
+  actorName: string;
+  actorEmail: string;
+  actorRole: string | null;
+  action: string;
+  target: string | null;
+  meta: Record<string, unknown> | null;
+  createdAt: string;
+}
 
 const SIDEBAR_NAV = [
   { id: "home",       label: "Back to site",    icon: HomeIcon },
@@ -62,16 +112,64 @@ const SIDEBAR_NAV = [
   { id: "team",       label: "User Management", icon: Users },
   { id: "analytics",  label: "Analytics",       icon: Activity },
   { id: "storage",    label: "Storage",         icon: HardDrive },
+  { id: "activity",   label: "Activity Log",    icon: BarChart3 },
+  { id: "security",   label: "Security",        icon: Lock },
 ] as const;
 
-type TabId = "cms" | "projects" | "notifications" | "feedback" | "team" | "analytics" | "storage";
-
-const STORAGE_DATA = [42, 38, 55, 48, 65, 58, 72, 68, 85, 78, 92, 96];
-const TRAFFIC_DATA = [120, 145, 138, 168, 185, 172, 195, 210, 188, 232, 248, 268];
+type TabId = "cms" | "projects" | "notifications" | "feedback" | "team" | "analytics" | "storage" | "activity" | "security";
 
 export default function SuperAdminView() {
-  const { profile, isDemo, setView } = useAuth();
+  const { profile, setView } = useAuth();
   const [tab, setTab] = useState<TabId>("cms");
+  const [teamCount, setTeamCount] = useState<number>(0);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [pendingFeedbackCount, setPendingFeedbackCount] = useState<number>(0);
+  const [storageTotal, setStorageTotal] = useState<number>(0);
+
+  // Live counts for sidebar badges — refreshed every 30s and on every
+  // mutation event. Pulls from the same MongoDB-backed libs the rest of
+  // the app uses, so cross-device changes show up here too.
+  useEffect(() => {
+    let cancelled = false;
+    const pullCounts = async () => {
+      if (cancelled) return;
+      try {
+        const [teamRes, subRes, fbRes, anRes] = await Promise.all([
+          fetch("/api/team", { cache: "no-store" }).then((r) => r.ok ? r.json() : []).catch(() => []),
+          fetch("/api/submissions", { cache: "no-store" }).then((r) => r.ok ? r.json() : []).catch(() => []),
+          fetch("/api/feedback?scope=all", { cache: "no-store" }).then((r) => r.ok ? r.json() : []).catch(() => []),
+          fetch("/api/analytics", { cache: "no-store" }).then((r) => r.ok ? r.json() : null).catch(() => null),
+        ]);
+        if (cancelled) return;
+        setTeamCount(Array.isArray(teamRes) ? teamRes.length : 0);
+        setUnreadCount(Array.isArray(subRes) ? subRes.filter((s: { readAt?: string }) => !s.readAt).length : 0);
+        setPendingFeedbackCount(Array.isArray(fbRes) ? fbRes.filter((f: { status: string }) => f.status === "pending").length : 0);
+        if (anRes && typeof anRes === "object" && "storage" in anRes) {
+          setStorageTotal((anRes as { storage: { totalDocuments: number } }).storage.totalDocuments);
+        }
+      } catch {
+        // swallow — counts are best-effort
+      }
+    };
+    pullCounts();
+    const interval = setInterval(pullCounts, 30000);
+    // Also re-pull when any data channel updates (custom events from libs)
+    const onSub = () => pullCounts();
+    const onFb = () => pullCounts();
+    const onShowcase = () => pullCounts();
+    window.addEventListener("theshield:submissions-updated", onSub);
+    window.addEventListener("theshield:feedback-updated", onFb);
+    window.addEventListener("theshield:showcase-updated", onShowcase);
+    window.addEventListener("storage", onSub);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener("theshield:submissions-updated", onSub);
+      window.removeEventListener("theshield:feedback-updated", onFb);
+      window.removeEventListener("theshield:showcase-updated", onShowcase);
+      window.removeEventListener("storage", onSub);
+    };
+  }, []);
 
   const handleNav = (id: string) => {
     if (id === "home") return setView("home");
@@ -127,13 +225,11 @@ export default function SuperAdminView() {
                   (item.id === "feedback" && tab === "feedback") ||
                   (item.id === "team" && tab === "team") ||
                   (item.id === "analytics" && tab === "analytics") ||
-                  (item.id === "storage" && tab === "storage");
-                const unreadCount = item.id === "notifications"
-                  ? loadSubmissions().filter((s) => !getMeta(s.id).readAt).length
-                  : 0;
-                const pendingFeedback = item.id === "feedback"
-                  ? countPendingFeedback()
-                  : 0;
+                  (item.id === "storage" && tab === "storage") ||
+                  (item.id === "activity" && tab === "activity") ||
+                  (item.id === "security" && tab === "security");
+                const unread = item.id === "notifications" ? unreadCount : 0;
+                const pendingFb = item.id === "feedback" ? pendingFeedbackCount : 0;
                 return (
                   <button
                     key={item.id}
@@ -142,19 +238,19 @@ export default function SuperAdminView() {
                   >
                     <item.icon className="h-4 w-4" />
                     <span className="flex-1 text-left">{item.label}</span>
-                    {item.id === "team" && (
+                    {item.id === "team" && teamCount > 0 && (
                       <span className="rounded-md bg-violet-600/20 px-1.5 py-0.5 text-[10px] font-bold text-violet-300">
-                        {DEMO_TEAM.length}
+                        {teamCount}
                       </span>
                     )}
-                    {item.id === "notifications" && unreadCount > 0 && (
+                    {item.id === "notifications" && unread > 0 && (
                       <span className="rounded-md bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">
-                        {unreadCount}
+                        {unread}
                       </span>
                     )}
-                    {item.id === "feedback" && pendingFeedback > 0 && (
+                    {item.id === "feedback" && pendingFb > 0 && (
                       <span className="rounded-md bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
-                        {pendingFeedback}
+                        {pendingFb}
                       </span>
                     )}
                   </button>
@@ -162,20 +258,24 @@ export default function SuperAdminView() {
               })}
             </nav>
 
-            {/* Storage tile */}
+            {/* Storage tile — real document count from MongoDB */}
             <div className="mt-auto pt-4">
               <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
                 <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-ink-500">
-                  <HardDrive className="h-3 w-3 text-mint-300" /> Storage used
+                  <HardDrive className="h-3 w-3 text-mint-300" /> Documents
                 </div>
                 <div className="mt-1 text-2xl font-bold text-white">
-                  4.2<span className="text-sm font-normal text-ink-400"> / 10 GB</span>
+                  {storageTotal}
+                  <span className="text-sm font-normal text-ink-400"> docs</span>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/5">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-mint-300 to-violet-600 transition-all duration-1000"
-                    style={{ width: "42%" }}
+                    style={{ width: `${Math.min(100, (storageTotal / 5000) * 100)}%` }}
                   />
+                </div>
+                <div className="mt-1 text-[10px] text-ink-500">
+                  Atlas free tier · 512MB
                 </div>
               </div>
             </div>
@@ -245,23 +345,25 @@ export default function SuperAdminView() {
             </button>
           </div>
 
-          {/* Quick stats row */}
+          {/* Quick stats row — real numbers from /api/analytics */}
           <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <StatTile label="Team Members" value={DEMO_TEAM.length} icon={Users} color="#64ffda" />
-            <StatTile label="CMS Drafts" value={3} icon={Settings} color="#667eea" />
-            <StatTile label="Linked Images" value={2} icon={ImageIcon} color="#9d8df1" />
-            <StatTile label="Site Uptime" value="99.9%" icon={Activity} color="#64ffda" />
+            <StatTile label="Team Members" value={teamCount} icon={Users} color="#64ffda" />
+            <StatTile label="Unread Subs" value={unreadCount} icon={Bell} color="#f43f5e" />
+            <StatTile label="Pending Fb" value={pendingFeedbackCount} icon={MessageSquare} color="#fbbf24" />
+            <StatTile label="Total Docs" value={storageTotal} icon={HardDrive} color="#9d8df1" />
           </div>
 
           {/* Content area */}
           <div className="mt-6">
-            {tab === "cms" && <CMSPanel isDemo={isDemo} />}
+            {tab === "cms" && <CMSPanel />}
             {tab === "projects" && <ShowcasePanel />}
             {tab === "notifications" && <NotificationsPanel />}
             {tab === "feedback" && <FeedbackPanel />}
-            {tab === "team" && <TeamPanel isDemo={isDemo} />}
+            {tab === "team" && <TeamPanel />}
             {tab === "analytics" && <AnalyticsPanel />}
             {tab === "storage" && <StoragePanel />}
+            {tab === "activity" && <ActivityPanel />}
+            {tab === "security" && <SecurityPanel />}
           </div>
         </main>
       </div>
@@ -297,7 +399,7 @@ function StatTile({
 
 /* ─────────────────────────────────────────────────────────────────────── */
 
-function CMSPanel({ isDemo }: { isDemo: boolean }) {
+function CMSPanel() {
   const [form, setForm] = useState<SiteConfig>(DEMO_CONFIG);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -624,7 +726,7 @@ const EMPTY_FORM: AdminFormState = {
   jobField: "",
 };
 
-function TeamPanel({ isDemo }: { isDemo: boolean }) {
+function TeamPanel() {
   const { profile } = useAuth();
   const [team, setTeam] = useState<TeamMember[]>(() => loadTeam());
   const [form, setForm] = useState<AdminFormState>(EMPTY_FORM);
@@ -1582,6 +1684,50 @@ function ShowcasePanel() {
 /* ─────────────────────────────────────────────────────────────────────── */
 
 function AnalyticsPanel() {
+  const [data, setData] = useState<Awaited<ReturnType<typeof fetchAnalytics>> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const pull = async () => {
+      try {
+        const d = await fetchAnalytics();
+        if (cancelled) return;
+        setData(d);
+        setError(null);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load analytics");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    pull();
+    const interval = setInterval(pull, 60000); // refresh every minute
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="glass-card p-6 text-sm text-ink-400">
+        <span className="mr-2 inline-block h-4 w-4 animate-spin-fast rounded-full border-2 border-white/20 border-t-mint-300 align-middle" />
+        Loading real-time analytics…
+      </div>
+    );
+  }
+  if (error || !data) {
+    return (
+      <div className="glass-card p-6 text-sm text-rose-300">
+        {error || "Analytics unavailable."}
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="glass-card p-4 sm:p-6">
@@ -1591,14 +1737,20 @@ function AnalyticsPanel() {
               <BarChart3 className="h-3.5 w-3.5 text-mint-300" /> Traffic (30d)
             </div>
             <div className="mt-1 text-2xl font-bold text-white">
-              2,847
-              <span className="ml-2 text-xs font-normal text-emerald-300">+12.4%</span>
+              {data.pageviews.last30d.toLocaleString()}
+              <span className="ml-2 text-xs font-normal text-emerald-300">
+                {data.pageviews.growthPct >= 0 ? "+" : ""}
+                {data.pageviews.growthPct}%
+              </span>
+            </div>
+            <div className="mt-0.5 text-[10px] text-ink-500">
+              {data.pageviews.uniqueVisitors30d} unique visitors · {data.pageviews.total.toLocaleString()} all-time
             </div>
           </div>
         </div>
         <div className="mt-4">
           <MiniAreaChart
-            data={TRAFFIC_DATA}
+            data={data.pageviews.series30d}
             width={400}
             height={120}
             stroke="#64ffda"
@@ -1613,8 +1765,30 @@ function AnalyticsPanel() {
           <Activity className="h-3.5 w-3.5 text-violet-300" /> Engagement
         </div>
         <div className="mt-4 flex items-center justify-around">
-          <CircularGauge value={84} size={110} stroke={10} sublabel="satisfaction" gradientFrom="#64ffda" gradientTo="#26d0a8" />
-          <CircularGauge value={67} size={110} stroke={10} sublabel="referral" gradientFrom="#667eea" gradientTo="#764ba2" />
+          <CircularGauge
+            value={data.engagement.satisfactionPct}
+            size={110}
+            stroke={10}
+            sublabel="satisfaction"
+            gradientFrom="#64ffda"
+            gradientTo="#26d0a8"
+          />
+          <CircularGauge
+            value={data.engagement.completionPct}
+            size={110}
+            stroke={10}
+            sublabel="completed"
+            gradientFrom="#667eea"
+            gradientTo="#764ba2"
+          />
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] text-ink-500">
+          <div>
+            avg rating · <span className="font-bold text-amber-300">{data.engagement.avgRating} / 5</span>
+          </div>
+          <div className="text-right">
+            showcase clicks (30d) · <span className="font-bold text-mint-300">{data.showcase.clicks30d}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1624,37 +1798,356 @@ function AnalyticsPanel() {
 /* ─────────────────────────────────────────────────────────────────────── */
 
 function StoragePanel() {
+  const [data, setData] = useState<Awaited<ReturnType<typeof fetchAnalytics>> | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const pull = async () => {
+      try {
+        const d = await fetchAnalytics();
+        if (cancelled) return;
+        setData(d);
+      } catch {
+        // swallow
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    pull();
+    const interval = setInterval(pull, 60000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  if (loading || !data) {
+    return (
+      <div className="glass-card p-6 text-sm text-ink-400">
+        <span className="mr-2 inline-block h-4 w-4 animate-spin-fast rounded-full border-2 border-white/20 border-t-mint-300 align-middle" />
+        Loading storage stats…
+      </div>
+    );
+  }
+
+  const s = data.storage;
+  const total = s.totalDocuments;
+  const maxBar = Math.max(1, ...Object.values(s).filter((v) => typeof v === "number") as number[]);
+  const rows: { label: string; count: number; color: string }[] = [
+    { label: "Submissions", count: s.submissions, color: "#64ffda" },
+    { label: "Feedback", count: s.feedback, color: "#667eea" },
+    { label: "Showcase", count: s.showcase, color: "#9d8df1" },
+    { label: "Team", count: s.team, color: "#fbbf24" },
+    { label: "Sessions", count: s.sessions, color: "#f43f5e" },
+    { label: "Activity Log", count: s.activityLog, color: "#26d0a8" },
+    { label: "Analytics Events", count: s.analyticsEvents, color: "#764ba2" },
+  ];
+
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="glass-card p-4 sm:p-6 lg:col-span-2">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
-              <HardDrive className="h-3.5 w-3.5 text-mint-300" /> Storage usage (12mo)
+              <HardDrive className="h-3.5 w-3.5 text-mint-300" /> Document counts (by collection)
             </div>
             <div className="mt-1 text-2xl font-bold text-white">
-              4.2 GB <span className="text-xs font-normal text-ink-400">of 10 GB</span>
+              {total.toLocaleString()}
+              <span className="ml-2 text-xs font-normal text-ink-400">total documents</span>
+            </div>
+            <div className="mt-0.5 text-[10px] text-ink-500">
+              MongoDB Atlas · 7 collections · real counts (not estimates)
             </div>
           </div>
         </div>
-        <div className="mt-4">
-          <MiniAreaChart
-            data={STORAGE_DATA}
-            width={520}
-            height={140}
-            stroke="#667eea"
-            fillFrom="rgba(102, 126, 234, 0.30)"
-            fillTo="rgba(102, 126, 234, 0)"
-            strokeWidth={2}
-          />
+        <div className="mt-4 space-y-2">
+          {rows.map((r) => (
+            <div key={r.label} className="flex items-center gap-3">
+              <div className="w-32 text-xs text-ink-300">{r.label}</div>
+              <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-white/5">
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full"
+                  style={{
+                    width: `${(r.count / maxBar) * 100}%`,
+                    backgroundColor: r.color,
+                  }}
+                />
+              </div>
+              <div className="w-12 text-right text-xs font-mono text-white">{r.count}</div>
+            </div>
+          ))}
         </div>
       </div>
       <div className="glass-card p-4 sm:p-6">
         <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
-          <Activity className="h-3.5 w-3.5 text-mint-300" /> Quota usage
+          <Activity className="h-3.5 w-3.5 text-mint-300" /> Active sessions
         </div>
         <div className="mt-6 flex justify-center">
-          <CircularGauge value={42} size={140} stroke={12} sublabel="used" />
+          <CircularGauge
+            value={Math.min(100, s.sessions * 10)}
+            size={140}
+            stroke={12}
+            sublabel={`${s.sessions} active`}
+          />
+        </div>
+        <div className="mt-4 text-center text-[10px] text-ink-500">
+          Each login creates a session row. Sessions expire after 14 days.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+
+function ActivityPanel() {
+  const [entries, setEntries] = useState<ActivityEntry[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [limit, setLimit] = useState(50);
+
+  useEffect(() => {
+    let cancelled = false;
+    const pull = async () => {
+      try {
+        const res = await fetch(`/api/activity-log?limit=${limit}`, { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load activity log");
+        const data = (await res.json()) as ActivityEntry[];
+        if (cancelled) return;
+        setEntries(data);
+        setError(null);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    pull();
+    const interval = setInterval(pull, 15000); // refresh every 15s
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [limit]);
+
+  if (loading) {
+    return (
+      <div className="glass-card p-6 text-sm text-ink-400">
+        <span className="mr-2 inline-block h-4 w-4 animate-spin-fast rounded-full border-2 border-white/20 border-t-mint-300 align-middle" />
+        Loading activity log…
+      </div>
+    );
+  }
+  if (error) {
+    return <div className="glass-card p-6 text-sm text-rose-300">{error}</div>;
+  }
+  if (!entries || entries.length === 0) {
+    return (
+      <div className="glass-card p-6 text-sm text-ink-400">
+        No activity yet. As admins make changes (add projects, approve feedback, edit team members), entries will appear here.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-white">Audit trail</h2>
+          <p className="mt-1 text-xs text-ink-400">
+            Every admin mutation is recorded with who/when/what. Newest first.
+          </p>
+        </div>
+        <select
+          value={limit}
+          onChange={(e) => {
+            setLimit(parseInt(e.target.value, 10));
+            setLoading(true);
+          }}
+          className="input-field w-auto text-xs"
+        >
+          <option value={25}>Last 25</option>
+          <option value={50}>Last 50</option>
+          <option value={100}>Last 100</option>
+          <option value={200}>Last 200</option>
+        </select>
+      </div>
+      <div className="glass-card overflow-hidden">
+        <div className="divide-y divide-white/5">
+          {entries.map((e) => (
+            <div key={e.id} className="flex items-start gap-3 p-3 text-xs">
+              <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-white/5 text-[10px] font-bold text-mint-300">
+                {e.actorName.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold text-white">{e.actorName}</span>
+                  <span className="text-ink-500">·</span>
+                  <code className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-mint-300">
+                    {e.action}
+                  </code>
+                  {e.target && (
+                    <span className="text-ink-500">→ {e.target}</span>
+                  )}
+                </div>
+                <div className="mt-0.5 text-[10px] text-ink-500">
+                  {new Date(e.createdAt).toLocaleString()}
+                  {e.actorEmail && ` · ${e.actorEmail}`}
+                </div>
+                {e.meta && Object.keys(e.meta).length > 0 && (
+                  <div className="mt-1 text-[10px] text-ink-400">
+                    {Object.entries(e.meta).slice(0, 4).map(([k, v]) => (
+                      <span key={k} className="mr-2">
+                        <span className="text-ink-500">{k}:</span>{" "}
+                        <span className="text-ink-300">{String(v).slice(0, 60)}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+
+function SecurityPanel() {
+  const { profile, logout, resetPassword } = useAuth();
+  const [email, setEmail] = useState("");
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      setMsg({ type: "err", text: "Enter an email address." });
+      return;
+    }
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await resetPassword(email.trim());
+      setMsg({ type: "ok", text: r.message });
+    } catch (err) {
+      setMsg({
+        type: "err",
+        text: err instanceof Error ? err.message : "Failed.",
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="glass-card p-4 sm:p-6">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
+          <Lock className="h-3.5 w-3.5 text-mint-300" /> Session security
+        </div>
+        <h2 className="mt-2 text-xl font-semibold text-white">
+          You are signed in as <span className="text-mint-300">{profile?.email}</span>
+        </h2>
+        <p className="mt-1 text-xs text-ink-400">
+          Your session is stored as an HttpOnly cookie + a MongoDB Session row.
+          Sessions auto-expire after 14 days. Logging out clears the cookie +
+          deletes the Session row from the database.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            onClick={() => logout(false)}
+            className="btn-ghost text-sm"
+          >
+            <X className="h-4 w-4" /> Log out this device
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm("This will log you out on EVERY device you're signed in on. Continue?")) {
+                void logout(true);
+              }
+            }}
+            className="inline-flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm font-medium text-rose-300 hover:bg-rose-500/20"
+          >
+            <Shield className="h-4 w-4" /> Log out everywhere
+          </button>
+        </div>
+      </div>
+
+      <div className="glass-card p-4 sm:p-6">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
+          <Mail className="h-3.5 w-3.5 text-violet-300" /> Password reset
+        </div>
+        <p className="mt-2 text-xs text-ink-400">
+          Request a password reset for any admin account (including yourself).
+          A single-use token is generated with a 1-hour expiry. In production
+          with email configured, this would email the link. Without email,
+          the token is logged server-side.
+        </p>
+        <form onSubmit={handleReset} className="mt-4 flex flex-wrap gap-2">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="admin@example.com"
+            className="input-field flex-1"
+          />
+          <button type="submit" disabled={busy} className="btn-primary text-sm">
+            {busy ? "Sending…" : "Request reset"}
+          </button>
+        </form>
+        {msg && (
+          <div
+            className={`mt-3 rounded-lg border p-3 text-xs ${
+              msg.type === "ok"
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                : "border-rose-500/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {msg.text}
+          </div>
+        )}
+      </div>
+
+      <div className="glass-card p-4 sm:p-6">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
+          <Download className="h-3.5 w-3.5 text-mint-300" /> Backup &amp; export
+        </div>
+        <p className="mt-2 text-xs text-ink-400">
+          Download any collection as JSON or CSV. Backups include all documents
+          but never include password hashes.
+        </p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {(["submissions", "showcase", "feedback", "team"] as const).map((c) => (
+            <div key={c} className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+              <div className="text-xs font-semibold capitalize text-white">{c}</div>
+              <div className="mt-2 flex gap-1">
+                <a
+                  href={`/api/export?collection=${c}&format=json`}
+                  className="flex-1 rounded bg-mint-300/10 px-2 py-1 text-center text-[10px] font-medium text-mint-300 hover:bg-mint-300/20"
+                >
+                  JSON
+                </a>
+                <a
+                  href={`/api/export?collection=${c}&format=csv`}
+                  className="flex-1 rounded bg-violet-600/10 px-2 py-1 text-center text-[10px] font-medium text-violet-300 hover:bg-violet-600/20"
+                >
+                  CSV
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3">
+          <a
+            href="/api/export?collection=all&format=json"
+            className="inline-flex items-center gap-2 rounded-lg border border-mint-300/30 bg-mint-300/10 px-3 py-2 text-xs font-medium text-mint-300 hover:bg-mint-300/20"
+          >
+            <Download className="h-3.5 w-3.5" /> Download full backup (JSON)
+          </a>
         </div>
       </div>
     </div>

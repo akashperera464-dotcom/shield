@@ -1,11 +1,23 @@
 import { db } from "@/lib/db"
 import { withErrors, serialize } from "@/lib/api-utils"
+import { readSessionFromCookie } from "@/lib/auth"
+import { audit } from "@/lib/audit"
 import type { Feedback } from "@/lib/feedback"
 
 // GET /api/feedback?scope=all|approved|pending
+// - scope=approved (default): public — for homepage
+// - scope=all|pending: admin-only — requires session
 export const GET = withErrors(async (req: Request) => {
   const url = new URL(req.url)
   const scope = url.searchParams.get("scope") || "approved"
+
+  // Auth gate for admin-only scopes
+  if (scope === "all" || scope === "pending") {
+    const session = await readSessionFromCookie(req)
+    if (!session) {
+      return Response.json({ error: "Authentication required" }, { status: 401 })
+    }
+  }
 
   let rows
   if (scope === "all") {
@@ -40,6 +52,7 @@ export const GET = withErrors(async (req: Request) => {
 
 // POST /api/feedback  — body: { name, role, rating, quote }
 // Creates a new client-submitted feedback (status=pending).
+// PUBLIC endpoint.
 export const POST = withErrors(async (req: Request) => {
   const body = await req.json() as {
     name?: string
@@ -75,5 +88,26 @@ export const POST = withErrors(async (req: Request) => {
       source: "client",
     },
   })
+  // Audit as "system" — public submission
+  await audit({
+    uid: "system",
+    action: "feedback.create",
+    target: created.id,
+    meta: { name, role, rating },
+  })
+  // Analytics event
+  try {
+    await db.analyticsEvent.create({
+      data: {
+        id: "ae_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36),
+        kind: "feedback_submit",
+        path: null,
+        referrer: null,
+        ua: (req.headers.get("user-agent") || "").slice(0, 500),
+        ip: (req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "").slice(0, 100),
+        createdAt: new Date().toISOString(),
+      },
+    })
+  } catch {}
   return Response.json(serialize(created), { status: 201 })
 })

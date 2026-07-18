@@ -1,5 +1,7 @@
 import { db } from "@/lib/db"
 import { withErrors, serialize } from "@/lib/api-utils"
+import { readSessionFromCookie } from "@/lib/auth"
+import { audit } from "@/lib/audit"
 import type { ShowcaseProject } from "@/data/demo"
 
 // Helper: coerce unknown → ShowcaseProject with safe defaults.
@@ -52,7 +54,12 @@ export const GET = withErrors(async () => {
 
 // POST /api/showcase — create
 // PUT  /api/showcase — replace all (used by SuperAdmin bulk save)
+// Both require admin auth.
 export const POST = withErrors(async (req: Request) => {
+  const session = await readSessionFromCookie(req)
+  if (!session) {
+    return Response.json({ error: "Authentication required" }, { status: 401 })
+  }
   const body = (await req.json()) as Partial<ShowcaseProject>
   const p = normalizeProject(body)
   if (!p.title || !p.category) {
@@ -71,11 +78,21 @@ export const POST = withErrors(async (req: Request) => {
       order: p.order,
     },
   })
+  await audit({
+    uid: session.uid,
+    action: "showcase.create",
+    target: p.id,
+    meta: { title: p.title, category: p.category },
+  })
   return Response.json(serialize(created), { status: 201 })
 })
 
 // Bulk-replace: pass { projects: ShowcaseProject[] } in body.
 export const PUT = withErrors(async (req: Request) => {
+  const session = await readSessionFromCookie(req)
+  if (!session) {
+    return Response.json({ error: "Authentication required" }, { status: 401 })
+  }
   const body = (await req.json()) as { projects?: unknown }
   if (!Array.isArray(body.projects)) {
     return Response.json({ error: "Expected { projects: [...] }" }, { status: 400 })
@@ -106,5 +123,10 @@ export const PUT = withErrors(async (req: Request) => {
       console.error("[PUT /api/showcase] failed to insert", p.id, err)
     }
   }
+  await audit({
+    uid: session.uid,
+    action: "showcase.update",
+    meta: { count: projects.length },
+  })
   return Response.json({ ok: true, count: projects.length })
 })

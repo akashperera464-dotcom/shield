@@ -1,11 +1,18 @@
 import { db } from "@/lib/db"
 import { withErrors, serialize } from "@/lib/api-utils"
+import { readSessionFromCookie } from "@/lib/auth"
+import { audit } from "@/lib/audit"
 import type { Submission, SubmissionAttachment, SubmissionStatus } from "@/lib/submissions"
 import type { ProjectNote } from "@/data/demo"
 
 // GET /api/submissions
 // Returns all submissions, newest first.
-export const GET = withErrors(async () => {
+// Auth: requires admin (any role). Public callers get 401.
+export const GET = withErrors(async (req: Request) => {
+  const session = await readSessionFromCookie(req)
+  if (!session) {
+    return Response.json({ error: "Authentication required" }, { status: 401 })
+  }
   const rows = await db.submission.findMany({
     orderBy: { createdAt: "desc" },
   })
@@ -29,6 +36,7 @@ export const GET = withErrors(async () => {
 
 // POST /api/submissions
 // Create a new submission. Body: Submission (without readAt/archived).
+// PUBLIC endpoint — clients submit projects without logging in.
 export const POST = withErrors(async (req: Request) => {
   const body = await req.json() as Partial<Submission>
   if (!body.id || !body.name || !body.email || !body.service || !body.brief) {
@@ -51,5 +59,26 @@ export const POST = withErrors(async (req: Request) => {
       archived: body.archived || false,
     },
   })
+  // Audit as "system" since this is a public submission, not an admin action
+  await audit({
+    uid: "system",
+    action: "submission.create",
+    target: created.id,
+    meta: { name: created.name, email: created.email, service: created.service },
+  })
+  // Also record as analytics event
+  try {
+    await db.analyticsEvent.create({
+      data: {
+        id: "ae_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36),
+        kind: "submission_create",
+        path: null,
+        referrer: null,
+        ua: (req.headers.get("user-agent") || "").slice(0, 500),
+        ip: (req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "").slice(0, 100),
+        createdAt: new Date().toISOString(),
+      },
+    })
+  } catch {}
   return Response.json(serialize(created), { status: 201 })
 })

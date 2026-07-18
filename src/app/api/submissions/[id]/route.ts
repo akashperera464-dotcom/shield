@@ -1,5 +1,7 @@
 import { db } from "@/lib/db"
 import { withErrors, serialize } from "@/lib/api-utils"
+import { readSessionFromCookie } from "@/lib/auth"
+import { audit } from "@/lib/audit"
 import type { SubmissionStatus } from "@/lib/submissions"
 import type { ProjectNote } from "@/data/demo"
 
@@ -29,9 +31,16 @@ function parseAction(body: unknown): Action | null {
 
 // PATCH /api/submissions/[id]  — body: { kind: "status"|"read"|"archive"|"note", ... }
 // DELETE /api/submissions/[id]
+// Auth: requires admin.
 export const PATCH = withErrors(async (req: Request, params) => {
   const id = params?.id
   if (!id) return Response.json({ error: "Missing id" }, { status: 400 })
+
+  // Auth gate
+  const session = await readSessionFromCookie(req)
+  if (!session) {
+    return Response.json({ error: "Authentication required" }, { status: 401 })
+  }
 
   const body = await req.json()
   const action = parseAction(body)
@@ -44,19 +53,42 @@ export const PATCH = withErrors(async (req: Request, params) => {
   switch (action.kind) {
     case "status":
       await db.submission.update({ where: { id }, data: { status: action.status } })
+      await audit({
+        uid: session.uid,
+        action: "submission.status",
+        target: id,
+        meta: { from: existing.status, to: action.status },
+      })
       break
     case "read":
       await db.submission.update({
         where: { id },
         data: { readAt: new Date().toISOString() },
       })
+      await audit({
+        uid: session.uid,
+        action: "submission.read",
+        target: id,
+      })
       break
     case "archive":
       await db.submission.update({ where: { id }, data: { archived: action.archived } })
+      await audit({
+        uid: session.uid,
+        action: "submission.archive",
+        target: id,
+        meta: { archived: action.archived },
+      })
       break
     case "note": {
       const notes = ((existing.notes as ProjectNote[]) || []).concat([action.note])
       await db.submission.update({ where: { id }, data: { notes } })
+      await audit({
+        uid: session.uid,
+        action: "submission.note",
+        target: id,
+        meta: { noteText: action.note.text?.slice(0, 200) },
+      })
       break
     }
   }
@@ -65,13 +97,25 @@ export const PATCH = withErrors(async (req: Request, params) => {
   return Response.json(serialize(updated))
 })
 
-export const DELETE = withErrors(async (_req: Request, params) => {
+export const DELETE = withErrors(async (req: Request, params) => {
   const id = params?.id
   if (!id) return Response.json({ error: "Missing id" }, { status: 400 })
+
+  // Auth gate
+  const session = await readSessionFromCookie(req)
+  if (!session) {
+    return Response.json({ error: "Authentication required" }, { status: 401 })
+  }
+
   try {
     await db.submission.delete({ where: { id } })
   } catch {
     return Response.json({ error: "Not found" }, { status: 404 })
   }
+  await audit({
+    uid: session.uid,
+    action: "submission.delete",
+    target: id,
+  })
   return Response.json({ ok: true })
 })

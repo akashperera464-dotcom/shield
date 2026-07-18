@@ -101,3 +101,68 @@ model SiteConfig {
   mainBgUrl    String
   updatedAt    String
 }
+
+// ───────────────────────────────────────────────────────────────────────
+// SESSIONS — server-side session tokens for real auth.
+// Cookie holds an opaque token; this collection maps token → admin uid.
+// Supports logout-everywhere, expiry, and audit.
+// ───────────────────────────────────────────────────────────────────────
+model Session {
+  id        String   @id @map("_id") // the token itself (32-byte random)
+  uid       String   // → TeamMember.uid
+  createdAt String
+  expiresAt String
+  userAgent String?
+  ip        String?
+
+  @@index([uid])
+  @@index([expiresAt])
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// ACTIVITY LOG — audit trail. Every admin mutation appends a row.
+// ───────────────────────────────────────────────────────────────────────
+model ActivityLog {
+  id        String   @id @map("_id")
+  uid       String   // who did it (TeamMember.uid or "system")
+  action    String   // "submission.read" | "feedback.approve" | "team.create" | "showcase.update" | ...
+  target    String?  // id of affected entity
+  meta      Json?    // arbitrary structured payload
+  createdAt String
+
+  @@index([uid])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// ANALYTICS EVENTS — server-side page views + key client actions.
+// Each visit is one row. Aggregated by /api/analytics.
+// ───────────────────────────────────────────────────────────────────────
+model AnalyticsEvent {
+  id        String   @id @map("_id")
+  kind      String   // "pageview" | "submission_create" | "feedback_submit" | ...
+  path      String?
+  referrer  String?
+  ua        String?
+  ip        String?
+  createdAt String
+
+  @@index([kind])
+  @@index([createdAt])
+  @@index([path])
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// PASSWORD RESET — single-use tokens with expiry.
+// ───────────────────────────────────────────────────────────────────────
+model PasswordReset {
+  id        String   @id @map("_id") // the token itself
+  email     String
+  createdAt String
+  expiresAt String
+  usedAt    String?
+
+  @@index([email])
+  @@index([expiresAt])
+}

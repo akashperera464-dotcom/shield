@@ -1,34 +1,17 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyPassword, hashPassword } from "@/lib/password";
+import { createSession } from "@/lib/auth";
+import { isRateLimited, recordFailure, recordSuccess } from "@/lib/rate-limit";
+import { audit } from "@/lib/audit";
 import type { Profile } from "@/context/AuthContext";
 
 // Hardcoded superadmin credentials — bootstraps the system so the owner can
 // always log in to manage the team even if MongoDB is unreachable.
-// All OTHER admins (created via the User Management panel) authenticate
-// against the `passwordHash` field in MongoDB.
 const SUPERADMIN_EMAIL = "akashperera@shield.com";
 const SUPERADMIN_PASSWORD = "akashperera123*#";
 const SUPERADMIN_UID = "u_001";
 
-/**
- * POST /api/auth/login
- * Body: { email: string, password: string }
- *
- * Returns 200 with a Profile object on success, 401 on bad credentials.
- *
- * Auth logic (in order):
- *  1. If the email matches the hardcoded superadmin email:
- *     - If the password matches the hardcoded superadmin password → superadmin.
- *     - Otherwise, look up the superadmin row in MongoDB and verify against
- *       its stored passwordHash (in case the owner changed the password
- *       via the User Management panel).
- *     - If neither matches → 401.
- *  2. Otherwise, look up the email in the TeamMember collection:
- *     - If found and passwordHash verifies → admin/superadmin (per DB role).
- *     - If not found or password mismatch → 401.
- *  3. Any other input → 401 (NO MORE open demo login).
- */
 export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => null)) as
@@ -43,7 +26,21 @@ export async function POST(req: Request) {
     const email = body.email.trim().toLowerCase();
     const password = body.password;
 
-    // ── 1. Hardcoded superadmin shortcut ────────────────────────────────
+    // ── Rate limit check ───────────────────────────────────────────────
+    const rl = isRateLimited(req, email);
+    if (rl.limited) {
+      const minutes = Math.ceil(rl.retryAfterMs / 60000);
+      return NextResponse.json(
+        { error: `Too many login attempts. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.` },
+        { status: 429 }
+      );
+    }
+
+    // ── Resolve identity ───────────────────────────────────────────────
+    let uid: string;
+    let name: string;
+    let role: "superadmin" | "admin";
+
     if (email === SUPERADMIN_EMAIL) {
       // Try the hardcoded password first (bootstrap backdoor).
       if (password === SUPERADMIN_PASSWORD) {
@@ -78,78 +75,82 @@ export async function POST(req: Request) {
         } catch (dbErr) {
           console.warn("[auth/login] superadmin DB sync failed (non-fatal):", dbErr);
         }
-
-        const profile: Profile = {
-          uid: SUPERADMIN_UID,
-          name: "Akash Perera",
-          email: SUPERADMIN_EMAIL,
-          role: "superadmin",
-        };
-        return NextResponse.json(profile, { status: 200 });
-      }
-
-      // Hardcoded password didn't match — try the stored hash (owner may
-      // have changed the password via User Management panel).
-      try {
-        const row = await db.teamMember.findUnique({
-          where: { uid: SUPERADMIN_UID },
-        });
-        if (row && (await verifyPassword(password, row.passwordHash))) {
-          const profile: Profile = {
-            uid: row.uid,
-            name: row.name,
-            email: row.email,
-            role: "superadmin", // always superadmin for this UID
-          };
-          return NextResponse.json(profile, { status: 200 });
+        uid = SUPERADMIN_UID;
+        name = "Akash Perera";
+        role = "superadmin";
+      } else {
+        // Hardcoded password didn't match — try the stored hash (owner may
+        // have changed the password via User Management panel).
+        try {
+          const row = await db.teamMember.findUnique({
+            where: { uid: SUPERADMIN_UID },
+          });
+          if (row && (await verifyPassword(password, row.passwordHash))) {
+            uid = row.uid;
+            name = row.name;
+            role = "superadmin";
+          } else {
+            recordFailure(req, email);
+            return NextResponse.json(
+              { error: "Invalid email or password." },
+              { status: 401 }
+            );
+          }
+        } catch (dbErr) {
+          console.warn("[auth/login] superadmin DB lookup failed:", dbErr);
+          recordFailure(req, email);
+          return NextResponse.json(
+            { error: "Invalid email or password." },
+            { status: 401 }
+          );
         }
+      }
+    } else {
+      // ── Lookup against MongoDB ───────────────────────────────────────
+      let row;
+      try {
+        row = await db.teamMember.findUnique({ where: { email } });
       } catch (dbErr) {
-        console.warn("[auth/login] superadmin DB lookup failed:", dbErr);
+        console.error("[auth/login] DB lookup failed:", dbErr);
+        return NextResponse.json(
+          { error: "Authentication service unavailable. Please try again." },
+          { status: 503 }
+        );
       }
 
-      // Neither hardcoded nor stored password matched.
-      return NextResponse.json(
-        { error: "Invalid email or password." },
-        { status: 401 }
-      );
+      if (!row) {
+        recordFailure(req, email);
+        return NextResponse.json(
+          { error: "Invalid email or password." },
+          { status: 401 }
+        );
+      }
+      const ok = await verifyPassword(password, row.passwordHash);
+      if (!ok) {
+        recordFailure(req, email);
+        return NextResponse.json(
+          { error: "Invalid email or password." },
+          { status: 401 }
+        );
+      }
+      uid = row.uid;
+      name = row.name;
+      role = row.role as "superadmin" | "admin";
     }
 
-    // ── 2. Lookup against MongoDB ───────────────────────────────────────
-    let row;
-    try {
-      row = await db.teamMember.findUnique({ where: { email } });
-    } catch (dbErr) {
-      console.error("[auth/login] DB lookup failed:", dbErr);
-      return NextResponse.json(
-        { error: "Authentication service unavailable. Please try again." },
-        { status: 503 }
-      );
-    }
+    // ── Success — create session, set cookie, audit ───────────────────
+    recordSuccess(req, email);
+    const { cookie } = await createSession(uid, req);
+    await audit({
+      uid,
+      action: "auth.login",
+      meta: { email },
+    });
 
-    if (!row) {
-      // Use the same message for "no such user" and "wrong password" so
-      // attackers can't enumerate accounts by email.
-      return NextResponse.json(
-        { error: "Invalid email or password." },
-        { status: 401 }
-      );
-    }
-
-    const ok = await verifyPassword(password, row.passwordHash);
-    if (!ok) {
-      return NextResponse.json(
-        { error: "Invalid email or password." },
-        { status: 401 }
-      );
-    }
-
-    const profile: Profile = {
-      uid: row.uid,
-      name: row.name,
-      email: row.email,
-      role: row.role as "superadmin" | "admin",
-    };
-    return NextResponse.json(profile, { status: 200 });
+    const profile: Profile = { uid, name, email, role };
+    const res = NextResponse.json(profile, { status: 200 });
+    res.headers.set("set-cookie", cookie);
+    return res;
   } catch (err) {
     console.error("[auth/login] unhandled error:", err);
     return NextResponse.json(

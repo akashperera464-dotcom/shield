@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Component } from "react";
+import React, { useState, useEffect, useMemo, Component } from "react";
 import {
   Paperclip,
   X,
@@ -611,6 +611,24 @@ export default function HomeView() {
     };
   }, []);
 
+  // Page view tracking — fires once per mount. Sends to /api/analytics/track
+  // which writes a row to the AnalyticsEvent collection. This is what makes
+  // the SuperAdmin Analytics panel show REAL visitor counts instead of the
+  // old hardcoded "2,847 visitors".
+  useEffect(() => {
+    try {
+      fetch("/api/analytics/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "pageview",
+          path: typeof window !== "undefined" ? window.location.pathname : "/",
+          referrer: typeof document !== "undefined" ? document.referrer : "",
+        }),
+      }).catch(() => {});
+    } catch {}
+  }, []);
+
   useEffect(() => {
     // Hero slide rotation — 4.5s gives a lively feel without being too
     // fast. Reduced-motion users get no rotation.
@@ -1017,11 +1035,21 @@ export default function HomeView() {
 /* ─────────────────────────────────────────────────────────────────────── */
 
 function ShowcaseSection({ projects }: { projects: ShowcaseProject[] }) {
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState<string>("All");
+
   // Filter out any projects that are missing critical identity fields so
   // they don't slip into the render pipeline and crash a card.
   const valid = projects.filter(
     (p) => p && typeof p === "object" && typeof p.id === "string" && p.id
   );
+
+  // Build category list from data
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    valid.forEach((p) => { if (p.category) set.add(p.category); });
+    return ["All", ...Array.from(set).sort()];
+  }, [valid]);
 
   const sorted = [...valid].sort((a, b) => {
     if (Boolean(a.featured) !== Boolean(b.featured)) return a.featured ? -1 : 1;
@@ -1030,7 +1058,33 @@ function ShowcaseSection({ projects }: { projects: ShowcaseProject[] }) {
     return ao - bo;
   });
 
+  // Apply search + category filter
+  const filtered = sorted.filter((p) => {
+    if (category !== "All" && p.category !== category) return false;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      const inTags = Array.isArray(p.tags) && p.tags.some((t) => t.toLowerCase().includes(q));
+      const inTitle = p.title?.toLowerCase().includes(q);
+      const inDesc = p.description?.toLowerCase().includes(q);
+      const inCat = p.category?.toLowerCase().includes(q);
+      if (!inTags && !inTitle && !inDesc && !inCat) return false;
+    }
+    return true;
+  });
+
   if (sorted.length === 0) return null;
+
+  const trackClick = (p: ShowcaseProject) => {
+    // Fire-and-forget analytics event when a visitor clicks a showcase card.
+    // Replaces the old "67% referral" hardcoded gauge with real click data.
+    try {
+      fetch("/api/analytics/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "showcase_click", path: `/projects/${p.id}` }),
+      }).catch(() => {});
+    } catch {}
+  };
 
   return (
     <section id="projects" className="mx-auto max-w-7xl px-3 py-12 scroll-mt-20 sm:px-6 sm:py-20">
@@ -1046,11 +1100,58 @@ function ShowcaseSection({ projects }: { projects: ShowcaseProject[] }) {
         </p>
       </Reveal>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {sorted.map((p, i) => (
-          <ShowcaseCard key={p.id} project={p} index={i} />
-        ))}
-      </div>
+      {/* Search + category filter */}
+      {valid.length > 3 && (
+        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
+          <div className="relative w-full sm:max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search projects by name, tag, or description…"
+              className="input-field pl-10 text-sm"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-ink-500 hover:text-white"
+                aria-label="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <div className="no-scrollbar flex gap-1 overflow-x-auto">
+            {categories.map((c) => (
+              <button
+                key={c}
+                onClick={() => setCategory(c)}
+                className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  category === c
+                    ? "bg-mint-300/15 text-mint-300 ring-1 ring-mint-300/30"
+                    : "bg-white/[0.03] text-ink-300 hover:bg-white/[0.06] hover:text-white"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
+        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-10 text-center text-sm text-ink-400">
+          No projects match your search. Try a different keyword or category.
+        </div>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((p, i) => (
+            <div key={p.id} onClick={() => trackClick(p)}>
+              <ShowcaseCard project={p} index={i} />
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
