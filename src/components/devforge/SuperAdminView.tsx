@@ -494,11 +494,14 @@ async function apiGetTeam(): Promise<TeamMember[]> {
   return (await res.json()) as TeamMember[];
 }
 
-async function apiCreateTeamMember(m: TeamMember): Promise<TeamMember> {
+async function apiCreateTeamMember(
+  m: TeamMember,
+  password: string
+): Promise<TeamMember> {
   const res = await fetch("/api/team", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(m),
+    body: JSON.stringify({ ...m, password }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Failed to add admin" }));
@@ -507,11 +510,17 @@ async function apiCreateTeamMember(m: TeamMember): Promise<TeamMember> {
   return res.json();
 }
 
-async function apiUpdateTeamMember(uid: string, patch: Partial<TeamMember>): Promise<TeamMember> {
+async function apiUpdateTeamMember(
+  uid: string,
+  patch: Partial<TeamMember>,
+  password?: string // optional — only sent if user typed a new password
+): Promise<TeamMember> {
+  const body: Record<string, unknown> = { ...patch };
+  if (password) body.password = password;
   const res = await fetch(`/api/team/${uid}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(patch),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Failed to update admin" }));
@@ -574,7 +583,7 @@ const EMPTY_FORM: AdminFormState = {
 };
 
 function TeamPanel({ isDemo }: { isDemo: boolean }) {
-  const { registerAdmin, profile } = useAuth();
+  const { profile } = useAuth();
   const [team, setTeam] = useState<TeamMember[]>(() => loadTeam());
   const [form, setForm] = useState<AdminFormState>(EMPTY_FORM);
   const [editingUid, setEditingUid] = useState<string | null>(null);
@@ -635,17 +644,21 @@ function TeamPanel({ isDemo }: { isDemo: boolean }) {
           mobile: form.mobile.trim(),
           jobField: form.jobField,
         };
-        await apiUpdateTeamMember(editingUid, patch);
+        // Only send password if the user typed a new one
+        const newPassword = form.password.trim() || undefined;
+        await apiUpdateTeamMember(editingUid, patch, newPassword);
         const fresh = await apiGetTeam();
         persist(fresh);
-        setMsg({ type: "ok", text: `Updated ${form.name}.` });
+        setMsg({
+          type: "ok",
+          text: newPassword
+            ? `Updated ${form.name} — password changed.`
+            : `Updated ${form.name}.`,
+        });
         setEditingUid(null);
         setForm(EMPTY_FORM);
       } else {
         // ── CREATE ──
-        if (registerAdmin && !isDemo) {
-          await registerAdmin({ name: form.name, email: form.email, password: form.password });
-        }
         const newMember: TeamMember = {
           uid: "u_" + Math.random().toString(36).slice(2, 8),
           name: form.name.trim(),
@@ -656,7 +669,7 @@ function TeamPanel({ isDemo }: { isDemo: boolean }) {
           role: "admin",
           createdAt: new Date().toISOString().slice(0, 10),
         };
-        await apiCreateTeamMember(newMember);
+        await apiCreateTeamMember(newMember, form.password);
         const fresh = await apiGetTeam();
         persist(fresh);
         setMsg({ type: "ok", text: `Admin added: ${form.email}` });

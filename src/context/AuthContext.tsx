@@ -115,42 +115,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (email: string, password: string) => {
       const normalized = email.trim().toLowerCase();
 
-      // Superadmin test credentials (per user request — replace with Firebase Auth later)
-      const SUPERADMIN_EMAIL = "akashperera@shield.com";
-      const SUPERADMIN_PASSWORD = "akashperera123*#";
-
-      if (normalized === SUPERADMIN_EMAIL && password === SUPERADMIN_PASSWORD) {
-        const p: Profile = {
-          uid: "superadmin-akash",
-          name: "Akash Perera",
-          email: SUPERADMIN_EMAIL,
-          role: "superadmin",
-        };
-        saveDemo(p);
-        setIsDemo(true);
-        setUser({ uid: p.uid, email: p.email, isDemo: true });
-        setProfile(p);
-        setRole(p.role);
-        return p;
+      if (!normalized || !password) {
+        throw new Error("Email and password are required.");
       }
 
-      // Any other recognised-looking email/password → demote to admin (demo)
-      if (normalized && password) {
-        const p: Profile = {
-          uid: "demo-admin-" + Date.now(),
-          name: email.split("@")[0] || "Admin",
-          email: normalized,
-          role: "admin",
-        };
-        saveDemo(p);
-        setIsDemo(true);
-        setUser({ uid: p.uid, email: p.email, isDemo: true });
-        setProfile(p);
-        setRole(p.role);
-        return p;
+      // All authentication goes through the server — no client-side checks.
+      // The /api/auth/login endpoint verifies against MongoDB (bcrypt-hashed
+      // passwords for admins created via User Management) AND honours the
+      // hardcoded superadmin bootstrap credentials.
+      let res: Response;
+      try {
+        res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: normalized, password }),
+        });
+      } catch {
+        throw new Error("Could not reach the login server. Check your connection and try again.");
       }
 
-      throw new Error("Invalid email or password.");
+      const data = (await res.json().catch(() => null)) as
+        | { error?: string }
+        | Profile
+        | null;
+
+      if (!res.ok) {
+        const msg =
+          data && typeof data === "object" && "error" in data && typeof data.error === "string"
+            ? data.error
+            : "Invalid email or password.";
+        throw new Error(msg);
+      }
+
+      // Success — data is a Profile
+      const p = data as Profile;
+      saveDemo(p); // still uses localStorage so the session survives reloads
+      setIsDemo(true);
+      setUser({ uid: p.uid, email: p.email, isDemo: true });
+      setProfile(p);
+      setRole(p.role);
+      return p;
     },
     []
   );

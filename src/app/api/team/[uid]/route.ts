@@ -1,11 +1,13 @@
 import { db } from "@/lib/db"
 import { withErrors, serialize } from "@/lib/api-utils"
+import { hashPassword } from "@/lib/password"
 import type { TeamMember } from "@/data/demo"
 
 const SUPERADMIN_UID = "u_001"
 
 // PATCH /api/team/[uid] — update existing team member.
 // Superadmin (uid=u_001) role cannot be changed.
+// Optional `password` field — if provided and non-empty, re-hashes + stores.
 export const PATCH = withErrors(async (req: Request, params) => {
   const uid = params?.uid
   if (!uid) return Response.json({ error: "Missing uid" }, { status: 400 })
@@ -20,6 +22,15 @@ export const PATCH = withErrors(async (req: Request, params) => {
     if (clash) return Response.json({ error: "Another admin already uses this email." }, { status: 409 })
   }
 
+  // Optionally hash + store a new password
+  let newPasswordHash: string | undefined
+  if (body.password && body.password.length > 0) {
+    if (body.password.length < 6) {
+      return Response.json({ error: "Password must be at least 6 characters." }, { status: 400 })
+    }
+    newPasswordHash = await hashPassword(body.password)
+  }
+
   const updated = await db.teamMember.update({
     where: { uid },
     data: {
@@ -30,9 +41,13 @@ export const PATCH = withErrors(async (req: Request, params) => {
       jobField: body.jobField ?? existing.jobField,
       mobile: body.mobile ?? existing.mobile,
       username: body.username ?? existing.username,
+      ...(newPasswordHash ? { passwordHash: newPasswordHash } : {}),
     },
   })
-  return Response.json(serialize(updated))
+  // Strip passwordHash before returning
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { passwordHash: _omit, ...safe } = updated
+  return Response.json(serialize(safe))
 })
 
 // DELETE /api/team/[uid] — refuses to delete protected superadmin.

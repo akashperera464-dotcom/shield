@@ -74,14 +74,15 @@ model Showcase {
 // TEAM — admin users. Superadmin (uid "u_001") is protected.
 // ───────────────────────────────────────────────────────────────────────
 model TeamMember {
-  uid       String @id @map("_id")
-  name      String
-  email     String @unique
-  role      String // "superadmin" | "admin"
-  createdAt String
-  jobField  String?
-  mobile    String?
-  username  String?
+  uid          String @id @map("_id")
+  name         String
+  email        String @unique
+  role         String // "superadmin" | "admin"
+  createdAt    String
+  jobField     String?
+  mobile       String?
+  username     String?
+  passwordHash String? // bcrypt hash — null for legacy rows, set on create/update
 
   @@index([role])
 }
