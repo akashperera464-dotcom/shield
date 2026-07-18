@@ -83,14 +83,20 @@
 
   --animate-float: float 6s ease-in-out infinite;
   --animate-float-slow: float-slow 9s ease-in-out infinite;
-  --animate-gradient-shift: gradient-shift 8s ease infinite;
+  /* Gradient-shift disabled — kept the keyframe definition for reference
+     but no element references it anymore. */
   --animate-fade-up: fade-up 0.7s ease-out both;
   --animate-fade-in: fade-in 0.8s ease-out both;
   --animate-scale-in: scale-in 0.5s ease-out both;
   --animate-shimmer: shimmer 2.5s linear infinite;
   --animate-spin-slow: spin-slow 18s linear infinite;
-  --animate-pulse-glow: pulse-glow 4s ease-in-out infinite;
-  --animate-marquee: marquee 30s linear infinite;
+  /* Pulse-glow disabled — was causing constant "breathing" motion on
+     logo + hero panel glow. Element keeps its color/blur via the class
+     but the animation no longer runs. */
+  /* Marquee disabled — constant leftward scroll on the tech stack was a
+     major source of perceived page motion. The element keeps its layout
+     but the animation is paused (animation-play-state: paused is set via
+     an override on the marquee element below). */
   --animate-aurora-drift-1: aurora-drift-1 22s ease-in-out infinite;
   --animate-aurora-drift-2: aurora-drift-2 28s ease-in-out infinite;
   --animate-aurora-drift-3: aurora-drift-3 32s ease-in-out infinite;
@@ -135,9 +141,15 @@
   0%, 100% { opacity: 0.4; transform: scale(1); }
   50% { opacity: 0.8; transform: scale(1.05); }
 }
+/* Pulse-glow is now a STATIC glow — opacity locked at 0.55, no breathing.
+   The element still has its color + blur, just no animation loop. */
 @keyframes marquee {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+/* Pause the marquee — animation is defined but not running. */
+.animate-marquee {
+  animation-play-state: paused !important;
 }
 
 :root {
@@ -326,13 +338,15 @@
   background-image: linear-gradient(110deg, #64ffda 0%, #88b8ff 40%, #9d8df1 70%, #64ffda 100%);
   background-size: 200% auto;
 }
+/* Gradient-animated is now STATIC — keeps the same gradient colors but
+   no longer shifts them every 8s. The 8s color-shift was creating
+   constant subtle motion on the navbar 'Shield' wordmark. */
 .text-gradient-animated {
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
   background-image: linear-gradient(110deg, #64ffda 0%, #88b8ff 40%, #9d8df1 70%, #64ffda 100%);
   background-size: 200% auto;
-  animation: gradient-shift 8s ease infinite;
 }
 
 /* Primary button — mint to violet gradient */
@@ -596,23 +610,24 @@ body:has(.homepage-bg) {
   opacity: 0.28;
   will-change: transform;
 }
+/* Aurora blobs are STATIC — colors + blur stay, only the drift motion is
+   removed. The constant background motion was the #1 cause of the page
+   feeling like it was "jumping/dancing". Static glows still give the
+   premium ambient feel without distraction. */
 .aurora-blob-1 {
   top: -8rem;
   left: -6rem;
   background: radial-gradient(circle, #667eea 0%, transparent 70%);
-  animation: aurora-drift-1 22s ease-in-out infinite;
 }
 .aurora-blob-2 {
   top: 20vh;
   right: -10rem;
   background: radial-gradient(circle, #64ffda 0%, transparent 70%);
-  animation: aurora-drift-2 28s ease-in-out infinite;
 }
 .aurora-blob-3 {
   bottom: -12rem;
   left: 30vw;
   background: radial-gradient(circle, #9d8df1 0%, transparent 70%);
-  animation: aurora-drift-3 32s ease-in-out infinite;
 }
 
 /* ─── View transition (fade between home / login / dashboard) ────────── */
@@ -642,11 +657,14 @@ body:has(.homepage-bg) {
 }
 
 /* ─── Shine sweep (for primary buttons + headline) ───────────────────── */
+/* Disabled the infinite 4.5s shine sweep — it was constantly passing a
+   light streak across primary buttons which read as page motion. The
+   shine element is hidden by default and only animates on hover, one-shot. */
 @keyframes shine-sweep {
-  0%, 100% { transform: translateX(-120%); opacity: 0; }
-  20%      { opacity: 1; }
-  80%      { opacity: 1; }
-  100%     { transform: translateX(120%); opacity: 0; }
+  0%   { transform: translateX(-120%); opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateX(120%); opacity: 0; }
 }
 .shine-sweep {
   position: relative;
@@ -665,10 +683,14 @@ body:has(.homepage-bg) {
     rgba(255, 255, 255, 0.25),
     transparent
   );
+  /* Hidden by default — no infinite animation */
   transform: translateX(-120%);
-  animation: shine-sweep 4.5s ease-in-out infinite;
-  animation-delay: 2s;
+  opacity: 0;
   pointer-events: none;
+}
+/* One-shot shine on hover only */
+.shine-sweep:hover::after {
+  animation: shine-sweep 0.9s ease-out forwards;
 }
 
 /* ─── Scroll progress bar (top of page) ──────────────────────────────── */

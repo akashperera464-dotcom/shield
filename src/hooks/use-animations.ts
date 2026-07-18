@@ -108,14 +108,21 @@ export function useTilt<T extends HTMLElement = HTMLDivElement>(maxDeg = 6) {
     if (typeof window === "undefined") return;
     // Skip on touch / small screens — tilt feels wrong without a precise pointer
     if (window.matchMedia("(hover: none)").matches) return;
+    // Skip if user prefers reduced motion
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    // Cap the tilt magnitude at 3° to keep the wobble subtle — previously
+    // up to 6° which made the panel feel like it was shaking when the
+    // cursor moved. 3° still gives a 3D feel without distraction.
+    const effectiveMaxDeg = Math.min(maxDeg, 3);
 
     let raf = 0;
     const handleMove = (e: MouseEvent) => {
       const rect = node.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width;  // 0..1
       const y = (e.clientY - rect.top) / rect.height;  // 0..1
-      const rx = (0.5 - y) * 2 * maxDeg; // rotateX
-      const ry = (x - 0.5) * 2 * maxDeg; // rotateY
+      const rx = (0.5 - y) * 2 * effectiveMaxDeg; // rotateX
+      const ry = (x - 0.5) * 2 * effectiveMaxDeg; // rotateY
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         setStyle({
@@ -161,6 +168,12 @@ export function useMagnetic<T extends HTMLElement = HTMLButtonElement>(maxPx = 8
     if (!node) return;
     if (typeof window === "undefined") return;
     if (window.matchMedia("(hover: none)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    // Cap the magnetic drift at 3px — previously up to 8px which made
+    // buttons feel like they were sliding around. 3px keeps the effect
+    // premium-subtle.
+    const effectiveMaxPx = Math.min(maxPx, 3);
 
     let raf = 0;
     const handleMove = (e: MouseEvent) => {
@@ -169,8 +182,8 @@ export function useMagnetic<T extends HTMLElement = HTMLButtonElement>(maxPx = 8
       const cy = rect.top + rect.height / 2;
       const dx = (e.clientX - cx) / (rect.width / 2);
       const dy = (e.clientY - cy) / (rect.height / 2);
-      const tx = Math.max(-1, Math.min(1, dx)) * maxPx;
-      const ty = Math.max(-1, Math.min(1, dy)) * maxPx;
+      const tx = Math.max(-1, Math.min(1, dx)) * effectiveMaxPx;
+      const ty = Math.max(-1, Math.min(1, dy)) * effectiveMaxPx;
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         setStyle({

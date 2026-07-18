@@ -582,9 +582,17 @@ export default function HomeView() {
   }, []);
 
   useEffect(() => {
+    // Hero slide rotation slowed from 2.6s → 9s. The fast 2.6s rotation
+    // was the most visible "jumping" on the page — text was changing
+    // constantly. 9s gives a calm, almost-still feel while still
+    // rotating through the topics. Reduced-motion users get no rotation.
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReduced) return;
     const t = setInterval(() => {
       setSlideIdx((i) => (i + 1) % HERO_SLIDES.length);
-    }, 2600);
+    }, 9000);
     return () => clearInterval(t);
   }, []);
 
