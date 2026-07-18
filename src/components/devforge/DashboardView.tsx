@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   LayoutDashboard,
   Inbox,
@@ -25,6 +25,11 @@ import {
   Settings,
   Bell,
   Home as HomeIcon,
+  Users,
+  AtSign,
+  Briefcase,
+  Phone,
+  Lock,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -33,6 +38,7 @@ import {
   STATUSES,
   type Project,
   type ProjectNote,
+  type TeamMember,
 } from "@/data/demo";
 import {
   CircularGauge,
@@ -52,6 +58,7 @@ const SIDEBAR_NAV = [
   { id: "dashboard",     label: "Overview",        icon: LayoutDashboard },
   { id: "projects",      label: "Projects",        icon: Inbox },
   { id: "notifications", label: "Notifications",  icon: Bell },
+  { id: "team",          label: "User Management", icon: Users },
   { id: "analytics",     label: "Analytics",       icon: Activity },
   { id: "settings",      label: "Settings",        icon: Settings },
 ] as const;
@@ -76,6 +83,38 @@ export default function DashboardView() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Project | null>(null);
   const [activeNav, setActiveNav] = useState<string>("dashboard");
+
+  // ── Team roster (read-only for normal admins) ─────────────────────────
+  // Fetched once from /api/team. Normal admins can VIEW this list but cannot
+  // add, edit, or delete — only the superadmin can do that from their console.
+  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [teamError, setTeamError] = useState<string | null>(null);
+  const teamCount = team.length;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTeam() {
+      setTeamLoading(true);
+      setTeamError(null);
+      try {
+        const res = await fetch("/api/team", { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load team");
+        const data = (await res.json()) as TeamMember[];
+        if (!cancelled) setTeam(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (!cancelled) {
+          setTeamError(err instanceof Error ? err.message : "Could not load team list.");
+        }
+      } finally {
+        if (!cancelled) setTeamLoading(false);
+      }
+    }
+    loadTeam();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const metrics = useMemo(
     () => ({
@@ -213,6 +252,11 @@ export default function DashboardView() {
                         {unreadCount}
                       </span>
                     )}
+                    {item.id === "team" && teamCount > 0 && (
+                      <span className="rounded-md bg-mint-300/15 px-1.5 py-0.5 text-[10px] font-bold text-mint-300">
+                        {teamCount}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -270,6 +314,16 @@ export default function DashboardView() {
           {activeNav === "notifications" ? (
             <div className="mt-6">
               <NotificationsPanel />
+            </div>
+          ) : activeNav === "team" ? (
+            <div className="mt-6">
+              <TeamRosterPanel
+                team={team}
+                loading={teamLoading}
+                error={teamError}
+                isSuperadmin={isSuperadmin}
+                onOpenSuperadmin={() => setView("superadmin")}
+              />
             </div>
           ) : (
           <>
@@ -646,6 +700,198 @@ function InfoRow({
         <Icon className="h-3 w-3" /> {label}
       </div>
       <div className="mt-0.5 text-sm text-ink-100">{value}</div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* TEAM ROSTER PANEL (READ-ONLY for normal admins)                         */
+/* • Lists every team member the superadmin has registered                 */
+/* • NO add / edit / delete buttons — only the superadmin can do that      */
+/* • If the current viewer happens to be the superadmin (e.g. they navig   */
+/*   to the admin dashboard), show a hint + button to open their console   */
+/* ─────────────────────────────────────────────────────────────────────── */
+
+function TeamRosterPanel({
+  team,
+  loading,
+  error,
+  isSuperadmin,
+  onOpenSuperadmin,
+}: {
+  team: TeamMember[];
+  loading: boolean;
+  error: string | null;
+  isSuperadmin: boolean;
+  onOpenSuperadmin: () => void;
+}) {
+  const superadminCount = team.filter((m) => m.role === "superadmin").length;
+  const adminCount = team.length - superadminCount;
+
+  return (
+    <div className="space-y-4">
+      {/* Header card */}
+      <div className="glass-card p-6 animate-fade-up">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-mint-300/10 px-3 py-1 text-xs font-medium text-mint-300">
+              <Users className="h-3.5 w-3.5" /> User Management
+            </div>
+            <h2 className="mt-3 text-2xl font-bold text-white">Team roster</h2>
+            <p className="mt-1 text-sm text-ink-400">
+              These are the team members registered by the superadmin. You have
+              view-only access — adding, editing, or removing admins is reserved
+              for the superadmin.
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3 text-center">
+              <div className="text-2xl font-bold text-white">{team.length}</div>
+              <div className="text-[10px] uppercase tracking-wider text-ink-500">Total</div>
+            </div>
+            <div className="rounded-xl border border-violet-500/20 bg-violet-600/5 px-4 py-3 text-center">
+              <div className="text-2xl font-bold text-violet-300">{superadminCount}</div>
+              <div className="text-[10px] uppercase tracking-wider text-ink-500">Superadmin</div>
+            </div>
+            <div className="rounded-xl border border-mint-300/20 bg-mint-300/5 px-4 py-3 text-center">
+              <div className="text-2xl font-bold text-mint-300">{adminCount}</div>
+              <div className="text-[10px] uppercase tracking-wider text-ink-500">Admins</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Read-only notice */}
+        <div className="mt-4 flex items-start gap-2 rounded-lg border border-mint-300/20 bg-mint-300/5 p-3 text-xs text-mint-200">
+          <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>
+            You are viewing the team in <strong>read-only</strong> mode. To add,
+            edit, or remove a team member, ask the superadmin.
+            {isSuperadmin && (
+              <>
+                {" "}
+                Since you are the superadmin, you can{" "}
+                <button
+                  onClick={onOpenSuperadmin}
+                  className="font-semibold text-mint-300 underline hover:text-mint-200"
+                >
+                  open the superadmin console
+                </button>{" "}
+                to manage users.
+              </>
+            )}
+          </span>
+        </div>
+      </div>
+
+      {/* Roster */}
+      <div className="glass-card p-6 animate-fade-up stagger-2">
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-4"
+              >
+                <div className="h-10 w-10 animate-pulse rounded-full bg-white/5" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-32 animate-pulse rounded bg-white/5" />
+                  <div className="h-2.5 w-48 animate-pulse rounded bg-white/5" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Error */}
+        {!loading && error && (
+          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200">
+            {error}
+          </div>
+        )}
+
+        {/* Empty */}
+        {!loading && !error && team.length === 0 && (
+          <div className="rounded-xl border border-white/5 bg-white/[0.02] p-10 text-center">
+            <Users className="mx-auto h-8 w-8 text-ink-500" />
+            <p className="mt-3 text-sm text-ink-400">
+              No team members have been registered yet.
+            </p>
+            <p className="mt-1 text-xs text-ink-500">
+              The superadmin can add admins from the superadmin console.
+            </p>
+          </div>
+        )}
+
+        {/* Roster list */}
+        {!loading && !error && team.length > 0 && (
+          <div className="space-y-3">
+            {team.map((m) => (
+              <div
+                key={m.uid}
+                className={`rounded-xl border p-4 transition-colors ${
+                  m.role === "superadmin"
+                    ? "border-violet-500/30 bg-violet-600/5"
+                    : "border-white/5 bg-white/[0.02]"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <GradientAvatar
+                    initial={m.name.charAt(0)}
+                    size={40}
+                    variant={m.role === "superadmin" ? "violet" : "mint"}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="truncate text-sm font-semibold text-white">
+                        {m.name}
+                      </span>
+                      <span
+                        className={
+                          m.role === "superadmin"
+                            ? "badge badge-progress"
+                            : "badge badge-pending"
+                        }
+                      >
+                        {m.role}
+                      </span>
+                    </div>
+                    <div className="mt-1 grid grid-cols-1 gap-1 text-xs text-ink-400 sm:grid-cols-2">
+                      <span className="inline-flex items-center gap-1.5 truncate">
+                        <Mail className="h-3 w-3 shrink-0" /> {m.email}
+                      </span>
+                      {m.username && (
+                        <span className="inline-flex items-center gap-1.5 truncate">
+                          <AtSign className="h-3 w-3 shrink-0" /> {m.username}
+                        </span>
+                      )}
+                      {m.jobField && (
+                        <span className="inline-flex items-center gap-1.5 truncate">
+                          <Briefcase className="h-3 w-3 shrink-0" /> {m.jobField}
+                        </span>
+                      )}
+                      {m.mobile && (
+                        <span className="inline-flex items-center gap-1.5 truncate">
+                          <Phone className="h-3 w-3 shrink-0" /> {m.mobile}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {/* Read-only badge instead of action buttons */}
+                  <div className="flex shrink-0 items-center">
+                    <span
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] uppercase tracking-wider text-ink-500"
+                      title="View only — editing reserved for the superadmin"
+                    >
+                      <Eye className="h-3 w-3" /> view
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
