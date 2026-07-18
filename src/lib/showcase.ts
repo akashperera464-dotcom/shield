@@ -80,18 +80,30 @@ function writeCache(list: ShowcaseProject[]) {
   } catch {}
 }
 
-async function apiGet(): Promise<ShowcaseProject[]> {
-  const res = await fetch("/api/showcase", { cache: "no-store" });
-  if (!res.ok) return [];
-  const data = await res.json();
-  if (!Array.isArray(data)) return [];
-  return data.map(normalizeProject);
+async function apiGet(): Promise<ShowcaseProject[] | null> {
+  try {
+    const res = await fetch("/api/showcase", { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data)) return null;
+    return data.map(normalizeProject);
+  } catch {
+    return null;
+  }
 }
 
 /** Load all showcase projects. Featured first, then by order. Cache + refresh. */
 export function loadShowcase(): ShowcaseProject[] {
   const cached = readCache();
-  apiGet().then(writeCache).catch(() => {});
+  // IMPORTANT: only overwrite the cache if the API returned a valid array.
+  // If the API failed (network, DB error, malformed response), keep the
+  // existing cache so the homepage still renders the previously-loaded
+  // projects instead of going blank.
+  apiGet()
+    .then((fresh) => {
+      if (Array.isArray(fresh)) writeCache(fresh);
+    })
+    .catch(() => {});
   return cached.sort((a, b) => {
     if (a.featured !== b.featured) return a.featured ? -1 : 1;
     return (a.order || 0) - (b.order || 0);

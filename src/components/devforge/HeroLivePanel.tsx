@@ -155,11 +155,19 @@ export default function HeroLivePanel() {
   useEffect(() => {
     mountedRef.current = true;
     const pull = () => {
-      const subs = loadSubmissions();
-      const showcase = loadShowcase();
-      const featured = showcase.filter((p) => p.featured).length;
-      setStats(computeStats(subs, showcase.length, featured));
-      setLastUpdated(Date.now());
+      try {
+        const subs = loadSubmissions();
+        const showcase = loadShowcase();
+        const featured = Array.isArray(showcase)
+          ? showcase.filter((p) => p && p.featured).length
+          : 0;
+        setStats(computeStats(subs, showcase.length, featured));
+        setLastUpdated(Date.now());
+      } catch (err) {
+        // Defensive: never let a single bad pull crash the hero panel
+        // or take down the homepage render. The previous stats remain.
+        console.error("[HeroLivePanel] pull failed:", err);
+      }
     };
     pull();
 
