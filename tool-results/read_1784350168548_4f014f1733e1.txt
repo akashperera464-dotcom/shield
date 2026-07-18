@@ -1,0 +1,1599 @@
+     1→"use client";
+     2→
+     3→import React, { useState } from "react";
+     4→import {
+     5→  Shield,
+     6→  Settings,
+     7→  Users,
+     8→  Image as ImageIcon,
+     9→  Link2,
+    10→  Save,
+    11→  Plus,
+    12→  Mail,
+    13→  Lock,
+    14→  User,
+    15→  Trash2,
+    16→  Eye,
+    17→  EyeOff,
+    18→  Home as HomeIcon,
+    19→  LayoutDashboard,
+    20→  Activity,
+    21→  BarChart3,
+    22→  HardDrive,
+    23→  ChevronRight,
+    24→  Phone,
+    25→  Briefcase,
+    26→  AtSign,
+    27→  Pencil,
+    28→  X,
+    29→  FolderKanban,
+    30→  ExternalLink,
+    31→  Star,
+    32→  ArrowUp,
+    33→  ArrowDown,
+    34→  Tag,
+    35→  Bell,
+    36→  MessageSquare,
+    37→} from "lucide-react";
+    38→import { useAuth } from "@/context/AuthContext";
+    39→import {
+    40→  DEMO_CONFIG,
+    41→  DEMO_TEAM,
+    42→  SHOWCASE_CATEGORIES,
+    43→  type SiteConfig,
+    44→  type TeamMember,
+    45→  type ShowcaseProject,
+    46→} from "@/data/demo";
+    47→import { GradientAvatar, MiniAreaChart, CircularGauge } from "./Charts";
+    48→import { loadShowcase, saveShowcase, newShowcaseId } from "@/lib/showcase";
+    49→import { loadSubmissions, getMeta } from "@/lib/submissions";
+    50→import { countPendingFeedback } from "@/lib/feedback";
+    51→import NotificationsPanel from "./NotificationsPanel";
+    52→import FeedbackPanel from "./FeedbackPanel";
+    53→
+    54→const SIDEBAR_NAV = [
+    55→  { id: "home",       label: "Back to site",    icon: HomeIcon },
+    56→  { id: "dashboard",  label: "Dashboard",       icon: LayoutDashboard },
+    57→  { id: "cms",        label: "CMS Settings",    icon: Settings },
+    58→  { id: "projects",   label: "Projects",        icon: FolderKanban },
+    59→  { id: "notifications", label: "Notifications", icon: Bell },
+    60→  { id: "feedback",   label: "Feedback",        icon: MessageSquare },
+    61→  { id: "team",       label: "User Management", icon: Users },
+    62→  { id: "analytics",  label: "Analytics",       icon: Activity },
+    63→  { id: "storage",    label: "Storage",         icon: HardDrive },
+    64→] as const;
+    65→
+    66→type TabId = "cms" | "projects" | "notifications" | "feedback" | "team" | "analytics" | "storage";
+    67→
+    68→const STORAGE_DATA = [42, 38, 55, 48, 65, 58, 72, 68, 85, 78, 92, 96];
+    69→const TRAFFIC_DATA = [120, 145, 138, 168, 185, 172, 195, 210, 188, 232, 248, 268];
+    70→
+    71→export default function SuperAdminView() {
+    72→  const { profile, isDemo, setView } = useAuth();
+    73→  const [tab, setTab] = useState<TabId>("cms");
+    74→
+    75→  const handleNav = (id: string) => {
+    76→    if (id === "home") return setView("home");
+    77→    if (id === "dashboard") return setView("dashboard");
+    78→    setTab(id as TabId);
+    79→  };
+    80→
+    81→  return (
+    82→    <div className="relative mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
+    83→      <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+    84→        {/* ─────────── SIDEBAR ─────────── */}
+    85→        <aside className="lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)]">
+    86→          <div className="glass-card flex h-full flex-col p-4">
+    87→            {/* User greeting */}
+    88→            <div className="relative overflow-hidden rounded-xl border border-white/5 bg-gradient-to-br from-violet-600/15 via-navy-800/60 to-mint-300/10 p-4">
+    89→              <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-violet-600/20 blur-2xl" />
+    90→              <div className="relative flex items-center gap-3">
+    91→                <GradientAvatar
+    92→                  initial={(profile?.name || "S").charAt(0)}
+    93→                  size={42}
+    94→                  variant="violet"
+    95→                />
+    96→                <div className="min-w-0 flex-1">
+    97→                  <div className="truncate text-sm font-semibold text-white">
+    98→                    {profile?.name || "Superadmin"}
+    99→                  </div>
+   100→                  <div className="text-[10px] uppercase tracking-wider text-violet-300">
+   101→                    {profile?.role}
+   102→                  </div>
+   103→                </div>
+   104→                <Shield className="h-4 w-4 text-violet-300" />
+   105→              </div>
+   106→              <div className="relative mt-3 flex items-center gap-2 text-[10px] text-ink-400">
+   107→                <span className="inline-flex items-center gap-1">
+   108→                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+   109→                  online
+   110→                </span>
+   111→                <span>·</span>
+   112→                <span>live</span>
+   113→              </div>
+   114→            </div>
+   115→
+   116→            {/* Nav */}
+   117→            <nav className="mt-4 flex flex-col gap-1">
+   118→              <div className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+   119→                Superadmin
+   120→              </div>
+   121→              {SIDEBAR_NAV.map((item) => {
+   122→                const isActive =
+   123→                  (item.id === "cms" && tab === "cms") ||
+   124→                  (item.id === "projects" && tab === "projects") ||
+   125→                  (item.id === "notifications" && tab === "notifications") ||
+   126→                  (item.id === "feedback" && tab === "feedback") ||
+   127→                  (item.id === "team" && tab === "team") ||
+   128→                  (item.id === "analytics" && tab === "analytics") ||
+   129→                  (item.id === "storage" && tab === "storage");
+   130→                const unreadCount = item.id === "notifications"
+   131→                  ? loadSubmissions().filter((s) => !getMeta(s.id).readAt).length
+   132→                  : 0;
+   133→                const pendingFeedback = item.id === "feedback"
+   134→                  ? countPendingFeedback()
+   135→                  : 0;
+   136→                return (
+   137→                  <button
+   138→                    key={item.id}
+   139→                    onClick={() => handleNav(item.id)}
+   140→                    className={`sidebar-nav-btn ${isActive ? "active" : ""}`}
+   141→                  >
+   142→                    <item.icon className="h-4 w-4" />
+   143→                    <span className="flex-1 text-left">{item.label}</span>
+   144→                    {item.id === "team" && (
+   145→                      <span className="rounded-md bg-violet-600/20 px-1.5 py-0.5 text-[10px] font-bold text-violet-300">
+   146→                        {DEMO_TEAM.length}
+   147→                      </span>
+   148→                    )}
+   149→                    {item.id === "notifications" && unreadCount > 0 && (
+   150→                      <span className="rounded-md bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">
+   151→                        {unreadCount}
+   152→                      </span>
+   153→                    )}
+   154→                    {item.id === "feedback" && pendingFeedback > 0 && (
+   155→                      <span className="rounded-md bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+   156→                        {pendingFeedback}
+   157→                      </span>
+   158→                    )}
+   159→                  </button>
+   160→                );
+   161→              })}
+   162→            </nav>
+   163→
+   164→            {/* Storage tile */}
+   165→            <div className="mt-auto pt-4">
+   166→              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+   167→                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-ink-500">
+   168→                  <HardDrive className="h-3 w-3 text-mint-300" /> Storage used
+   169→                </div>
+   170→                <div className="mt-1 text-2xl font-bold text-white">
+   171→                  4.2<span className="text-sm font-normal text-ink-400"> / 10 GB</span>
+   172→                </div>
+   173→                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/5">
+   174→                  <div
+   175→                    className="h-full rounded-full bg-gradient-to-r from-mint-300 to-violet-600 transition-all duration-1000"
+   176→                    style={{ width: "42%" }}
+   177→                  />
+   178→                </div>
+   179→              </div>
+   180→            </div>
+   181→          </div>
+   182→        </aside>
+   183→
+   184→        {/* ─────────── MAIN ─────────── */}
+   185→        <main className="min-w-0">
+   186→          {/* Top bar */}
+   187→          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+   188→            <div>
+   189→              <div className="inline-flex items-center gap-2 rounded-full bg-violet-600/10 px-3 py-1 text-xs font-medium text-violet-300">
+   190→                <Shield className="h-3.5 w-3.5" /> Superadmin Console
+   191→              </div>
+   192→              <h1 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
+   193→                Console <span className="text-gradient-animated">overview</span>
+   194→              </h1>
+   195→              <p className="mt-1 text-sm text-ink-400">
+   196→                Signed in as <span className="font-mono text-mint-300">{profile?.email}</span>
+   197→              </p>
+   198→            </div>
+   199→            <button onClick={() => setView("dashboard")} className="btn-ghost text-sm">
+   200→              <LayoutDashboard className="h-4 w-4" /> Back to Dashboard
+   201→              <ChevronRight className="h-4 w-4" />
+   202→            </button>
+   203→          </div>
+   204→
+   205→          {/* Quick stats row */}
+   206→          <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+   207→            <StatTile label="Team Members" value={DEMO_TEAM.length} icon={Users} color="#64ffda" />
+   208→            <StatTile label="CMS Drafts" value={3} icon={Settings} color="#667eea" />
+   209→            <StatTile label="Linked Images" value={2} icon={ImageIcon} color="#9d8df1" />
+   210→            <StatTile label="Site Uptime" value="99.9%" icon={Activity} color="#64ffda" />
+   211→          </div>
+   212→
+   213→          {/* Content area */}
+   214→          <div className="mt-6">
+   215→            {tab === "cms" && <CMSPanel isDemo={isDemo} />}
+   216→            {tab === "projects" && <ShowcasePanel />}
+   217→            {tab === "notifications" && <NotificationsPanel />}
+   218→            {tab === "feedback" && <FeedbackPanel />}
+   219→            {tab === "team" && <TeamPanel isDemo={isDemo} />}
+   220→            {tab === "analytics" && <AnalyticsPanel />}
+   221→            {tab === "storage" && <StoragePanel />}
+   222→          </div>
+   223→        </main>
+   224→      </div>
+   225→    </div>
+   226→  );
+   227→}
+   228→
+   229→/* ─────────────────────────────────────────────────────────────────────── */
+   230→
+   231→function StatTile({
+   232→  label,
+   233→  value,
+   234→  icon: Icon,
+   235→  color,
+   236→}: {
+   237→  label: string;
+   238→  value: string | number;
+   239→  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+   240→  color: string;
+   241→}) {
+   242→  return (
+   243→    <div className="glass-card-hover p-5 animate-fade-up">
+   244→      <div className="flex items-start justify-between">
+   245→        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] ring-1 ring-white/10">
+   246→          <Icon className="h-5 w-5" style={{ color }} />
+   247→        </div>
+   248→      </div>
+   249→      <div className="mt-3 text-2xl font-bold text-white">{value}</div>
+   250→      <div className="text-xs uppercase tracking-wider text-ink-400">{label}</div>
+   251→    </div>
+   252→  );
+   253→}
+   254→
+   255→/* ─────────────────────────────────────────────────────────────────────── */
+   256→
+   257→function CMSPanel({ isDemo }: { isDemo: boolean }) {
+   258→  const [form, setForm] = useState<SiteConfig>(DEMO_CONFIG);
+   259→  const [saved, setSaved] = useState(false);
+   260→
+   261→  const handleSave = (e: React.FormEvent) => {
+   262→    e.preventDefault();
+   263→    setSaved(true);
+   264→    setTimeout(() => setSaved(false), 2000);
+   265→  };
+   266→
+   267→  const isValidUrl = (u: string) => /^https?:\/\/.+/.test(u);
+   268→
+   269→  return (
+   270→    <div className="grid gap-6 lg:grid-cols-3">
+   271→      <form onSubmit={handleSave} className="glass-card p-6 lg:col-span-2">
+   272→        <h2 className="text-xl font-semibold text-white">Site content</h2>
+   273→        <p className="mt-1 text-sm text-ink-400">
+   274→          Edit the <code className="rounded bg-white/5 px-1.5 py-0.5 text-ink-200">siteContent/globalConfig</code> document.
+   275→          Changes go live instantly on the public site.
+   276→        </p>
+   277→        <div className="mt-6 space-y-4">
+   278→          <Field label="Hero Title" value={form.heroTitle} onChange={(v) => setForm({ ...form, heroTitle: v })} />
+   279→          <Field label="Hero Subtitle" value={form.heroSubtitle} onChange={(v) => setForm({ ...form, heroSubtitle: v })} />
+   280→          <Field label="About Text" value={form.aboutText} onChange={(v) => setForm({ ...form, aboutText: v })} textarea />
+   281→          <Field label="Contact Email" value={form.contactEmail} onChange={(v) => setForm({ ...form, contactEmail: v })} />
+   282→
+   283→          {/* Cloudinary URL paste — divider */}
+   284→          <div className="relative py-2">
+   285→            <div className="border-t border-dashed border-white/10" />
+   286→            <div className="absolute inset-0 flex items-center justify-center">
+   287→              <span className="inline-flex items-center gap-1.5 rounded-full bg-navy-900 px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-mint-300">
+   288→                <Link2 className="h-3 w-3" /> Cloudinary URL
+   289→              </span>
+   290→            </div>
+   291→          </div>
+   292→          <p className="-mt-2 text-xs text-ink-500">
+   293→            Upload your logo and background images to your own Cloudinary account, then paste the
+   294→            resulting <code className="rounded bg-white/5 px-1 py-0.5 text-ink-300">res.cloudinary.com/...</code> URL below.
+   295→            We do not host client uploads.
+   296→          </p>
+   297→
+   298→          <UrlField
+   299→            label="Logo URL"
+   300→            value={form.logoUrl}
+   301→            onChange={(v) => setForm({ ...form, logoUrl: v })}
+   302→            placeholder="https://res.cloudinary.com/<cloud>/image/upload/.../logo.png"
+   303→            preview={isValidUrl(form.logoUrl) ? (
+   304→              <img src={form.logoUrl} alt="logo" className="h-10 w-10 rounded-lg object-cover ring-1 ring-mint-300/30" />
+   305→            ) : null}
+   306→          />
+   307→          <UrlField
+   308→            label="Main Background URL"
+   309→            value={form.mainBgUrl}
+   310→            onChange={(v) => setForm({ ...form, mainBgUrl: v })}
+   311→            placeholder="https://res.cloudinary.com/<cloud>/image/upload/.../bg.jpg"
+   312→            preview={isValidUrl(form.mainBgUrl) ? (
+   313→              <img src={form.mainBgUrl} alt="bg" className="h-10 w-16 rounded-lg object-cover ring-1 ring-mint-300/30" />
+   314→            ) : null}
+   315→          />
+   316→
+   317→          <div className="flex items-center gap-3">
+   318→            <button type="submit" className="btn-primary">
+   319→              <Save className="h-4 w-4" /> {saved ? "Saved!" : "Save changes"}
+   320→            </button>
+   321→          </div>
+   322→        </div>
+   323→      </form>
+   324→
+   325→      <div className="glass-card p-6">
+   326→        <h3 className="text-lg font-semibold text-white">Live preview</h3>
+   327→        <p className="mt-1 text-xs text-ink-400">Read-only snapshot of current public site config.</p>
+   328→        <div className="mt-4 space-y-3 text-sm">
+   329→          <PreviewRow k="heroTitle" v={form.heroTitle.slice(0, 30) + (form.heroTitle.length > 30 ? "…" : "")} />
+   330→          <PreviewRow k="heroSubtitle" v={form.heroSubtitle.slice(0, 30) + (form.heroSubtitle.length > 30 ? "…" : "")} />
+   331→          <PreviewRow k="contactEmail" v={form.contactEmail} />
+   332→          <PreviewRow k="logoUrl" v={isValidUrl(form.logoUrl) ? "connected" : "empty"} />
+   333→          <PreviewRow k="mainBgUrl" v={isValidUrl(form.mainBgUrl) ? "connected" : "empty"} />
+   334→        </div>
+   335→
+   336→        <div className="mt-6 rounded-xl border border-white/5 bg-white/[0.02] p-4">
+   337→          <div className="text-[10px] uppercase tracking-wider text-ink-500">Logo preview</div>
+   338→          <div className="mt-2 flex items-center gap-3">
+   339→            {isValidUrl(form.logoUrl) ? (
+   340→              <img src={form.logoUrl} alt="logo" className="h-12 w-12 rounded-lg object-cover ring-1 ring-mint-300/30" />
+   341→            ) : (
+   342→              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white/[0.02] ring-1 ring-white/5">
+   343→                <ImageIcon className="h-5 w-5 text-ink-500" />
+   344→              </div>
+   345→            )}
+   346→            <div className="text-xs text-ink-400">Paste any Cloudinary image URL</div>
+   347→          </div>
+   348→        </div>
+   349→      </div>
+   350→    </div>
+   351→  );
+   352→}
+   353→
+   354→/* ─────────────────────────────────────────────────────────────────────── */
+   355→/* USER MANAGEMENT — full CRUD                                            */
+   356→/* • Superadmin (you) can never be deleted                                 */
+   357→/* • Superadmin can add / edit / delete any other admin                    */
+   358→/* • Persists to MongoDB via /api/team endpoints                           */
+   359→/* ─────────────────────────────────────────────────────────────────────── */
+   360→
+   361→const TEAM_STORAGE_KEY = "theshield_team";
+   362→const SUPERADMIN_UID = "u_001"; // matches SEED_TEAM[0] — Akash Perera
+   363→
+   364→// Always-seed superadmin row (used as fallback if API is unreachable)
+   365→const SEED_SUPERADMIN: TeamMember = {
+   366→  uid: SUPERADMIN_UID,
+   367→  name: "Akash Perera",
+   368→  email: "akashperera@shield.com",
+   369→  role: "superadmin",
+   370→  createdAt: "2026-06-01",
+   371→  jobField: "Management",
+   372→  mobile: "0741622795",
+   373→  username: "akashperera",
+   374→};
+   375→
+   376→function readTeamCache(): TeamMember[] {
+   377→  if (typeof window === "undefined") return [SEED_SUPERADMIN];
+   378→  try {
+   379→    const raw = localStorage.getItem(TEAM_STORAGE_KEY);
+   380→    if (!raw) return [SEED_SUPERADMIN];
+   381→    const parsed = JSON.parse(raw) as TeamMember[];
+   382→    if (!Array.isArray(parsed)) return [SEED_SUPERADMIN];
+   383→    // Always guarantee the superadmin exists in the cache
+   384→    if (!parsed.some((m) => m.uid === SUPERADMIN_UID)) {
+   385→      parsed.unshift(SEED_SUPERADMIN);
+   386→    }
+   387→    return parsed;
+   388→  } catch {
+   389→    return [SEED_SUPERADMIN];
+   390→  }
+   391→}
+   392→
+   393→function writeTeamCache(team: TeamMember[]) {
+   394→  if (typeof window === "undefined") return;
+   395→  try {
+   396→    localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(team));
+   397→    window.dispatchEvent(new StorageEvent("storage", { key: TEAM_STORAGE_KEY }));
+   398→  } catch {}
+   399→}
+   400→
+   401→async function apiGetTeam(): Promise<TeamMember[]> {
+   402→  const res = await fetch("/api/team", { cache: "no-store" });
+   403→  if (!res.ok) return [];
+   404→  return (await res.json()) as TeamMember[];
+   405→}
+   406→
+   407→async function apiCreateTeamMember(m: TeamMember): Promise<TeamMember> {
+   408→  const res = await fetch("/api/team", {
+   409→    method: "POST",
+   410→    headers: { "Content-Type": "application/json" },
+   411→    body: JSON.stringify(m),
+   412→  });
+   413→  if (!res.ok) {
+   414→    const err = await res.json().catch(() => ({ error: "Failed to add admin" }));
+   415→    throw new Error(err.error || "Failed to add admin");
+   416→  }
+   417→  return res.json();
+   418→}
+   419→
+   420→async function apiUpdateTeamMember(uid: string, patch: Partial<TeamMember>): Promise<TeamMember> {
+   421→  const res = await fetch(`/api/team/${uid}`, {
+   422→    method: "PATCH",
+   423→    headers: { "Content-Type": "application/json" },
+   424→    body: JSON.stringify(patch),
+   425→  });
+   426→  if (!res.ok) {
+   427→    const err = await res.json().catch(() => ({ error: "Failed to update admin" }));
+   428→    throw new Error(err.error || "Failed to update admin");
+   429→  }
+   430→  return res.json();
+   431→}
+   432→
+   433→async function apiDeleteTeamMember(uid: string): Promise<void> {
+   434→  const res = await fetch(`/api/team/${uid}`, { method: "DELETE" });
+   435→  if (!res.ok) {
+   436→    const err = await res.json().catch(() => ({ error: "Failed to delete admin" }));
+   437→    throw new Error(err.error || "Failed to delete admin");
+   438→  }
+   439→}
+   440→
+   441→function loadTeam(): TeamMember[] {
+   442→  const cached = readTeamCache();
+   443→  // Background refresh from MongoDB
+   444→  apiGetTeam()
+   445→    .then((fresh) => {
+   446→      if (fresh.length > 0) writeTeamCache(fresh);
+   447→    })
+   448→    .catch(() => {});
+   449→  return cached;
+   450→}
+   451→
+   452→const JOB_FIELDS = [
+   453→  "Application Development",
+   454→  "Software Development",
+   455→  "Graphic Design",
+   456→  "Mobile App Development",
+   457→  "Website Development",
+   458→  "UI / UX Designing",
+   459→  "CRM Software Development",
+   460→  "Digital Marketing",
+   461→  "Artificial Intelligence",
+   462→  "Machine Learning",
+   463→  "SharePoint Integration",
+   464→  "NetSuite Integration",
+   465→  "Management",
+   466→];
+   467→
+   468→interface AdminFormState {
+   469→  name: string;
+   470→  email: string;
+   471→  username: string;
+   472→  password: string;
+   473→  mobile: string;
+   474→  jobField: string;
+   475→}
+   476→
+   477→const EMPTY_FORM: AdminFormState = {
+   478→  name: "",
+   479→  email: "",
+   480→  username: "",
+   481→  password: "",
+   482→  mobile: "",
+   483→  jobField: "",
+   484→};
+   485→
+   486→function TeamPanel({ isDemo }: { isDemo: boolean }) {
+   487→  const { registerAdmin, profile } = useAuth();
+   488→  const [team, setTeam] = useState<TeamMember[]>(() => loadTeam());
+   489→  const [form, setForm] = useState<AdminFormState>(EMPTY_FORM);
+   490→  const [editingUid, setEditingUid] = useState<string | null>(null);
+   491→  const [showPass, setShowPass] = useState(false);
+   492→  const [busy, setBusy] = useState(false);
+   493→  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+   494→  const [confirmDeleteUid, setConfirmDeleteUid] = useState<string | null>(null);
+   495→
+   496→  // ── Helpers ───────────────────────────────────────────────
+   497→  const isProtectedSuperadmin = (m: TeamMember) =>
+   498→    m.role === "superadmin" && m.uid === SUPERADMIN_UID;
+   499→
+   500→  const update = <K extends keyof AdminFormState>(k: K, v: AdminFormState[K]) =>
+   501→    setForm((f) => ({ ...f, [k]: v }));
+   502→
+   503→  const persist = (next: TeamMember[]) => {
+   504→    setTeam(next);
+   505→    writeTeamCache(next);
+   506→  };
+   507→
+   508→  const validate = (): string | null => {
+   509→    if (!form.name.trim()) return "Name is required.";
+   510→    if (!form.email.trim()) return "Email is required.";
+   511→    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return "Enter a valid email.";
+   512→    if (!form.username.trim()) return "Username is required.";
+   513→    if (!form.password.trim() && !editingUid) return "Password is required.";
+   514→    if (form.password && form.password.length < 6) return "Password must be at least 6 characters.";
+   515→    if (!form.jobField) return "Job field is required.";
+   516→    // Unique email/username check
+   517→    const dupe = team.find(
+   518→      (m) =>
+   519→        m.uid !== editingUid &&
+   520→        (m.email.toLowerCase() === form.email.trim().toLowerCase() ||
+   521→          (m.username || "").toLowerCase() === form.username.trim().toLowerCase())
+   522→    );
+   523→    if (dupe) return "Another admin already uses this email or username.";
+   524→    return null;
+   525→  };
+   526→
+   527→  // ── Create / Update ──────────────────────────────────────
+   528→  const handleSubmit = async (e: React.FormEvent) => {
+   529→    e.preventDefault();
+   530→    setMsg(null);
+   531→    const v = validate();
+   532→    if (v) {
+   533→      setMsg({ type: "err", text: v });
+   534→      return;
+   535→    }
+   536→
+   537→    setBusy(true);
+   538→    try {
+   539→      if (editingUid) {
+   540→        // ── UPDATE ──
+   541→        const patch: Partial<TeamMember> = {
+   542→          name: form.name.trim(),
+   543→          email: form.email.trim(),
+   544→          username: form.username.trim(),
+   545→          mobile: form.mobile.trim(),
+   546→          jobField: form.jobField,
+   547→        };
+   548→        await apiUpdateTeamMember(editingUid, patch);
+   549→        const fresh = await apiGetTeam();
+   550→        persist(fresh);
+   551→        setMsg({ type: "ok", text: `Updated ${form.name}.` });
+   552→        setEditingUid(null);
+   553→        setForm(EMPTY_FORM);
+   554→      } else {
+   555→        // ── CREATE ──
+   556→        if (registerAdmin && !isDemo) {
+   557→          await registerAdmin({ name: form.name, email: form.email, password: form.password });
+   558→        }
+   559→        const newMember: TeamMember = {
+   560→          uid: "u_" + Math.random().toString(36).slice(2, 8),
+   561→          name: form.name.trim(),
+   562→          email: form.email.trim(),
+   563→          username: form.username.trim(),
+   564→          mobile: form.mobile.trim(),
+   565→          jobField: form.jobField,
+   566→          role: "admin",
+   567→          createdAt: new Date().toISOString().slice(0, 10),
+   568→        };
+   569→        await apiCreateTeamMember(newMember);
+   570→        const fresh = await apiGetTeam();
+   571→        persist(fresh);
+   572→        setMsg({ type: "ok", text: `Admin added: ${form.email}` });
+   573→        setForm(EMPTY_FORM);
+   574→      }
+   575→    } catch (err) {
+   576→      const m = err instanceof Error ? err.message : "Failed to save admin.";
+   577→      setMsg({ type: "err", text: m });
+   578→    } finally {
+   579→      setBusy(false);
+   580→    }
+   581→  };
+   582→
+   583→  // ── Edit ─────────────────────────────────────────────────
+   584→  const startEdit = (m: TeamMember) => {
+   585→    setEditingUid(m.uid);
+   586→    setForm({
+   587→      name: m.name,
+   588→      email: m.email,
+   589→      username: m.username || "",
+   590→      password: "", // blank = keep current
+   591→      mobile: m.mobile || "",
+   592→      jobField: m.jobField || "",
+   593→    });
+   594→    setMsg(null);
+   595→    setShowPass(false);
+   596→    // Scroll to form
+   597→    if (typeof window !== "undefined") {
+   598→      window.scrollTo({ top: 0, behavior: "smooth" });
+   599→    }
+   600→  };
+   601→
+   602→  const cancelEdit = () => {
+   603→    setEditingUid(null);
+   604→    setForm(EMPTY_FORM);
+   605→    setMsg(null);
+   606→  };
+   607→
+   608→  // ── Delete ───────────────────────────────────────────────
+   609→  const handleDelete = async (m: TeamMember) => {
+   610→    if (isProtectedSuperadmin(m)) {
+   611→      setMsg({ type: "err", text: "The superadmin account cannot be deleted." });
+   612→      return;
+   613→    }
+   614→    if (confirmDeleteUid !== m.uid) {
+   615→      setConfirmDeleteUid(m.uid);
+   616→      return;
+   617→    }
+   618→    setBusy(true);
+   619→    try {
+   620→      await apiDeleteTeamMember(m.uid);
+   621→      const fresh = await apiGetTeam();
+   622→      persist(fresh);
+   623→      setConfirmDeleteUid(null);
+   624→      setMsg({ type: "ok", text: `Removed ${m.name}.` });
+   625→      if (editingUid === m.uid) cancelEdit();
+   626→    } catch (err) {
+   627→      const errMsg = err instanceof Error ? err.message : "Failed to delete admin.";
+   628→      setMsg({ type: "err", text: errMsg });
+   629→      setConfirmDeleteUid(null);
+   630→    } finally {
+   631→      setBusy(false);
+   632→    }
+   633→  };
+   634→
+   635→  // ── Render ───────────────────────────────────────────────
+   636→  const editingTarget = editingUid ? team.find((m) => m.uid === editingUid) : null;
+   637→
+   638→  return (
+   639→    <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
+   640→      {/* ── LEFT: FORM ──────────────────────────────────────── */}
+   641→      <form onSubmit={handleSubmit} className="glass-card p-6">
+   642→        <div className="flex items-center justify-between">
+   643→          <h2 className="text-xl font-semibold text-white">
+   644→            {editingUid ? "Edit admin" : "Add new admin"}
+   645→          </h2>
+   646→          {editingUid && (
+   647→            <button
+   648→              type="button"
+   649→              onClick={cancelEdit}
+   650→              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-ink-400 hover:bg-white/5 hover:text-white"
+   651→            >
+   652→              <X className="h-3.5 w-3.5" /> Cancel
+   653→            </button>
+   654→          )}
+   655→        </div>
+   656→        <p className="mt-1 text-sm text-ink-400">
+   657→          {editingUid && editingTarget && isProtectedSuperadmin(editingTarget)
+   658→            ? "Editing your own superadmin profile. Role cannot be changed."
+   659→            : "Creates a new admin login. Superadmin (you) has full control — admins can be edited or removed at any time."}
+   660→        </p>
+   661→
+   662→        <div className="mt-5 space-y-4">
+   663→          {/* Name */}
+   664→          <AdminField label="Full name" required>
+   665→            <div className="relative">
+   666→              <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+   667→              <input
+   668→                value={form.name}
+   669→                onChange={(e) => update("name", e.target.value)}
+   670→                required
+   671→                className="input-field pl-10"
+   672→                placeholder="Jane Doe"
+   673→              />
+   674→            </div>
+   675→          </AdminField>
+   676→
+   677→          {/* Email + Username */}
+   678→          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+   679→            <AdminField label="Email" required>
+   680→              <div className="relative">
+   681→                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+   682→                <input
+   683→                  type="email"
+   684→                  value={form.email}
+   685→                  onChange={(e) => update("email", e.target.value)}
+   686→                  required
+   687→                  className="input-field pl-10"
+   688→                  placeholder="jane@theshield.agency"
+   689→                />
+   690→              </div>
+   691→            </AdminField>
+   692→            <AdminField label="Username" required>
+   693→              <div className="relative">
+   694→                <AtSign className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+   695→                <input
+   696→                  value={form.username}
+   697→                  onChange={(e) => update("username", e.target.value)}
+   698→                  required
+   699→                  className="input-field pl-10"
+   700→                  placeholder="jane_doe"
+   701→                />
+   702→              </div>
+   703→            </AdminField>
+   704→          </div>
+   705→
+   706→          {/* Password + Mobile */}
+   707→          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+   708→            <AdminField label={editingUid ? "New password (leave blank to keep)" : "Password"} required={!editingUid}>
+   709→              <div className="relative">
+   710→                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+   711→                <input
+   712→                  type={showPass ? "text" : "password"}
+   713→                  value={form.password}
+   714→                  onChange={(e) => update("password", e.target.value)}
+   715→                  required={!editingUid}
+   716→                  minLength={form.password ? 6 : undefined}
+   717→                  className="input-field pl-10 pr-10"
+   718→                  placeholder={editingUid ? "•••••• (unchanged)" : "Min. 6 characters"}
+   719→                />
+   720→                <button
+   721→                  type="button"
+   722→                  onClick={() => setShowPass((s) => !s)}
+   723→                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-200"
+   724→                  tabIndex={-1}
+   725→                >
+   726→                  {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+   727→                </button>
+   728→              </div>
+   729→            </AdminField>
+   730→            <AdminField label="Mobile (optional)">
+   731→              <div className="relative">
+   732→                <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+   733→                <input
+   734→                  type="tel"
+   735→                  value={form.mobile}
+   736→                  onChange={(e) => update("mobile", e.target.value)}
+   737→                  className="input-field pl-10"
+   738→                  placeholder="0741234567"
+   739→                />
+   740→              </div>
+   741→            </AdminField>
+   742→          </div>
+   743→
+   744→          {/* Job field */}
+   745→          <AdminField label="Job field" required>
+   746→            <div className="relative">
+   747→              <Briefcase className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+   748→              <select
+   749→                value={form.jobField}
+   750→                onChange={(e) => update("jobField", e.target.value)}
+   751→                required
+   752→                className="input-field pl-10"
+   753→              >
+   754→                <option value="">Select a field…</option>
+   755→                {JOB_FIELDS.map((j) => (
+   756→                  <option key={j} value={j}>{j}</option>
+   757→                ))}
+   758→              </select>
+   759→            </div>
+   760→          </AdminField>
+   761→
+   762→          {msg && (
+   763→            <div
+   764→              className={`rounded-lg border p-3 text-xs ${
+   765→                msg.type === "ok"
+   766→                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+   767→                  : "border-rose-500/30 bg-rose-500/10 text-rose-200"
+   768→              }`}
+   769→            >
+   770→              {msg.text}
+   771→            </div>
+   772→          )}
+   773→
+   774→          <button type="submit" disabled={busy} className="btn-primary w-full">
+   775→            {busy ? (
+   776→              <>
+   777→                <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/40 border-t-white" />
+   778→                Saving…
+   779→              </>
+   780→            ) : (
+   781→              <>
+   782→                {editingUid ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+   783→                {editingUid ? "Save changes" : "Add admin"}
+   784→              </>
+   785→            )}
+   786→          </button>
+   787→        </div>
+   788→      </form>
+   789→
+   790→      {/* ── RIGHT: ROSTER ──────────────────────────────────── */}
+   791→      <div className="glass-card p-6">
+   792→        <div className="flex items-center justify-between">
+   793→          <div>
+   794→            <h3 className="text-lg font-semibold text-white">User management</h3>
+   795→            <p className="mt-1 text-xs text-ink-400">
+   796→              {team.length} {team.length === 1 ? "user" : "users"} · superadmin is protected
+   797→            </p>
+   798→          </div>
+   799→          {profile?.role === "superadmin" && (
+   800→            <span className="badge badge-progress">
+   801→              <Shield className="mr-1 h-3 w-3" /> Full CRUD
+   802→            </span>
+   803→          )}
+   804→        </div>
+   805→
+   806→        <div className="mt-4 max-h-[36rem] space-y-3 overflow-y-auto pr-1">
+   807→          {team.map((m) => {
+   808→            const protectedAdmin = isProtectedSuperadmin(m);
+   809→            const isConfirming = confirmDeleteUid === m.uid;
+   810→            return (
+   811→              <div
+   812→                key={m.uid}
+   813→                className={`rounded-xl border p-4 transition-colors ${
+   814→                  protectedAdmin
+   815→                    ? "border-violet-500/30 bg-violet-600/5"
+   816→                    : "border-white/5 bg-white/[0.02]"
+   817→                }`}
+   818→              >
+   819→                <div className="flex items-start gap-3">
+   820→                  <GradientAvatar
+   821→                    initial={m.name.charAt(0)}
+   822→                    size={40}
+   823→                    variant={m.role === "superadmin" ? "violet" : "mint"}
+   824→                  />
+   825→                  <div className="min-w-0 flex-1">
+   826→                    <div className="flex flex-wrap items-center gap-2">
+   827→                      <span className="truncate text-sm font-semibold text-white">{m.name}</span>
+   828→                      <span
+   829→                        className={
+   830→                          m.role === "superadmin" ? "badge badge-progress" : "badge badge-pending"
+   831→                        }
+   832→                      >
+   833→                        {m.role}
+   834→                      </span>
+   835→                      {protectedAdmin && (
+   836→                        <span className="inline-flex items-center gap-1 rounded-full bg-violet-600/10 px-2 py-0.5 text-[10px] text-violet-300">
+   837→                          <Shield className="h-3 w-3" /> you
+   838→                        </span>
+   839→                      )}
+   840→                    </div>
+   841→                    <div className="mt-1 grid grid-cols-1 gap-1 text-xs text-ink-400">
+   842→                      <span className="inline-flex items-center gap-1.5 truncate">
+   843→                        <Mail className="h-3 w-3 shrink-0" /> {m.email}
+   844→                      </span>
+   845→                      {m.username && (
+   846→                        <span className="inline-flex items-center gap-1.5 truncate">
+   847→                          <AtSign className="h-3 w-3 shrink-0" /> {m.username}
+   848→                        </span>
+   849→                      )}
+   850→                      {m.jobField && (
+   851→                        <span className="inline-flex items-center gap-1.5 truncate">
+   852→                          <Briefcase className="h-3 w-3 shrink-0" /> {m.jobField}
+   853→                        </span>
+   854→                      )}
+   855→                      {m.mobile && (
+   856→                        <span className="inline-flex items-center gap-1.5 truncate">
+   857→                          <Phone className="h-3 w-3 shrink-0" /> {m.mobile}
+   858→                        </span>
+   859→                      )}
+   860→                    </div>
+   861→                  </div>
+   862→
+   863→                  {/* Action buttons */}
+   864→                  <div className="flex shrink-0 items-center gap-1">
+   865→                    <button
+   866→                      type="button"
+   867→                      onClick={() => startEdit(m)}
+   868→                      className="rounded-md p-1.5 text-ink-400 hover:bg-mint-300/10 hover:text-mint-300"
+   869→                      title="Edit"
+   870→                    >
+   871→                      <Pencil className="h-3.5 w-3.5" />
+   872→                    </button>
+   873→                    {protectedAdmin ? (
+   874→                      <button
+   875→                        type="button"
+   876→                        disabled
+   877→                        title="Superadmin cannot be deleted"
+   878→                        className="cursor-not-allowed rounded-md p-1.5 text-ink-600"
+   879→                      >
+   880→                        <Trash2 className="h-3.5 w-3.5" />
+   881→                      </button>
+   882→                    ) : (
+   883→                      <button
+   884→                        type="button"
+   885→                        onClick={() => handleDelete(m)}
+   886→                        className={`rounded-md p-1.5 transition-colors ${
+   887→                          isConfirming
+   888→                            ? "bg-rose-500/20 text-rose-300"
+   889→                            : "text-ink-400 hover:bg-rose-500/10 hover:text-rose-300"
+   890→                        }`}
+   891→                        title={isConfirming ? "Click again to confirm" : "Remove"}
+   892→                      >
+   893→                        <Trash2 className="h-3.5 w-3.5" />
+   894→                      </button>
+   895→                    )}
+   896→                  </div>
+   897→                </div>
+   898→                {isConfirming && (
+   899→                  <div className="mt-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+   900→                    Remove {m.name}? This cannot be undone.{" "}
+   901→                    <button
+   902→                      type="button"
+   903→                      onClick={() => setConfirmDeleteUid(null)}
+   904→                      className="ml-1 underline hover:text-white"
+   905→                    >
+   906→                      Cancel
+   907→                    </button>
+   908→                  </div>
+   909→                )}
+   910→              </div>
+   911→            );
+   912→          })}
+   913→        </div>
+   914→      </div>
+   915→    </div>
+   916→  );
+   917→}
+   918→
+   919→/* Tiny labelled field wrapper to keep the form tidy */
+   920→function AdminField({
+   921→  label,
+   922→  required,
+   923→  children,
+   924→}: {
+   925→  label: string;
+   926→  required?: boolean;
+   927→  children: React.ReactNode;
+   928→}) {
+   929→  return (
+   930→    <div>
+   931→      <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-ink-400">
+   932→        {label} {required && <span className="text-mint-300">*</span>}
+   933→      </label>
+   934→      {children}
+   935→    </div>
+   936→  );
+   937→}
+   938→
+   939→/* ─────────────────────────────────────────────────────────────────────── */
+   940→/* SHOWCASE PANEL — manage the public "Our Projects" cards                */
+   941→/* • Add / edit / delete project cards                                     */
+   942→/* • Paste Cloudinary URL for the card image                               */
+   943→/* • Paste project URL — clicking the card opens it                        */
+   944→/* • Toggle featured, reorder, tag                                         */
+   945→/* ─────────────────────────────────────────────────────────────────────── */
+   946→
+   947→interface ShowcaseFormState {
+   948→  title: string;
+   949→  category: string;
+   950→  description: string;
+   951→  imageUrl: string;
+   952→  projectUrl: string;
+   953→  tagsText: string; // comma-separated in the form, stored as array
+   954→  featured: boolean;
+   955→}
+   956→
+   957→const EMPTY_SHOWCASE_FORM: ShowcaseFormState = {
+   958→  title: "",
+   959→  category: "",
+   960→  description: "",
+   961→  imageUrl: "",
+   962→  projectUrl: "",
+   963→  tagsText: "",
+   964→  featured: false,
+   965→};
+   966→
+   967→function ShowcasePanel() {
+   968→  const [projects, setProjects] = useState<ShowcaseProject[]>(() => loadShowcase());
+   969→  const [form, setForm] = useState<ShowcaseFormState>(EMPTY_SHOWCASE_FORM);
+   970→  const [editingId, setEditingId] = useState<string | null>(null);
+   971→  const [busy, setBusy] = useState(false);
+   972→  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+   973→  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+   974→
+   975→  const update = <K extends keyof ShowcaseFormState>(k: K, v: ShowcaseFormState[K]) =>
+   976→    setForm((f) => ({ ...f, [k]: v }));
+   977→
+   978→  const persist = async (next: ShowcaseProject[]) => {
+   979→    setProjects(next);
+   980→    try {
+   981→      await saveShowcase(next);
+   982→    } catch (e) {
+   983→      setMsg({
+   984→        type: "err",
+   985→        text: e instanceof Error ? e.message : "Failed to save to database.",
+   986→      });
+   987→    }
+   988→  };
+   989→
+   990→  const validate = (): string | null => {
+   991→    if (!form.title.trim()) return "Title is required.";
+   992→    if (!form.category) return "Category is required.";
+   993→    if (!form.description.trim()) return "Description is required.";
+   994→    if (form.imageUrl && !/^https?:\/\/.+/.test(form.imageUrl))
+   995→      return "Image URL must start with http(s)://";
+   996→    if (form.projectUrl && !/^https?:\/\/.+/.test(form.projectUrl))
+   997→      return "Project URL must start with http(s)://";
+   998→    return null;
+   999→  };
+  1000→
+  1001→  const handleSubmit = async (e: React.FormEvent) => {
+  1002→    e.preventDefault();
+  1003→    setMsg(null);
+  1004→    const v = validate();
+  1005→    if (v) {
+  1006→      setMsg({ type: "err", text: v });
+  1007→      return;
+  1008→    }
+  1009→    setBusy(true);
+  1010→    try {
+  1011→      const tags = form.tagsText
+  1012→        .split(",")
+  1013→        .map((t) => t.trim())
+  1014→        .filter(Boolean);
+  1015→
+  1016→      if (editingId) {
+  1017→        const next = projects.map((p) =>
+  1018→          p.id === editingId
+  1019→            ? {
+  1020→                ...p,
+  1021→                title: form.title.trim(),
+  1022→                category: form.category,
+  1023→                description: form.description.trim(),
+  1024→                imageUrl: form.imageUrl.trim(),
+  1025→                projectUrl: form.projectUrl.trim(),
+  1026→                tags,
+  1027→                featured: form.featured,
+  1028→              }
+  1029→            : p
+  1030→        );
+  1031→        await persist(next);
+  1032→        setMsg({ type: "ok", text: `Updated "${form.title}".` });
+  1033→      } else {
+  1034→        const newProject: ShowcaseProject = {
+  1035→          id: newShowcaseId(),
+  1036→          title: form.title.trim(),
+  1037→          category: form.category,
+  1038→          description: form.description.trim(),
+  1039→          imageUrl: form.imageUrl.trim(),
+  1040→          projectUrl: form.projectUrl.trim(),
+  1041→          tags,
+  1042→          featured: form.featured,
+  1043→          order: projects.length + 1,
+  1044→        };
+  1045→        await persist([newProject, ...projects]);
+  1046→        setMsg({ type: "ok", text: `Added "${form.title}".` });
+  1047→      }
+  1048→      setForm(EMPTY_SHOWCASE_FORM);
+  1049→      setEditingId(null);
+  1050→    } catch (err) {
+  1051→      const m = err instanceof Error ? err.message : "Failed to save project.";
+  1052→      setMsg({ type: "err", text: m });
+  1053→    } finally {
+  1054→      setBusy(false);
+  1055→    }
+  1056→  };
+  1057→
+  1058→  const startEdit = (p: ShowcaseProject) => {
+  1059→    setEditingId(p.id);
+  1060→    setForm({
+  1061→      title: p.title,
+  1062→      category: p.category,
+  1063→      description: p.description,
+  1064→      imageUrl: p.imageUrl,
+  1065→      projectUrl: p.projectUrl,
+  1066→      tagsText: p.tags.join(", "),
+  1067→      featured: p.featured,
+  1068→    });
+  1069→    setMsg(null);
+  1070→    if (typeof window !== "undefined") {
+  1071→      window.scrollTo({ top: 0, behavior: "smooth" });
+  1072→    }
+  1073→  };
+  1074→
+  1075→  const cancelEdit = () => {
+  1076→    setEditingId(null);
+  1077→    setForm(EMPTY_SHOWCASE_FORM);
+  1078→    setMsg(null);
+  1079→  };
+  1080→
+  1081→  const handleDelete = (p: ShowcaseProject) => {
+  1082→    if (confirmDeleteId !== p.id) {
+  1083→      setConfirmDeleteId(p.id);
+  1084→      return;
+  1085→    }
+  1086→    void persist(projects.filter((x) => x.id !== p.id));
+  1087→    setConfirmDeleteId(null);
+  1088→    setMsg({ type: "ok", text: `Removed "${p.title}".` });
+  1089→    if (editingId === p.id) cancelEdit();
+  1090→  };
+  1091→
+  1092→  const toggleFeatured = (p: ShowcaseProject) => {
+  1093→    void persist(
+  1094→      projects.map((x) => (x.id === p.id ? { ...x, featured: !x.featured } : x))
+  1095→    );
+  1096→  };
+  1097→
+  1098→  const move = (p: ShowcaseProject, dir: -1 | 1) => {
+  1099→    const sorted = [...projects].sort((a, b) => a.order - b.order);
+  1100→    const idx = sorted.findIndex((x) => x.id === p.id);
+  1101→    const target = idx + dir;
+  1102→    if (target < 0 || target >= sorted.length) return;
+  1103→    const swap = sorted[target];
+  1104→    const tmpOrder = sorted[idx].order;
+  1105→    sorted[idx] = { ...sorted[idx], order: swap.order };
+  1106→    sorted[target] = { ...swap, order: tmpOrder };
+  1107→    void persist(sorted);
+  1108→  };
+  1109→
+  1110→  const sorted = [...projects].sort((a, b) => {
+  1111→    if (a.featured !== b.featured) return a.featured ? -1 : 1;
+  1112→    return a.order - b.order;
+  1113→  });
+  1114→
+  1115→  return (
+  1116→    <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+  1117→      {/* ── LEFT: FORM ──────────────────────────────────────── */}
+  1118→      <form onSubmit={handleSubmit} className="glass-card p-6">
+  1119→        <div className="flex items-center justify-between">
+  1120→          <h2 className="text-xl font-semibold text-white">
+  1121→            {editingId ? "Edit project" : "Add new project"}
+  1122→          </h2>
+  1123→          {editingId && (
+  1124→            <button
+  1125→              type="button"
+  1126→              onClick={cancelEdit}
+  1127→              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-ink-400 hover:bg-white/5 hover:text-white"
+  1128→            >
+  1129→              <X className="h-3.5 w-3.5" /> Cancel
+  1130→            </button>
+  1131→          )}
+  1132→        </div>
+  1133→        <p className="mt-1 text-sm text-ink-400">
+  1134→          Add a project card to the homepage. Paste image + project URLs — clicking the card opens the project in a new tab.
+  1135→        </p>
+  1136→
+  1137→        <div className="mt-5 space-y-4">
+  1138→          <AdminField label="Title" required>
+  1139→            <input
+  1140→              value={form.title}
+  1141→              onChange={(e) => update("title", e.target.value)}
+  1142→              required
+  1143→              className="input-field"
+  1144→              placeholder="Layla Cosmetics — D2C Storefront"
+  1145→            />
+  1146→          </AdminField>
+  1147→
+  1148→          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+  1149→            <AdminField label="Category" required>
+  1150→              <div className="relative">
+  1151→                <Tag className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+  1152→                <select
+  1153→                  value={form.category}
+  1154→                  onChange={(e) => update("category", e.target.value)}
+  1155→                  required
+  1156→                  className="input-field pl-10"
+  1157→                >
+  1158→                  <option value="">Select…</option>
+  1159→                  {SHOWCASE_CATEGORIES.map((c) => (
+  1160→                    <option key={c} value={c}>{c}</option>
+  1161→                  ))}
+  1162→                </select>
+  1163→              </div>
+  1164→            </AdminField>
+  1165→            <AdminField label="Tags (comma-separated)">
+  1166→              <input
+  1167→                value={form.tagsText}
+  1168→                onChange={(e) => update("tagsText", e.target.value)}
+  1169→                className="input-field"
+  1170→                placeholder="Next.js, Shopify, AR"
+  1171→              />
+  1172→            </AdminField>
+  1173→          </div>
+  1174→
+  1175→          <AdminField label="Description" required>
+  1176→            <textarea
+  1177→              rows={3}
+  1178→              value={form.description}
+  1179→              onChange={(e) => update("description", e.target.value)}
+  1180→              required
+  1181→              className="input-field resize-none"
+  1182→              placeholder="Short summary of the project — what was built, stack, outcome."
+  1183→            />
+  1184→          </AdminField>
+  1185→
+  1186→          {/* Image URL with live preview */}
+  1187→          <AdminField label="Image URL" required={false}>
+  1188→            <div className="space-y-2">
+  1189→              <div className="relative">
+  1190→                <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+  1191→                <input
+  1192→                  value={form.imageUrl}
+  1193→                  onChange={(e) => update("imageUrl", e.target.value)}
+  1194→                  className="input-field pl-10 font-mono text-xs"
+  1195→                  placeholder="https://res.cloudinary.com/…/your-image.png"
+  1196→                />
+  1197→              </div>
+  1198→              {form.imageUrl && /^https?:\/\/.+/.test(form.imageUrl) ? (
+  1199→                <div className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-2">
+  1200→                  {/* eslint-disable-next-line @next/next/no-img-element */}
+  1201→                  <img
+  1202→                    src={form.imageUrl}
+  1203→                    alt="preview"
+  1204→                    className="h-14 w-24 rounded-md object-cover ring-1 ring-white/10"
+  1205→                  />
+  1206→                  <div className="text-xs text-ink-400">
+  1207→                    <div className="flex items-center gap-1 text-emerald-300">
+  1208→                      <ImageIcon className="h-3 w-3" /> Image linked
+  1209→                    </div>
+  1210→                    <div className="mt-0.5 truncate font-mono text-[10px] text-ink-500">
+  1211→                      {form.imageUrl}
+  1212→                    </div>
+  1213→                  </div>
+  1214→                </div>
+  1215→              ) : (
+  1216→                <p className="text-[10px] text-ink-500">
+  1217→                  Paste any image URL — recommended 16:10 ratio.
+  1218→                </p>
+  1219→              )}
+  1220→            </div>
+  1221→          </AdminField>
+  1222→
+  1223→          {/* Project URL */}
+  1224→          <AdminField label="Project URL (clicking the card opens this)" required={false}>
+  1225→            <div className="relative">
+  1226→              <ExternalLink className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+  1227→              <input
+  1228→                value={form.projectUrl}
+  1229→                onChange={(e) => update("projectUrl", e.target.value)}
+  1230→                className="input-field pl-10 font-mono text-xs"
+  1231→                placeholder="https://your-live-project.com"
+  1232→              />
+  1233→            </div>
+  1234→            {form.projectUrl && /^https?:\/\/.+/.test(form.projectUrl) && (
+  1235→              <a
+  1236→                href={form.projectUrl}
+  1237→                target="_blank"
+  1238→                rel="noopener noreferrer"
+  1239→                className="mt-1 inline-flex items-center gap-1 text-[10px] text-mint-300 hover:underline"
+  1240→              >
+  1241→                <ExternalLink className="h-3 w-3" /> Test link
+  1242→              </a>
+  1243→            )}
+  1244→          </AdminField>
+  1245→
+  1246→          {/* Featured toggle */}
+  1247→          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3">
+  1248→            <input
+  1249→              type="checkbox"
+  1250→              checked={form.featured}
+  1251→              onChange={(e) => update("featured", e.target.checked)}
+  1252→              className="h-4 w-4 rounded border-white/20 bg-navy-900 text-mint-300 focus:ring-mint-300"
+  1253→            />
+  1254→            <div className="flex-1">
+  1255→              <div className="flex items-center gap-1.5 text-sm font-medium text-white">
+  1256→                <Star className="h-3.5 w-3.5 text-amber-300" /> Featured project
+  1257→              </div>
+  1258→              <div className="text-[10px] text-ink-500">
+  1259→                Featured cards appear first on the homepage.
+  1260→              </div>
+  1261→            </div>
+  1262→          </label>
+  1263→
+  1264→          {msg && (
+  1265→            <div
+  1266→              className={`rounded-lg border p-3 text-xs ${
+  1267→                msg.type === "ok"
+  1268→                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+  1269→                  : "border-rose-500/30 bg-rose-500/10 text-rose-200"
+  1270→              }`}
+  1271→            >
+  1272→              {msg.text}
+  1273→            </div>
+  1274→          )}
+  1275→
+  1276→          <button type="submit" disabled={busy} className="btn-primary w-full">
+  1277→            {busy ? (
+  1278→              <>
+  1279→                <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/40 border-t-white" />
+  1280→                Saving…
+  1281→              </>
+  1282→            ) : (
+  1283→              <>
+  1284→                {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+  1285→                {editingId ? "Save changes" : "Add project"}
+  1286→              </>
+  1287→            )}
+  1288→          </button>
+  1289→        </div>
+  1290→      </form>
+  1291→
+  1292→      {/* ── RIGHT: ROSTER ──────────────────────────────────── */}
+  1293→      <div className="glass-card p-6">
+  1294→        <div className="flex items-center justify-between">
+  1295→          <div>
+  1296→            <h3 className="text-lg font-semibold text-white">Project cards</h3>
+  1297→            <p className="mt-1 text-xs text-ink-400">
+  1298→              {projects.length} {projects.length === 1 ? "project" : "projects"} · drag is not supported — use ↑/↓ to reorder
+  1299→            </p>
+  1300→          </div>
+  1301→          <span className="badge badge-progress">
+  1302→            <FolderKanban className="mr-1 h-3 w-3" /> Live
+  1303→          </span>
+  1304→        </div>
+  1305→
+  1306→        <div className="mt-4 max-h-[40rem] space-y-3 overflow-y-auto pr-1">
+  1307→          {sorted.map((p) => {
+  1308→            const isConfirming = confirmDeleteId === p.id;
+  1309→            return (
+  1310→              <div
+  1311→                key={p.id}
+  1312→                className={`rounded-xl border p-3 transition-colors ${
+  1313→                  p.featured
+  1314→                    ? "border-amber-500/20 bg-amber-500/[0.03]"
+  1315→                    : "border-white/5 bg-white/[0.02]"
+  1316→                }`}
+  1317→              >
+  1318→                <div className="flex items-start gap-3">
+  1319→                  {/* Thumbnail */}
+  1320→                  <div className="h-16 w-24 shrink-0 overflow-hidden rounded-md bg-navy-800 ring-1 ring-white/10">
+  1321→                    {/^https?:\/\/.+/.test(p.imageUrl) ? (
+  1322→                      // eslint-disable-next-line @next/next/no-img-element
+  1323→                      <img src={p.imageUrl} alt={p.title} className="h-full w-full object-cover" />
+  1324→                    ) : (
+  1325→                      <div className="flex h-full w-full items-center justify-center">
+  1326→                        <ImageIcon className="h-5 w-5 text-ink-600" />
+  1327→                      </div>
+  1328→                    )}
+  1329→                  </div>
+  1330→
+  1331→                  <div className="min-w-0 flex-1">
+  1332→                    <div className="flex flex-wrap items-center gap-2">
+  1333→                      <span className="truncate text-sm font-semibold text-white">{p.title}</span>
+  1334→                      {p.featured && (
+  1335→                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+  1336→                          <Star className="h-3 w-3" /> Featured
+  1337→                        </span>
+  1338→                      )}
+  1339→                    </div>
+  1340→                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] text-ink-500">
+  1341→                      <span className="rounded bg-white/[0.03] px-1.5 py-0.5">{p.category}</span>
+  1342→                      {p.projectUrl && (
+  1343→                        <a
+  1344→                          href={p.projectUrl}
+  1345→                          target="_blank"
+  1346→                          rel="noopener noreferrer"
+  1347→                          className="inline-flex items-center gap-1 text-mint-300 hover:underline"
+  1348→                        >
+  1349→                          <ExternalLink className="h-3 w-3" /> live link
+  1350→                        </a>
+  1351→                      )}
+  1352→                    </div>
+  1353→                    <p className="mt-1 line-clamp-2 text-xs text-ink-400">{p.description}</p>
+  1354→                  </div>
+  1355→
+  1356→                  {/* Actions */}
+  1357→                  <div className="flex shrink-0 flex-col items-center gap-1">
+  1358→                    <button
+  1359→                      type="button"
+  1360→                      onClick={() => toggleFeatured(p)}
+  1361→                      className={`rounded-md p-1.5 transition-colors ${
+  1362→                        p.featured
+  1363→                          ? "bg-amber-500/15 text-amber-300"
+  1364→                          : "text-ink-500 hover:bg-amber-500/10 hover:text-amber-300"
+  1365→                      }`}
+  1366→                      title={p.featured ? "Unfeature" : "Mark as featured"}
+  1367→                    >
+  1368→                      <Star className="h-3.5 w-3.5" />
+  1369→                    </button>
+  1370→                    <div className="flex items-center gap-0.5">
+  1371→                      <button
+  1372→                        type="button"
+  1373→                        onClick={() => move(p, -1)}
+  1374→                        className="rounded-md p-1 text-ink-500 hover:bg-white/5 hover:text-white"
+  1375→                        title="Move up"
+  1376→                      >
+  1377→                        <ArrowUp className="h-3 w-3" />
+  1378→                      </button>
+  1379→                      <button
+  1380→                        type="button"
+  1381→                        onClick={() => move(p, 1)}
+  1382→                        className="rounded-md p-1 text-ink-500 hover:bg-white/5 hover:text-white"
+  1383→                        title="Move down"
+  1384→                      >
+  1385→                        <ArrowDown className="h-3 w-3" />
+  1386→                      </button>
+  1387→                    </div>
+  1388→                    <button
+  1389→                      type="button"
+  1390→                      onClick={() => startEdit(p)}
+  1391→                      className="rounded-md p-1.5 text-ink-400 hover:bg-mint-300/10 hover:text-mint-300"
+  1392→                      title="Edit"
+  1393→                    >
+  1394→                      <Pencil className="h-3.5 w-3.5" />
+  1395→                    </button>
+  1396→                    <button
+  1397→                      type="button"
+  1398→                      onClick={() => handleDelete(p)}
+  1399→                      className={`rounded-md p-1.5 transition-colors ${
+  1400→                        isConfirming
+  1401→                          ? "bg-rose-500/20 text-rose-300"
+  1402→                          : "text-ink-400 hover:bg-rose-500/10 hover:text-rose-300"
+  1403→                      }`}
+  1404→                      title={isConfirming ? "Click again to confirm" : "Remove"}
+  1405→                    >
+  1406→                      <Trash2 className="h-3.5 w-3.5" />
+  1407→                    </button>
+  1408→                  </div>
+  1409→                </div>
+  1410→                {isConfirming && (
+  1411→                  <div className="mt-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+  1412→                    Remove "{p.title}"? This cannot be undone.{" "}
+  1413→                    <button
+  1414→                      type="button"
+  1415→                      onClick={() => setConfirmDeleteId(null)}
+  1416→                      className="ml-1 underline hover:text-white"
+  1417→                    >
+  1418→                      Cancel
+  1419→                    </button>
+  1420→                  </div>
+  1421→                )}
+  1422→              </div>
+  1423→            );
+  1424→          })}
+  1425→
+  1426→          {projects.length === 0 && (
+  1427→            <div className="rounded-xl border border-dashed border-white/10 p-8 text-center text-sm text-ink-400">
+  1428→              No project cards yet. Add your first one using the form on the left.
+  1429→            </div>
+  1430→          )}
+  1431→        </div>
+  1432→      </div>
+  1433→    </div>
+  1434→  );
+  1435→}
+  1436→
+  1437→/* ─────────────────────────────────────────────────────────────────────── */
+  1438→
+  1439→function AnalyticsPanel() {
+  1440→  return (
+  1441→    <div className="grid gap-4 lg:grid-cols-2">
+  1442→      <div className="glass-card p-6">
+  1443→        <div className="flex items-center justify-between">
+  1444→          <div>
+  1445→            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
+  1446→              <BarChart3 className="h-3.5 w-3.5 text-mint-300" /> Traffic (30d)
+  1447→            </div>
+  1448→            <div className="mt-1 text-2xl font-bold text-white">
+  1449→              2,847
+  1450→              <span className="ml-2 text-xs font-normal text-emerald-300">+12.4%</span>
+  1451→            </div>
+  1452→          </div>
+  1453→        </div>
+  1454→        <div className="mt-4">
+  1455→          <MiniAreaChart
+  1456→            data={TRAFFIC_DATA}
+  1457→            width={400}
+  1458→            height={120}
+  1459→            stroke="#64ffda"
+  1460→            fillFrom="rgba(100, 255, 218, 0.30)"
+  1461→            fillTo="rgba(100, 255, 218, 0)"
+  1462→            strokeWidth={2}
+  1463→          />
+  1464→        </div>
+  1465→      </div>
+  1466→      <div className="glass-card p-6">
+  1467→        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
+  1468→          <Activity className="h-3.5 w-3.5 text-violet-300" /> Engagement
+  1469→        </div>
+  1470→        <div className="mt-4 flex items-center justify-around">
+  1471→          <CircularGauge value={84} size={110} stroke={10} sublabel="satisfaction" gradientFrom="#64ffda" gradientTo="#26d0a8" />
+  1472→          <CircularGauge value={67} size={110} stroke={10} sublabel="referral" gradientFrom="#667eea" gradientTo="#764ba2" />
+  1473→        </div>
+  1474→      </div>
+  1475→    </div>
+  1476→  );
+  1477→}
+  1478→
+  1479→/* ─────────────────────────────────────────────────────────────────────── */
+  1480→
+  1481→function StoragePanel() {
+  1482→  return (
+  1483→    <div className="grid gap-4 lg:grid-cols-3">
+  1484→      <div className="glass-card p-6 lg:col-span-2">
+  1485→        <div className="flex items-center justify-between">
+  1486→          <div>
+  1487→            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
+  1488→              <HardDrive className="h-3.5 w-3.5 text-mint-300" /> Storage usage (12mo)
+  1489→            </div>
+  1490→            <div className="mt-1 text-2xl font-bold text-white">
+  1491→              4.2 GB <span className="text-xs font-normal text-ink-400">of 10 GB</span>
+  1492→            </div>
+  1493→          </div>
+  1494→        </div>
+  1495→        <div className="mt-4">
+  1496→          <MiniAreaChart
+  1497→            data={STORAGE_DATA}
+  1498→            width={520}
+  1499→            height={140}
+  1500→            stroke="#667eea"
+  1501→            fillFrom="rgba(102, 126, 234, 0.30)"
+  1502→            fillTo="rgba(102, 126, 234, 0)"
+  1503→            strokeWidth={2}
+  1504→          />
+  1505→        </div>
+  1506→      </div>
+  1507→      <div className="glass-card p-6">
+  1508→        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
+  1509→          <Activity className="h-3.5 w-3.5 text-mint-300" /> Quota usage
+  1510→        </div>
+  1511→        <div className="mt-6 flex justify-center">
+  1512→          <CircularGauge value={42} size={140} stroke={12} sublabel="used" />
+  1513→        </div>
+  1514→      </div>
+  1515→    </div>
+  1516→  );
+  1517→}
+  1518→
+  1519→/* ─────────────────────────────────────────────────────────────────────── */
+  1520→
+  1521→function Field({
+  1522→  label,
+  1523→  value = "",
+  1524→  onChange,
+  1525→  textarea,
+  1526→}: {
+  1527→  label: string;
+  1528→  value?: string;
+  1529→  onChange: (v: string) => void;
+  1530→  textarea?: boolean;
+  1531→}) {
+  1532→  return (
+  1533→    <div>
+  1534→      <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-ink-400">{label}</label>
+  1535→      {textarea ? (
+  1536→        <textarea
+  1537→          rows={3}
+  1538→          value={value}
+  1539→          onChange={(e) => onChange(e.target.value)}
+  1540→          className="input-field resize-none"
+  1541→        />
+  1542→      ) : (
+  1543→        <input value={value} onChange={(e) => onChange(e.target.value)} className="input-field" />
+  1544→      )}
+  1545→    </div>
+  1546→  );
+  1547→}
+  1548→
+  1549→function UrlField({
+  1550→  label,
+  1551→  value = "",
+  1552→  onChange,
+  1553→  placeholder,
+  1554→  preview,
+  1555→}: {
+  1556→  label: string;
+  1557→  value?: string;
+  1558→  onChange: (v: string) => void;
+  1559→  placeholder?: string;
+  1560→  preview?: React.ReactNode;
+  1561→}) {
+  1562→  const isValid = /^https?:\/\/.+/.test(value || "");
+  1563→  return (
+  1564→    <div>
+  1565→      <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-ink-400">{label}</label>
+  1566→      <div className="flex items-center gap-3">
+  1567→        <div className="relative flex-1">
+  1568→          <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+  1569→          <input
+  1570→            value={value}
+  1571→            onChange={(e) => onChange(e.target.value)}
+  1572→            placeholder={placeholder}
+  1573→            className="input-field pl-10 font-mono text-xs"
+  1574→          />
+  1575→        </div>
+  1576→        {preview}
+  1577→      </div>
+  1578→      <div className="mt-1 flex items-center gap-1.5 text-[10px]">
+  1579→        {value && !isValid ? (
+  1580→          <span className="text-rose-300">Please paste a full https:// URL</span>
+  1581→        ) : isValid ? (
+  1582→          <span className="text-emerald-300">URL valid — image will load on the public site</span>
+  1583→        ) : (
+  1584→          <span className="text-ink-500">Tip: paste your Cloudinary delivery URL here</span>
+  1585→        )}
+  1586→      </div>
+  1587→    </div>
+  1588→  );
+  1589→}
+  1590→
+  1591→function PreviewRow({ k, v }: { k: string; v: string }) {
+  1592→  return (
+  1593→    <div className="flex items-center justify-between border-b border-white/5 pb-2">
+  1594→      <span className="font-mono text-xs text-ink-400">{k}</span>
+  1595→      <span className="truncate ml-3 text-right text-ink-200">{v}</span>
+  1596→    </div>
+  1597→  );
+  1598→}
+  1599→
