@@ -43,6 +43,8 @@ function Shell() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
+      {/* Fixed background image — homepage only (admin/login keep clean navy) */}
+      {view === "home" && <div className="homepage-bg" aria-hidden="true" />}
       {/* Animated background layers — aurora blobs + dot grid */}
       <div className="aurora-stage">
         <div className="aurora-blob aurora-blob-1" />

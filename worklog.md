@@ -189,3 +189,28 @@ Stage Summary:
 - Live cross-tab sync: when a client submits feedback in one tab, the superadmin's Feedback panel shows a toast within ~1 second with the new pending count.
 - The 3 original demo testimonials (Sara, Daniel, Mei) are seeded as approved on first load so the section is never empty. Sara is featured by default.
 - Build is green; no TypeScript errors in project source. Swap to Firestore later is a drop-in — only the function bodies in lib/feedback.ts need to change.
+
+---
+Task ID: homepage-fixed-bg
+Agent: main (continuation)
+Task: Use the provided Cloudinary image as a fixed (opacity) background on the homepage without harming content visibility.
+
+Work Log:
+- Verified the image URL is reachable: HTTP 200, 277 KB JPG.
+- Added `.homepage-bg` CSS rule to /home/z/my-project/src/app/globals.css:
+  * position: fixed; inset: 0; z-index: -3 (behind aurora blobs at -2 and grid backdrop at -10).
+  * background-image: the Cloudinary URL.
+  * background-size: cover; background-position: center; background-attachment: fixed (true fixed — stays put while user scrolls).
+  * opacity: 0.18 — image is a faint texture, not the focus.
+  * pointer-events: none so it never blocks clicks.
+- Added `.homepage-bg::after` overlay — a dark navy gradient (rgba(7,8,21) → rgba(10,25,47)) that's stronger at top/bottom for navbar/footer legibility and slightly lighter in the middle. This guarantees text contrast regardless of what the underlying image looks like.
+- Mounted `<div className="homepage-bg" aria-hidden="true" />` in /home/z/my-project/src/app/page.tsx — only when `view === "home"`. Admin + login views keep their clean dark-navy backgrounds.
+- The existing aurora blobs (mint / violet / purple drifting glows at z-index -2) and the dot-grid backdrop (z-index -10) continue to layer on top of the image — so the ambient color motion is preserved, just on top of a textured background instead of pure navy.
+- Verified `npx tsc --noEmit` clean for project source. Dev server returns HTTP 200 on :3000 and :81. HTML response contains the `homepage-bg` div as expected.
+
+Stage Summary:
+- Homepage now has a faint (18% opacity) fixed background image (Company-free-wallpapers.jpg from Cloudinary).
+- A dark navy gradient overlay (strongest at top + bottom) guarantees text remains crisp and readable — content visibility is not harmed.
+- The existing aurora blobs + dot grid continue to drift on top of the image, so the ambient premium feel is preserved.
+- The image only appears on the homepage (`view === "home"`). Admin dashboard, superadmin console, and login pages keep their clean dark-navy backgrounds.
+- Image is `background-attachment: fixed`, so it stays put while the user scrolls — content slides over it.

@@ -540,6 +540,42 @@
   overflow: hidden;
   pointer-events: none;
 }
+
+/* ─── Homepage fixed background image ────────────────────────────────── */
+/* Sits behind the aurora blobs (z-index -3) so the colored glows still  */
+/* drift over it. A dark gradient overlay sits on top of the image       */
+/* (z-index -2.5 via the ::after pseudo) to guarantee text contrast.     */
+/* Only mounted on the homepage — admin + login views keep their clean   */
+/* dark-navy backgrounds.                                                */
+.homepage-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background-image: url("https://res.cloudinary.com/dhd06wdov/image/upload/v1778418068/Company-free-wallpapers_pbai49.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  opacity: 0.18; /* very faint — image is just a texture, not the focus */
+  pointer-events: none;
+}
+.homepage-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Dark navy gradient overlay — strongest at top + bottom for navbar /
+     footer legibility, slightly lighter in the middle so the image is
+     still visible. */
+  background:
+    linear-gradient(180deg,
+      rgba(7, 8, 21, 0.85) 0%,
+      rgba(10, 25, 47, 0.65) 35%,
+      rgba(10, 25, 47, 0.65) 65%,
+      rgba(7, 8, 21, 0.90) 100%
+    ),
+    radial-gradient(ellipse at center, rgba(10, 25, 47, 0.30), rgba(7, 8, 21, 0.55));
+  pointer-events: none;
+}
 .aurora-blob {
   position: absolute;
   width: 42rem;
