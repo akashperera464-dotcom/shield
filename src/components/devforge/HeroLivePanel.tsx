@@ -320,10 +320,10 @@ export default function HeroLivePanel() {
           </div>
 
           {/* Gauge + 7-day histogram */}
-          <div className="mt-4 flex items-center gap-4 rounded-lg border border-white/5 bg-white/[0.05] p-4">
+          <div className="mt-4 flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.05] p-3 sm:gap-4 sm:p-4">
             <CircularGauge
               value={stats.completionRate}
-              size={96}
+              size={80}
               stroke={9}
               sublabel="completed"
               gradientFrom="#64ffda"

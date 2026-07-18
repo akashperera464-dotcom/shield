@@ -727,3 +727,66 @@ body:has(.homepage-bg) {
   .reveal-hidden { opacity: 1 !important; transform: none !important; }
 }
 
+/* ─── Mobile UX utilities ────────────────────────────────────────────── */
+
+/* Hide scrollbar but keep scrolling — used for horizontal mobile pill bars */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Horizontal scroll-snap container for mobile nav pills.
+   Children should be `<button class="mobile-nav-pill ...">`. */
+.mobile-pill-bar {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.25rem 0.25rem 0.5rem;
+}
+.mobile-pill-bar > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+
+/* Pill-shaped nav button used in mobile sidebars */
+.mobile-nav-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-ink-300);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.02);
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.mobile-nav-pill:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+.mobile-nav-pill.active {
+  color: var(--color-mint-300);
+  background: linear-gradient(135deg, rgba(100, 255, 218, 0.14), rgba(102, 126, 234, 0.10));
+  border-color: rgba(100, 255, 218, 0.35);
+  box-shadow: 0 4px 14px rgba(100, 255, 218, 0.18);
+}
+
+/* Prevent horizontal overflow on small screens — applied to root containers */
+.overflow-x-clip-mobile {
+  overflow-x: clip;
+}
+@media (max-width: 640px) {
+  .overflow-x-clip-mobile {
+    max-width: 100vw;
+  }
+}
+

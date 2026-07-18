@@ -191,10 +191,10 @@ export default function DashboardView() {
   ];
 
   return (
-    <div className="relative mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
+    <div className="relative mx-auto max-w-[1400px] px-3 py-4 sm:px-6 sm:py-6 overflow-x-clip-mobile">
       <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-        {/* ─────────── SIDEBAR ─────────── */}
-        <aside className="lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)]">
+        {/* ─────────── SIDEBAR (desktop only, lg+) ─────────── */}
+        <aside className="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)]">
           <div className="glass-card flex h-full flex-col p-4">
             {/* User greeting card */}
             <div className="relative overflow-hidden rounded-xl border border-white/5 bg-gradient-to-br from-violet-600/15 via-navy-800/60 to-mint-300/10 p-4">
@@ -282,20 +282,78 @@ export default function DashboardView() {
 
         {/* ─────────── MAIN ─────────── */}
         <main className="min-w-0">
+          {/* Mobile user strip + horizontal pill nav (replaces sidebar on < lg) */}
+          <div className="mb-4 lg:hidden">
+            <div className="glass-card mb-3 flex items-center gap-3 p-3">
+              <GradientAvatar
+                initial={(profile?.name || "A").charAt(0)}
+                size={36}
+                variant={isSuperadmin ? "violet" : "mint"}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold text-white">
+                  {profile?.name || "Admin"}
+                </div>
+                <div className="text-[10px] uppercase tracking-wider text-mint-300">
+                  {profile?.role}
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-full border border-white/5 bg-white/[0.02] px-2.5 py-1 text-[10px] text-ink-300">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                {completionRate}% done
+              </div>
+            </div>
+            <div className="no-scrollbar -mx-3 overflow-x-auto px-3">
+              <div className="mobile-pill-bar">
+                {SIDEBAR_NAV.filter((i) => i.id !== "home").map((item) => {
+                  const isActive = activeNav === item.id;
+                  const unreadCount = item.id === "notifications"
+                    ? loadSubmissions().filter((s) => !getMeta(s.id).readAt).length
+                    : 0;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleNav(item.id)}
+                      className={`mobile-nav-pill ${isActive ? "active" : ""}`}
+                    >
+                      <item.icon className="h-3.5 w-3.5" />
+                      <span>{item.label}</span>
+                      {item.id === "projects" && (
+                        <span className="ml-1 rounded-full bg-mint-300/15 px-1.5 py-0.5 text-[9px] font-bold text-mint-300">
+                          {metrics.total}
+                        </span>
+                      )}
+                      {item.id === "notifications" && unreadCount > 0 && (
+                        <span className="ml-1 rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[9px] font-bold text-rose-300">
+                          {unreadCount}
+                        </span>
+                      )}
+                      {item.id === "team" && teamCount > 0 && (
+                        <span className="ml-1 rounded-full bg-mint-300/15 px-1.5 py-0.5 text-[9px] font-bold text-mint-300">
+                          {teamCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           {/* Top bar */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
               <div className="inline-flex items-center gap-2 rounded-full bg-mint-300/10 px-3 py-1 text-xs font-medium text-mint-300">
                 <LayoutDashboard className="h-3.5 w-3.5" /> Admin Dashboard
               </div>
-              <h1 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
-                Welcome back, {profile?.name?.split(" ")[0] || "Admin"} 👋
+              <h1 className="mt-3 text-2xl font-bold leading-tight text-white sm:text-3xl lg:text-4xl">
+                Welcome back, {profile?.name?.split(" ")[0] || "Admin"} <span className="inline-block">👋</span>
               </h1>
-              <p className="mt-1 text-sm text-ink-400">
+              <p className="mt-1 truncate text-sm text-ink-400">
                 Logged in as <span className="font-mono text-mint-300">{profile?.email}</span>
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button className="btn-ghost text-sm" title="Notifications">
                 <Bell className="h-4 w-4" />
                 <span className="hidden sm:inline">Alerts</span>
@@ -303,7 +361,8 @@ export default function DashboardView() {
               </button>
               {isSuperadmin && (
                 <button onClick={() => setView("superadmin")} className="btn-ghost text-sm">
-                  <Shield className="h-4 w-4" /> Superadmin
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden sm:inline">Superadmin</span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
               )}
@@ -466,28 +525,28 @@ export default function DashboardView() {
 
           {/* Toolbar */}
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+            <div className="min-w-0">
               <h2 className="text-xl font-semibold text-white">Project submissions</h2>
               <p className="mt-1 text-xs text-ink-400">{filtered.length} of {projects.length} shown</p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="relative w-full sm:w-auto">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
                 <input
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search by client or title…"
-                  className="input-field w-64 py-2 pl-10 text-sm"
+                  className="input-field w-full py-2 pl-10 text-sm sm:w-64"
                 />
               </div>
-              <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.02] p-1">
-                <Filter className="ml-1.5 mr-1 h-3.5 w-3.5 text-ink-500" />
+              <div className="no-scrollbar -mx-1 flex items-center gap-1 overflow-x-auto rounded-xl border border-white/10 bg-white/[0.02] p-1">
+                <Filter className="ml-1.5 mr-1 h-3.5 w-3.5 shrink-0 text-ink-500" />
                 {["All", ...STATUSES].map((s) => (
                   <button
                     key={s}
                     onClick={() => setFilter(s)}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-200 ${
+                    className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-200 ${
                       filter === s ? "bg-mint-300/15 text-mint-300" : "text-ink-400 hover:text-white"
                     }`}
                   >
@@ -581,26 +640,29 @@ function DetailDrawer({
         onClick={onClose}
       />
       <div className="relative h-full w-full max-w-xl overflow-y-auto border-l border-white/10 bg-navy-900/95 backdrop-blur-xl animate-scale-in">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/5 bg-navy-900/90 px-6 py-4 backdrop-blur-xl">
-          <div>
-            <div className="flex items-center gap-2">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/5 bg-navy-900/90 px-4 py-4 backdrop-blur-xl sm:px-6">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
               <span className={STATUS_CLASS[status]}>{status}</span>
               <span className="text-[11px] text-ink-500">ID: {project.id}</span>
             </div>
-            <h2 className="mt-1 text-lg font-semibold text-white">{project.projectTitle}</h2>
+            <h2 className="mt-1 truncate text-base font-semibold text-white sm:text-lg">
+              {project.projectTitle}
+            </h2>
           </div>
           <button
             onClick={onClose}
             className="rounded-lg p-2 text-ink-400 hover:bg-white/5 hover:text-white"
+            aria-label="Close"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="space-y-6 px-6 py-6">
+        <div className="space-y-6 px-4 py-6 sm:px-6">
           <section>
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-400">Client</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <InfoRow icon={User} label="Name" value={project.clientName} />
               <InfoRow icon={Mail} label="Email" value={project.clientEmail} />
               <InfoRow icon={DollarSign} label="Budget" value={project.budget} />
@@ -731,29 +793,29 @@ function TeamRosterPanel({
   return (
     <div className="space-y-4">
       {/* Header card */}
-      <div className="glass-card p-6 animate-fade-up">
+      <div className="glass-card p-4 animate-fade-up sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+          <div className="min-w-0">
             <div className="inline-flex items-center gap-2 rounded-full bg-mint-300/10 px-3 py-1 text-xs font-medium text-mint-300">
               <Users className="h-3.5 w-3.5" /> User Management
             </div>
-            <h2 className="mt-3 text-2xl font-bold text-white">Team roster</h2>
+            <h2 className="mt-3 text-xl font-bold text-white sm:text-2xl">Team roster</h2>
             <p className="mt-1 text-sm text-ink-400">
               These are the team members registered by the superadmin. You have
               view-only access — adding, editing, or removing admins is reserved
               for the superadmin.
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <div className="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3 text-center">
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:shrink-0 sm:items-center sm:gap-2">
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] px-2 py-3 text-center sm:px-4">
               <div className="text-2xl font-bold text-white">{team.length}</div>
               <div className="text-[10px] uppercase tracking-wider text-ink-500">Total</div>
             </div>
-            <div className="rounded-xl border border-violet-500/20 bg-violet-600/5 px-4 py-3 text-center">
+            <div className="rounded-xl border border-violet-500/20 bg-violet-600/5 px-2 py-3 text-center sm:px-4">
               <div className="text-2xl font-bold text-violet-300">{superadminCount}</div>
               <div className="text-[10px] uppercase tracking-wider text-ink-500">Superadmin</div>
             </div>
-            <div className="rounded-xl border border-mint-300/20 bg-mint-300/5 px-4 py-3 text-center">
+            <div className="rounded-xl border border-mint-300/20 bg-mint-300/5 px-2 py-3 text-center sm:px-4">
               <div className="text-2xl font-bold text-mint-300">{adminCount}</div>
               <div className="text-[10px] uppercase tracking-wider text-ink-500">Admins</div>
             </div>

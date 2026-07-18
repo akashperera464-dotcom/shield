@@ -80,10 +80,10 @@ export default function SuperAdminView() {
   };
 
   return (
-    <div className="relative mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
+    <div className="relative mx-auto max-w-[1400px] px-3 py-4 sm:px-6 sm:py-6 overflow-x-clip-mobile">
       <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-        {/* ─────────── SIDEBAR ─────────── */}
-        <aside className="lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)]">
+        {/* ─────────── SIDEBAR (desktop only, lg+) ─────────── */}
+        <aside className="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)]">
           <div className="glass-card flex h-full flex-col p-4">
             {/* User greeting */}
             <div className="relative overflow-hidden rounded-xl border border-white/5 bg-gradient-to-br from-violet-600/15 via-navy-800/60 to-mint-300/10 p-4">
@@ -184,21 +184,63 @@ export default function SuperAdminView() {
 
         {/* ─────────── MAIN ─────────── */}
         <main className="min-w-0">
+          {/* Mobile user strip + horizontal pill nav (replaces sidebar on < lg) */}
+          <div className="mb-4 lg:hidden">
+            <div className="glass-card mb-3 flex items-center gap-3 p-3">
+              <GradientAvatar
+                initial={(profile?.name || "S").charAt(0)}
+                size={36}
+                variant="violet"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold text-white">
+                  {profile?.name || "Superadmin"}
+                </div>
+                <div className="text-[10px] uppercase tracking-wider text-violet-300">
+                  {profile?.role}
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-full border border-white/5 bg-white/[0.02] px-2.5 py-1 text-[10px] text-ink-300">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                live
+              </div>
+            </div>
+            <div className="no-scrollbar -mx-3 overflow-x-auto px-3">
+              <div className="mobile-pill-bar">
+                {SIDEBAR_NAV.filter((i) => i.id !== "home" && i.id !== "dashboard").map((item) => {
+                  const isActive = tab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleNav(item.id)}
+                      className={`mobile-nav-pill ${isActive ? "active" : ""}`}
+                    >
+                      <item.icon className="h-3.5 w-3.5" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           {/* Top bar */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
               <div className="inline-flex items-center gap-2 rounded-full bg-violet-600/10 px-3 py-1 text-xs font-medium text-violet-300">
                 <Shield className="h-3.5 w-3.5" /> Superadmin Console
               </div>
-              <h1 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
+              <h1 className="mt-3 text-2xl font-bold leading-tight text-white sm:text-3xl lg:text-4xl">
                 Console <span className="text-gradient-animated">overview</span>
               </h1>
-              <p className="mt-1 text-sm text-ink-400">
+              <p className="mt-1 truncate text-sm text-ink-400">
                 Signed in as <span className="font-mono text-mint-300">{profile?.email}</span>
               </p>
             </div>
             <button onClick={() => setView("dashboard")} className="btn-ghost text-sm">
-              <LayoutDashboard className="h-4 w-4" /> Back to Dashboard
+              <LayoutDashboard className="h-4 w-4" />
+              <span className="hidden sm:inline">Back to Dashboard</span>
+              <span className="sm:hidden">Dashboard</span>
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -241,7 +283,7 @@ function StatTile({
   color: string;
 }) {
   return (
-    <div className="glass-card-hover p-5 animate-fade-up">
+    <div className="glass-card-hover p-4 animate-fade-up sm:p-5">
       <div className="flex items-start justify-between">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] ring-1 ring-white/10">
           <Icon className="h-5 w-5" style={{ color }} />
@@ -302,7 +344,7 @@ function CMSPanel({ isDemo }: { isDemo: boolean }) {
 
   if (loading) {
     return (
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6">
         <div className="flex items-center gap-3 text-sm text-ink-400">
           <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/20 border-t-mint-300" />
           Loading site configuration…
@@ -313,7 +355,7 @@ function CMSPanel({ isDemo }: { isDemo: boolean }) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
-      <form onSubmit={handleSave} className="glass-card p-6 lg:col-span-2">
+      <form onSubmit={handleSave} className="glass-card p-4 sm:p-6 lg:col-span-2">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-white">Site content</h2>
@@ -407,7 +449,7 @@ function CMSPanel({ isDemo }: { isDemo: boolean }) {
         </div>
       </form>
 
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6">
         <h3 className="text-lg font-semibold text-white">Live preview</h3>
         <p className="mt-1 text-xs text-ink-400">
           Read-only snapshot of the current public site config.
@@ -739,9 +781,9 @@ function TeamPanel({ isDemo }: { isDemo: boolean }) {
   const editingTarget = editingUid ? team.find((m) => m.uid === editingUid) : null;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
+    <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr] lg:gap-6">
       {/* ── LEFT: FORM ──────────────────────────────────────── */}
-      <form onSubmit={handleSubmit} className="glass-card p-6">
+      <form onSubmit={handleSubmit} className="glass-card p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-white">
             {editingUid ? "Edit admin" : "Add new admin"}
@@ -891,7 +933,7 @@ function TeamPanel({ isDemo }: { isDemo: boolean }) {
       </form>
 
       {/* ── RIGHT: ROSTER ──────────────────────────────────── */}
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-white">User management</h3>
@@ -1218,7 +1260,7 @@ function ShowcasePanel() {
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
       {/* ── LEFT: FORM ──────────────────────────────────────── */}
-      <form onSubmit={handleSubmit} className="glass-card p-6">
+      <form onSubmit={handleSubmit} className="glass-card p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-white">
             {editingId ? "Edit project" : "Add new project"}
@@ -1393,7 +1435,7 @@ function ShowcasePanel() {
       </form>
 
       {/* ── RIGHT: ROSTER ──────────────────────────────────── */}
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-white">Project cards</h3>
@@ -1542,7 +1584,7 @@ function ShowcasePanel() {
 function AnalyticsPanel() {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
@@ -1566,7 +1608,7 @@ function AnalyticsPanel() {
           />
         </div>
       </div>
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6">
         <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
           <Activity className="h-3.5 w-3.5 text-violet-300" /> Engagement
         </div>
@@ -1584,7 +1626,7 @@ function AnalyticsPanel() {
 function StoragePanel() {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      <div className="glass-card p-6 lg:col-span-2">
+      <div className="glass-card p-4 sm:p-6 lg:col-span-2">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
@@ -1607,7 +1649,7 @@ function StoragePanel() {
           />
         </div>
       </div>
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6">
         <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
           <Activity className="h-3.5 w-3.5 text-mint-300" /> Quota usage
         </div>

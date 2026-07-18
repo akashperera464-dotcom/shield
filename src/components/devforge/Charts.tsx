@@ -146,32 +146,41 @@ export function MiniAreaChart({
   const lastPoint = points[points.length - 1];
 
   return (
-    <svg width={width} height={height} className="overflow-visible">
-      <defs>
-        <linearGradient id={`area-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor={fillFrom} />
-          <stop offset="100%" stopColor={fillTo} />
-        </linearGradient>
-      </defs>
-      <path d={areaPath} fill={`url(#area-${id})`} />
-      <path
-        d={linePath}
-        fill="none"
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {showDot && (
-        <>
-          <circle cx={lastPoint[0]} cy={lastPoint[1]} r="4" fill={stroke} />
-          <circle cx={lastPoint[0]} cy={lastPoint[1]} r="8" fill={stroke} opacity="0.25">
-            <animate attributeName="r" values="6;10;6" dur="2s" repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite" />
-          </circle>
-        </>
-      )}
-    </svg>
+    <div className="w-full" style={{ aspectRatio: `${width} / ${height}` }}>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        width="100%"
+        height="100%"
+        preserveAspectRatio="none"
+        className="overflow-visible"
+      >
+        <defs>
+          <linearGradient id={`area-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={fillFrom} />
+            <stop offset="100%" stopColor={fillTo} />
+          </linearGradient>
+        </defs>
+        <path d={areaPath} fill={`url(#area-${id})`} />
+        <path
+          d={linePath}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        {showDot && (
+          <>
+            <circle cx={lastPoint[0]} cy={lastPoint[1]} r="4" fill={stroke} />
+            <circle cx={lastPoint[0]} cy={lastPoint[1]} r="8" fill={stroke} opacity="0.25">
+              <animate attributeName="r" values="6;10;6" dur="2s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite" />
+            </circle>
+          </>
+        )}
+      </svg>
+    </div>
   );
 }
 
@@ -205,44 +214,52 @@ export function MiniBarChart({
   };
 
   return (
-    <svg width={Math.max(width, totalWidth)} height={height} className="overflow-visible">
-      <defs>
-        {Object.entries(colorMap).map(([k, [from, to]]) => (
-          <linearGradient key={k} id={`bar-${k}-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={from} />
-            <stop offset="100%" stopColor={to} />
-          </linearGradient>
-        ))}
-      </defs>
-      {data.map((d, i) => {
-        const h = (d.value / max) * (height - 20);
-        const x = i * (barWidth + gap);
-        const y = height - h - 14;
-        const colorKey = d.color ?? "mint";
-        return (
-          <g key={i}>
-            <rect
-              x={x}
-              y={y}
-              width={barWidth}
-              height={h}
-              rx={3}
-              fill={`url(#bar-${colorKey}-${id})`}
-              style={{ transition: "height 0.8s cubic-bezier(0.16, 1, 0.3, 1)" }}
-            />
-            <text
-              x={x + barWidth / 2}
-              y={height - 2}
-              textAnchor="middle"
-              className="fill-ink-500"
-              style={{ fontSize: 9, fontFamily: "ui-monospace, monospace" }}
-            >
-              {d.label}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
+    <div className="w-full" style={{ aspectRatio: `${Math.max(width, totalWidth)} / ${height}` }}>
+      <svg
+        viewBox={`0 0 ${Math.max(width, totalWidth)} ${height}`}
+        width="100%"
+        height="100%"
+        preserveAspectRatio="xMidYMid meet"
+        className="overflow-visible"
+      >
+        <defs>
+          {Object.entries(colorMap).map(([k, [from, to]]) => (
+            <linearGradient key={k} id={`bar-${k}-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={from} />
+              <stop offset="100%" stopColor={to} />
+            </linearGradient>
+          ))}
+        </defs>
+        {data.map((d, i) => {
+          const h = (d.value / max) * (height - 20);
+          const x = i * (barWidth + gap);
+          const y = height - h - 14;
+          const colorKey = d.color ?? "mint";
+          return (
+            <g key={i}>
+              <rect
+                x={x}
+                y={y}
+                width={barWidth}
+                height={h}
+                rx={3}
+                fill={`url(#bar-${colorKey}-${id})`}
+                style={{ transition: "height 0.8s cubic-bezier(0.16, 1, 0.3, 1)" }}
+              />
+              <text
+                x={x + barWidth / 2}
+                y={height - 2}
+                textAnchor="middle"
+                className="fill-ink-500"
+                style={{ fontSize: 9, fontFamily: "ui-monospace, monospace" }}
+              >
+                {d.label}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
   );
 }
 

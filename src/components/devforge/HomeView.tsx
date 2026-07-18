@@ -279,12 +279,12 @@ function TestimonialsSection({
   const [showForm, setShowForm] = useState(false);
 
   return (
-    <section className="mx-auto max-w-7xl px-6 py-20">
+    <section className="mx-auto max-w-7xl px-3 py-12 sm:px-6 sm:py-20">
       <div className="mb-12 flex flex-col items-center gap-4 text-center">
         <span className="text-xs font-semibold uppercase tracking-[0.25em] text-mint-300">
           Client love
         </span>
-        <h2 className="text-3xl font-bold text-white sm:text-4xl">
+        <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
           What founders say about The Shield
         </h2>
         <button
@@ -591,10 +591,10 @@ export default function HomeView() {
   return (
     <div className="relative">
       {/* ─────────── HERO ─────────── */}
-      <section className="relative mx-auto max-w-7xl px-6 pt-12 pb-20">
-        <div className="grid items-center gap-10 lg:grid-cols-12">
+      <section className="relative mx-auto max-w-7xl px-3 pt-8 pb-12 sm:px-6 sm:pt-12 sm:pb-20">
+        <div className="grid items-center gap-8 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-7">
-            <div className="inline-flex items-center gap-2 rounded-full border border-mint-300/30 bg-mint-300/5 px-4 py-1.5 text-xs font-medium text-mint-300 animate-fade-up stagger-1">
+            <div className="inline-flex items-center gap-2 rounded-full border border-mint-300/30 bg-mint-300/5 px-3 py-1.5 text-[11px] font-medium text-mint-300 animate-fade-up stagger-1 sm:px-4 sm:text-xs">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-300 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-mint-300" />
@@ -602,7 +602,7 @@ export default function HomeView() {
               {config?.heroSubtitle || "Bridging the gap between business and technology"}
             </div>
 
-            <h1 className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl animate-fade-up stagger-2">
+            <h1 className="mt-4 text-3xl font-bold leading-[1.1] tracking-tight text-white sm:mt-6 sm:text-5xl lg:text-7xl animate-fade-up stagger-2">
               <span className="block">We craft</span>
               <span className="relative block min-h-[1.1em] overflow-hidden">
                 {HERO_SLIDES.map((slide, i) => (
@@ -626,7 +626,7 @@ export default function HomeView() {
             </h1>
 
             {/* Slide indicators */}
-            <div className="mt-4 flex flex-wrap gap-1.5 animate-fade-up stagger-3">
+            <div className="mt-3 flex flex-wrap gap-1.5 animate-fade-up stagger-3 sm:mt-4">
               {HERO_SLIDES.map((s, i) => (
                 <button
                   key={s}
@@ -642,13 +642,13 @@ export default function HomeView() {
               ))}
             </div>
 
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-100 animate-fade-up stagger-3">
+            <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-100 animate-fade-up stagger-3 sm:mt-6 sm:text-lg">
               We provide full-cycle software development services encompassing planning,
               requirements definition, design and prototyping, software development,
               testing, deployment, and application maintenance.
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-3 animate-fade-up stagger-4">
+            <div className="mt-6 flex flex-wrap items-center gap-3 animate-fade-up stagger-4 sm:mt-8">
               <MagneticButton href="#submit" className="btn-primary">
                 <Send className="h-4 w-4" /> Submit a Project
               </MagneticButton>
@@ -673,7 +673,7 @@ export default function HomeView() {
       </section>
 
       {/* ─────────── MARQUEE ─────────── */}
-      <section className="border-y border-white/10 bg-white/[0.05] py-6 overflow-hidden">
+      <section className="border-y border-white/10 bg-white/[0.05] py-4 overflow-hidden sm:py-6">
         <div className="flex items-center gap-12 whitespace-nowrap animate-marquee">
           {[...TECH, ...TECH].map((t, i) => (
             <span key={i} className="inline-flex items-center gap-2 text-sm font-medium text-ink-400">
@@ -685,7 +685,7 @@ export default function HomeView() {
 
       {/* ─────────── ACHIEVEMENTS / STATS ─────────── */}
       <section className="border-b border-white/10 bg-white/[0.05]">
-        <div className="mx-auto max-w-7xl px-6 py-10">
+        <div className="mx-auto max-w-7xl px-3 py-8 sm:px-6 sm:py-10">
           <div className="mb-8 text-center">
             <span className="text-xs font-semibold uppercase tracking-[0.25em] text-mint-300">
               Our Milestones
@@ -706,12 +706,12 @@ export default function HomeView() {
       </section>
 
       {/* ─────────── SERVICES ─────────── */}
-      <section id="services" className="mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
+      <section id="services" className="mx-auto max-w-7xl px-3 py-12 scroll-mt-20 sm:px-6 sm:py-20">
         <Reveal className="mb-12 text-center">
           <span className="text-xs font-semibold uppercase tracking-[0.25em] text-mint-300">
             Our Services
           </span>
-          <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
+          <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
             Transforming ideas into powerful digital solutions
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-ink-300">
@@ -749,7 +749,7 @@ export default function HomeView() {
             <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
               What We Serve
             </span>
-            <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">Industries</h2>
+            <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl lg:text-4xl">Industries</h2>
             <p className="mx-auto mt-3 max-w-2xl text-ink-300">
               Domain expertise across the verticals that move the modern economy.
             </p>
@@ -773,12 +773,12 @@ export default function HomeView() {
       </section>
 
       {/* ─────────── PROCESS ─────────── */}
-      <section id="process" className="relative mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
+      <section id="process" className="relative mx-auto max-w-7xl px-3 py-12 scroll-mt-20 sm:px-6 sm:py-20">
         <Reveal className="mb-12 text-center">
           <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
             How we work
           </span>
-          <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
+          <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
             A 4-step path from idea to launch
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-ink-300">
@@ -815,7 +815,7 @@ export default function HomeView() {
 
       {/* ─────────── TECH STACK ─────────── */}
       <section className="border-y border-white/10 bg-white/[0.05]">
-        <div className="mx-auto max-w-7xl px-6 py-12">
+        <div className="mx-auto max-w-7xl px-3 py-10 sm:px-6 sm:py-12">
           <div className="mb-6 text-center">
             <span className="text-xs font-semibold uppercase tracking-[0.25em] text-ink-400">
               Where Code Meets Intelligence
@@ -872,7 +872,7 @@ export default function HomeView() {
           <div className="absolute inset-0 -z-10 grid-backdrop opacity-60" />
           <div className="relative flex flex-col items-center gap-6 text-center md:flex-row md:text-left">
             <div className="flex-1">
-              <h2 className="text-3xl font-bold text-white sm:text-4xl">
+              <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
                 Got a project in mind?
               </h2>
               <p className="mt-2 max-w-xl text-ink-300">
@@ -892,7 +892,7 @@ export default function HomeView() {
       </section>
 
       {/* ─────────── FOOTER ─────────── */}
-      <footer className="border-t border-white/5 bg-navy-950/40 px-6 py-12">
+      <footer className="border-t border-white/5 bg-navy-950/40 px-3 py-10 sm:px-6 sm:py-12">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-10 md:grid-cols-4">
             <div className="md:col-span-2">
@@ -972,12 +972,12 @@ function ShowcaseSection({ projects }: { projects: ShowcaseProject[] }) {
   if (sorted.length === 0) return null;
 
   return (
-    <section id="projects" className="mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
+    <section id="projects" className="mx-auto max-w-7xl px-3 py-12 scroll-mt-20 sm:px-6 sm:py-20">
       <Reveal className="mb-12 text-center">
         <span className="inline-flex items-center gap-2 rounded-full bg-mint-300/10 px-3 py-1 text-xs font-medium text-mint-300">
           <FolderKanban className="h-3.5 w-3.5" /> Our Projects
         </span>
-        <h2 className="mt-4 text-3xl font-bold text-white sm:text-4xl">
+        <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
           Work we&apos;re proud of
         </h2>
         <p className="mx-auto mt-3 max-w-2xl text-ink-300">
@@ -1191,7 +1191,7 @@ function SubmitProjectSection() {
 
   if (done) {
     return (
-      <section id="submit" className="mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
+      <section id="submit" className="mx-auto max-w-7xl px-3 py-12 scroll-mt-20 sm:px-6 sm:py-20">
         <div className="glass-card border-gradient overflow-hidden">
           <div className="grid lg:grid-cols-2">
             <div className="relative p-10 lg:p-12">
@@ -1277,14 +1277,14 @@ function SubmitProjectSection() {
   }
 
   return (
-    <section id="submit" className="mx-auto max-w-7xl px-6 py-20 scroll-mt-20">
+    <section id="submit" className="mx-auto max-w-7xl px-3 py-12 scroll-mt-20 sm:px-6 sm:py-20">
       <div className="glass-card border-gradient overflow-hidden">
         <div className="grid lg:grid-cols-2">
-          <div className="relative p-10 lg:p-12">
+          <div className="relative p-5 sm:p-8 lg:p-12">
             <span className="inline-flex items-center gap-2 rounded-full bg-mint-300/10 px-3 py-1 text-xs font-medium text-mint-300">
               <Rocket className="h-3.5 w-3.5" /> Submit Project
             </span>
-            <h2 className="mt-4 text-3xl font-bold text-white">Tell us about your project</h2>
+            <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl">Tell us about your project</h2>
             <p className="mt-3 text-ink-300">
               Fill in the form — no login, no file uploads. Share scope and
               timeline and we&apos;ll reply within 48 hours with a clear estimate.
@@ -1305,7 +1305,7 @@ function SubmitProjectSection() {
 
           <form
             onSubmit={handleSubmit}
-            className="relative border-t border-white/5 bg-navy-900/40 p-10 lg:border-l lg:border-t-0 lg:p-12"
+            className="relative border-t border-white/5 bg-navy-900/40 p-5 sm:p-8 lg:border-l lg:border-t-0 lg:p-12"
           >
             <div className="space-y-4">
               <div>
@@ -1673,7 +1673,7 @@ function TrackStatusSection() {
   };
 
   return (
-    <section id="track" className="mx-auto max-w-4xl px-6 py-20 scroll-mt-20">
+    <section id="track" className="mx-auto max-w-4xl px-3 py-12 scroll-mt-20 sm:px-6 sm:py-20">
       <div className="text-center">
         <span className="inline-flex items-center gap-2 rounded-full bg-violet-600/10 px-3 py-1 text-xs font-medium text-violet-300">
           <Search className="h-3.5 w-3.5" /> Track Status

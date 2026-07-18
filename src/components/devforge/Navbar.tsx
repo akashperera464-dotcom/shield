@@ -14,12 +14,9 @@ import { useAuth } from "@/context/AuthContext";
 const LOGO_URL =
   "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png";
 
-function Logo({ size = 48 }: { size?: number }) {
+function Logo() {
   return (
-    <div
-      className="relative inline-flex items-center justify-center"
-      style={{ width: size, height: size }}
-    >
+    <div className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center sm:h-12 sm:w-12">
       <span
         className="absolute inset-0 rounded-xl bg-mint-300/40 blur-xl animate-pulse-glow"
         aria-hidden
@@ -28,7 +25,6 @@ function Logo({ size = 48 }: { size?: number }) {
         src={LOGO_URL}
         alt="The Shield logo"
         className="relative h-full w-full rounded-xl object-cover ring-1 ring-mint-300/30"
-        style={{ width: size, height: size }}
       />
     </div>
   );
@@ -66,17 +62,17 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-navy-900/95 backdrop-blur-xl">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
+      <nav className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-2.5 sm:px-6 sm:py-3">
         <button
           onClick={() => setView("home")}
-          className="group flex items-center gap-4"
+          className="group flex min-w-0 items-center gap-2 sm:gap-4"
         >
-          <Logo size={48} />
-          <div className="flex flex-col leading-tight">
-            <span className="font-sans text-lg font-semibold tracking-tight text-white">
+          <Logo />
+          <div className="flex min-w-0 flex-col leading-tight">
+            <span className="truncate font-sans text-base font-semibold tracking-tight text-white sm:text-lg">
               The <span className="text-gradient-animated">Shield</span>
             </span>
-            <span className="text-[10px] uppercase tracking-[0.2em] text-mint-300/60">
+            <span className="hidden text-[10px] uppercase tracking-[0.2em] text-mint-300/60 sm:block">
               Software Agency
             </span>
           </div>
@@ -154,14 +150,15 @@ export default function Navbar() {
           onClick={() => setOpen((o) => !o)}
           className="rounded-lg p-2 text-ink-200 hover:bg-white/5 md:hidden"
           aria-label="Toggle menu"
+          aria-expanded={open}
         >
-          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {open ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <Menu className="h-5 w-5 sm:h-6 sm:w-6" />}
         </button>
       </nav>
 
       {open && (
-        <div className="border-t border-white/5 bg-navy-900/95 px-6 py-4 md:hidden animate-fade-in">
-          <div className="flex flex-col gap-2">
+        <div className="border-t border-white/5 bg-navy-900/95 px-3 py-3 md:hidden animate-fade-in sm:px-6">
+          <div className="flex flex-col gap-1">
             <button onClick={() => { setView("home"); setOpen(false); }} className="rounded-lg px-3 py-2 text-left text-ink-200 hover:bg-white/5">
               Home
             </button>
