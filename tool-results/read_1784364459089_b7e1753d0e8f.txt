@@ -1,0 +1,815 @@
+     1→@import "tailwindcss";
+     2→@import "tw-animate-css";
+     3→
+     4→@custom-variant dark (&:is(.dark *));
+     5→
+     6→@theme inline {
+     7→  --color-background: var(--background);
+     8→  --color-foreground: var(--foreground);
+     9→  --font-sans: var(--font-geist-sans);
+    10→  --font-mono: var(--font-geist-mono);
+    11→  --color-sidebar-ring: var(--sidebar-ring);
+    12→  --color-sidebar-border: var(--sidebar-border);
+    13→  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    14→  --color-sidebar-accent: var(--sidebar-accent);
+    15→  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    16→  --color-sidebar-primary: var(--sidebar-primary);
+    17→  --color-sidebar-foreground: var(--sidebar-foreground);
+    18→  --color-sidebar: var(--sidebar);
+    19→  --color-chart-5: var(--chart-5);
+    20→  --color-chart-4: var(--chart-4);
+    21→  --color-chart-3: var(--chart-3);
+    22→  --color-chart-2: var(--chart-2);
+    23→  --color-chart-1: var(--chart-1);
+    24→  --color-ring: var(--ring);
+    25→  --color-input: var(--input);
+    26→  --color-border: var(--border);
+    27→  --color-destructive: var(--destructive);
+    28→  --color-accent-foreground: var(--accent-foreground);
+    29→  --color-accent: var(--accent);
+    30→  --color-muted-foreground: var(--muted-foreground);
+    31→  --color-muted: var(--muted);
+    32→  --color-secondary-foreground: var(--secondary-foreground);
+    33→  --color-secondary: var(--secondary);
+    34→  --color-primary-foreground: var(--primary-foreground);
+    35→  --color-primary: var(--primary);
+    36→  --color-popover-foreground: var(--popover-foreground);
+    37→  --color-popover: var(--popover);
+    38→  --color-card-foreground: var(--card-foreground);
+    39→  --color-card: var(--card);
+    40→  --radius-sm: calc(var(--radius) - 4px);
+    41→  --radius-md: calc(var(--radius) - 2px);
+    42→  --radius-lg: var(--radius);
+    43→  --radius-xl: calc(var(--radius) + 4px);
+    44→
+    45→  /* ─── The Shield: Dark Premium Dashboard palette ───
+    46→   * Match reference screenshots: deep navy bg, mint cyan + purple gradient accents
+    47→   */
+    48→  --color-ink-50:  #f6f7fb;
+    49→  --color-ink-100: #eceef6;
+    50→  --color-ink-200: #d4d8e8;
+    51→  --color-ink-300: #aab1cd;
+    52→  --color-ink-400: #7882ad;
+    53→  --color-ink-500: #525e8c;
+    54→  --color-ink-600: #3d466d;
+    55→  --color-ink-700: #2c3354;
+    56→  --color-ink-800: #1d2240;
+    57→  --color-ink-900: #0f1226;
+    58→  --color-ink-950: #070815;
+    59→
+    60→  --color-navy-600: #243560;
+    61→  --color-navy-700: #1a2747;
+    62→  --color-navy-800: #112240;
+    63→  --color-navy-900: #0a192f;
+    64→
+    65→  --color-mint-100: #a7ffe9;
+    66→  --color-mint-200: #7ff5da;
+    67→  --color-mint-300: #64ffda;
+    68→  --color-mint-400: #4de6c2;
+    69→  --color-mint-500: #26d0a8;
+    70→  --color-mint-600: #0fb892;
+    71→
+    72→  --color-violet-300: #9d8df1;
+    73→  --color-violet-400: #8b7fe8;
+    74→  --color-violet-500: #764ba2;
+    75→  --color-violet-600: #667eea;
+    76→  --color-violet-700: #5568d4;
+    77→
+    78→  --color-brand-200: #b9d6ff;
+    79→  --color-brand-300: #88b8ff;
+    80→  --color-brand-400: #5490ff;
+    81→  --color-brand-500: #2f6bff;
+    82→  --color-brand-600: #1a4ff0;
+    83→
+    84→  --animate-float: float 6s ease-in-out infinite;
+    85→  --animate-float-slow: float-slow 9s ease-in-out infinite;
+    86→  /* Gradient-shift disabled — kept the keyframe definition for reference
+    87→     but no element references it anymore. */
+    88→  --animate-fade-up: fade-up 0.7s ease-out both;
+    89→  --animate-fade-in: fade-in 0.8s ease-out both;
+    90→  --animate-scale-in: scale-in 0.5s ease-out both;
+    91→  --animate-shimmer: shimmer 2.5s linear infinite;
+    92→  --animate-spin-slow: spin-slow 18s linear infinite;
+    93→  /* Pulse-glow disabled — was causing constant "breathing" motion on
+    94→     logo + hero panel glow. Element keeps its color/blur via the class
+    95→     but the animation no longer runs. */
+    96→  /* Marquee disabled — constant leftward scroll on the tech stack was a
+    97→     major source of perceived page motion. The element keeps its layout
+    98→     but the animation is paused (animation-play-state: paused is set via
+    99→     an override on the marquee element below). */
+   100→  --animate-aurora-drift-1: aurora-drift-1 22s ease-in-out infinite;
+   101→  --animate-aurora-drift-2: aurora-drift-2 28s ease-in-out infinite;
+   102→  --animate-aurora-drift-3: aurora-drift-3 32s ease-in-out infinite;
+   103→  --animate-view-fade: view-fade 0.45s ease-out both;
+   104→  --animate-skeleton: skeleton 1.6s ease-in-out infinite;
+   105→  --animate-shine-sweep: shine-sweep 4.5s ease-in-out infinite;
+   106→}
+   107→
+   108→@keyframes float {
+   109→  0%, 100% { transform: translateY(0); }
+   110→  50% { transform: translateY(-12px); }
+   111→}
+   112→@keyframes float-slow {
+   113→  0%, 100% { transform: translateY(0) translateX(0); }
+   114→  50% { transform: translateY(-20px) translateX(10px); }
+   115→}
+   116→@keyframes gradient-shift {
+   117→  0%, 100% { background-position: 0% 50%; }
+   118→  50% { background-position: 100% 50%; }
+   119→}
+   120→@keyframes fade-up {
+   121→  0% { opacity: 0; transform: translateY(20px); }
+   122→  100% { opacity: 1; transform: translateY(0); }
+   123→}
+   124→@keyframes fade-in {
+   125→  0% { opacity: 0; }
+   126→  100% { opacity: 1; }
+   127→}
+   128→@keyframes scale-in {
+   129→  0% { opacity: 0; transform: scale(0.95); }
+   130→  100% { opacity: 1; transform: scale(1); }
+   131→}
+   132→@keyframes shimmer {
+   133→  0% { background-position: -200% 0; }
+   134→  100% { background-position: 200% 0; }
+   135→}
+   136→@keyframes spin-slow {
+   137→  0% { transform: rotate(0deg); }
+   138→  100% { transform: rotate(360deg); }
+   139→}
+   140→@keyframes pulse-glow {
+   141→  0%, 100% { opacity: 0.4; transform: scale(1); }
+   142→  50% { opacity: 0.8; transform: scale(1.05); }
+   143→}
+   144→/* Pulse-glow is now a STATIC glow — opacity locked at 0.55, no breathing.
+   145→   The element still has its color + blur, just no animation loop. */
+   146→@keyframes marquee {
+   147→  0% { transform: translateX(0); }
+   148→  100% { transform: translateX(-50%); }
+   149→}
+   150→/* Pause the marquee — animation is defined but not running. */
+   151→.animate-marquee {
+   152→  animation-play-state: paused !important;
+   153→}
+   154→
+   155→:root {
+   156→  --radius: 0.75rem;
+   157→  --background: oklch(1 0 0);
+   158→  --foreground: oklch(0.145 0 0);
+   159→  --card: oklch(1 0 0);
+   160→  --card-foreground: oklch(0.145 0 0);
+   161→  --popover: oklch(1 0 0);
+   162→  --popover-foreground: oklch(0.145 0 0);
+   163→  --primary: oklch(0.205 0 0);
+   164→  --primary-foreground: oklch(0.985 0 0);
+   165→  --secondary: oklch(0.97 0 0);
+   166→  --secondary-foreground: oklch(0.205 0 0);
+   167→  --muted: oklch(0.97 0 0);
+   168→  --muted-foreground: oklch(0.556 0 0);
+   169→  --accent: oklch(0.97 0 0);
+   170→  --accent-foreground: oklch(0.205 0 0);
+   171→  --destructive: oklch(0.577 0.245 27.325);
+   172→  --border: oklch(0.922 0 0);
+   173→  --input: oklch(0.922 0 0);
+   174→  --ring: oklch(0.708 0 0);
+   175→  --chart-1: oklch(0.646 0.222 41.116);
+   176→  --chart-2: oklch(0.6 0.118 184.704);
+   177→  --chart-3: oklch(0.398 0.07 227.392);
+   178→  --chart-4: oklch(0.828 0.189 84.429);
+   179→  --chart-5: oklch(0.769 0.188 70.08);
+   180→  --sidebar: oklch(0.985 0 0);
+   181→  --sidebar-foreground: oklch(0.145 0 0);
+   182→  --sidebar-primary: oklch(0.205 0 0);
+   183→  --sidebar-primary-foreground: oklch(0.985 0 0);
+   184→  --sidebar-accent: oklch(0.97 0 0);
+   185→  --sidebar-accent-foreground: oklch(0.205 0 0);
+   186→  --sidebar-border: oklch(0.922 0 0);
+   187→  --sidebar-ring: oklch(0.708 0 0);
+   188→}
+   189→
+   190→.dark {
+   191→  --background: oklch(0.08 0.02 270);
+   192→  --foreground: oklch(0.95 0.01 270);
+   193→  --card: oklch(0.12 0.025 270);
+   194→  --card-foreground: oklch(0.95 0.01 270);
+   195→  --popover: oklch(0.12 0.025 270);
+   196→  --popover-foreground: oklch(0.95 0.01 270);
+   197→  --primary: oklch(0.65 0.2 260);
+   198→  --primary-foreground: oklch(0.98 0 0);
+   199→  --secondary: oklch(0.2 0.03 270);
+   200→  --secondary-foreground: oklch(0.95 0.01 270);
+   201→  --muted: oklch(0.2 0.03 270);
+   202→  --muted-foreground: oklch(0.7 0.02 270);
+   203→  --accent: oklch(0.25 0.05 270);
+   204→  --accent-foreground: oklch(0.95 0.01 270);
+   205→  --destructive: oklch(0.6 0.25 25);
+   206→  --border: oklch(0.25 0.02 270);
+   207→  --input: oklch(0.18 0.025 270);
+   208→  --ring: oklch(0.65 0.2 260);
+   209→  --chart-1: oklch(0.65 0.22 260);
+   210→  --chart-2: oklch(0.7 0.18 190);
+   211→  --chart-3: oklch(0.55 0.2 290);
+   212→  --chart-4: oklch(0.75 0.2 80);
+   213→  --chart-5: oklch(0.7 0.2 160);
+   214→  --sidebar: oklch(0.1 0.02 270);
+   215→  --sidebar-foreground: oklch(0.95 0.01 270);
+   216→  --sidebar-primary: oklch(0.65 0.2 260);
+   217→  --sidebar-primary-foreground: oklch(0.98 0 0);
+   218→  --sidebar-accent: oklch(0.18 0.025 270);
+   219→  --sidebar-accent-foreground: oklch(0.95 0.01 270);
+   220→  --sidebar-border: oklch(0.25 0.02 270);
+   221→  --sidebar-ring: oklch(0.65 0.2 260);
+   222→}
+   223→
+   224→@layer base {
+   225→  * {
+   226→    border-color: var(--border);
+   227→  }
+   228→  body {
+   229→    background-color: #0a192f;
+   230→    color: var(--color-ink-100);
+   231→    font-feature-settings: "rlig" 1, "calt" 1;
+   232→    /* Subtle radial accent glow on the body itself */
+   233→    background-image:
+   234→      radial-gradient(ellipse 80% 50% at 20% -10%, rgba(102, 126, 234, 0.18), transparent 60%),
+   235→      radial-gradient(ellipse 60% 50% at 90% 10%, rgba(100, 255, 218, 0.10), transparent 60%),
+   236→      radial-gradient(ellipse 60% 50% at 50% 100%, rgba(118, 75, 162, 0.12), transparent 60%);
+   237→    background-attachment: fixed;
+   238→  }
+   239→}
+   240→
+   241→/* ── Custom utility classes (plain CSS, no @apply — Tailwind v4 compatible) ── */
+   242→
+   243→/* Glassmorphism card with subtle gradient border */
+   244→.glass-card {
+   245→  position: relative;
+   246→  border-radius: 1rem;
+   247→  border: 1px solid rgba(255, 255, 255, 0.14);
+   248→  background-color: rgba(13, 26, 50, 0.88);
+   249→  backdrop-filter: blur(24px) saturate(120%);
+   250→  -webkit-backdrop-filter: blur(24px) saturate(120%);
+   251→  box-shadow:
+   252→    0 10px 36px rgba(0, 0, 0, 0.55),
+   253→    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+   254→}
+   255→
+   256→/* Glassmorphism card with hover effect — uses mint + purple glow on hover */
+   257→.glass-card-hover {
+   258→  position: relative;
+   259→  border-radius: 1rem;
+   260→  border: 1px solid rgba(255, 255, 255, 0.14);
+   261→  background-color: rgba(13, 26, 50, 0.88);
+   262→  backdrop-filter: blur(24px) saturate(120%);
+   263→  -webkit-backdrop-filter: blur(24px) saturate(120%);
+   264→  box-shadow:
+   265→    0 10px 36px rgba(0, 0, 0, 0.55),
+   266→    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+   267→  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+   268→}
+   269→.glass-card-hover:hover {
+   270→  border-color: rgba(100, 255, 218, 0.45);
+   271→  background-color: rgba(17, 34, 64, 0.95);
+   272→  box-shadow:
+   273→    0 18px 54px rgba(102, 126, 234, 0.30),
+   274→    0 0 0 1px rgba(100, 255, 218, 0.25),
+   275→    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+   276→  transform: translateY(-3px);
+   277→}
+   278→
+   279→/* Strong gradient card (for stat highlights) */
+   280→.glass-card-gradient {
+   281→  position: relative;
+   282→  border-radius: 1rem;
+   283→  border: 1px solid rgba(255, 255, 255, 0.14);
+   284→  background:
+   285→    linear-gradient(135deg, rgba(102, 126, 234, 0.16) 0%, rgba(118, 75, 162, 0.08) 50%, rgba(100, 255, 218, 0.12) 100%),
+   286→    rgba(13, 26, 50, 0.90);
+   287→  backdrop-filter: blur(24px) saturate(120%);
+   288→  -webkit-backdrop-filter: blur(24px) saturate(120%);
+   289→  box-shadow:
+   290→    0 10px 36px rgba(0, 0, 0, 0.55),
+   291→    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+   292→}
+   293→
+   294→/* Sidebar nav button — left vertical nav like reference screenshots */
+   295→.sidebar-nav-btn {
+   296→  position: relative;
+   297→  display: flex;
+   298→  align-items: center;
+   299→  gap: 0.75rem;
+   300→  padding: 0.65rem 0.9rem;
+   301→  border-radius: 0.625rem;
+   302→  font-size: 0.875rem;
+   303→  font-weight: 500;
+   304→  color: var(--color-ink-300);
+   305→  transition: all 0.25s ease;
+   306→  cursor: pointer;
+   307→  border: 1px solid transparent;
+   308→}
+   309→.sidebar-nav-btn:hover {
+   310→  color: white;
+   311→  background-color: rgba(255, 255, 255, 0.04);
+   312→}
+   313→.sidebar-nav-btn.active {
+   314→  color: var(--color-mint-300);
+   315→  background: linear-gradient(135deg, rgba(100, 255, 218, 0.12), rgba(102, 126, 234, 0.08));
+   316→  border-color: rgba(100, 255, 218, 0.25);
+   317→  box-shadow:
+   318→    0 4px 16px rgba(100, 255, 218, 0.15),
+   319→    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+   320→}
+   321→.sidebar-nav-btn.active::before {
+   322→  content: '';
+   323→  position: absolute;
+   324→  left: -1px;
+   325→  top: 25%;
+   326→  bottom: 25%;
+   327→  width: 3px;
+   328→  border-radius: 9999px;
+   329→  background: linear-gradient(180deg, #64ffda 0%, #667eea 100%);
+   330→  box-shadow: 0 0 8px rgba(100, 255, 218, 0.6);
+   331→}
+   332→
+   333→/* Gradient text — mint to violet (primary brand accent) */
+   334→.text-gradient {
+   335→  background-clip: text;
+   336→  -webkit-background-clip: text;
+   337→  color: transparent;
+   338→  background-image: linear-gradient(110deg, #64ffda 0%, #88b8ff 40%, #9d8df1 70%, #64ffda 100%);
+   339→  background-size: 200% auto;
+   340→}
+   341→/* Gradient-animated is now STATIC — keeps the same gradient colors but
+   342→   no longer shifts them every 8s. The 8s color-shift was creating
+   343→   constant subtle motion on the navbar 'Shield' wordmark. */
+   344→.text-gradient-animated {
+   345→  background-clip: text;
+   346→  -webkit-background-clip: text;
+   347→  color: transparent;
+   348→  background-image: linear-gradient(110deg, #64ffda 0%, #88b8ff 40%, #9d8df1 70%, #64ffda 100%);
+   349→  background-size: 200% auto;
+   350→}
+   351→
+   352→/* Primary button — mint to violet gradient */
+   353→.btn-primary {
+   354→  position: relative;
+   355→  display: inline-flex;
+   356→  align-items: center;
+   357→  justify-content: center;
+   358→  gap: 0.5rem;
+   359→  overflow: hidden;
+   360→  border-radius: 0.625rem;
+   361→  padding: 0.7rem 1.4rem;
+   362→  font-weight: 600;
+   363→  color: #0a192f;
+   364→  transition: all 0.3s ease;
+   365→  background-image: linear-gradient(120deg, #64ffda 0%, #667eea 60%, #764ba2 100%);
+   366→  background-size: 200% auto;
+   367→  cursor: pointer;
+   368→  border: none;
+   369→  box-shadow: 0 4px 16px rgba(100, 255, 218, 0.25);
+   370→}
+   371→.btn-primary:hover:not(:disabled) {
+   372→  background-position: right center;
+   373→  box-shadow: 0 12px 32px -4px rgba(100, 255, 218, 0.45), 0 0 0 1px rgba(100, 255, 218, 0.3);
+   374→  transform: translateY(-1px);
+   375→}
+   376→.btn-primary:disabled {
+   377→  cursor: not-allowed;
+   378→  opacity: 0.5;
+   379→}
+   380→
+   381→/* Ghost / secondary button */
+   382→.btn-ghost {
+   383→  display: inline-flex;
+   384→  align-items: center;
+   385→  justify-content: center;
+   386→  gap: 0.5rem;
+   387→  border-radius: 0.625rem;
+   388→  border: 1px solid rgba(255, 255, 255, 0.18);
+   389→  background-color: rgba(17, 34, 64, 0.78);
+   390→  backdrop-filter: blur(14px);
+   391→  padding: 0.7rem 1.25rem;
+   392→  font-weight: 600;
+   393→  color: var(--color-ink-50);
+   394→  transition: all 0.3s ease;
+   395→  cursor: pointer;
+   396→}
+   397→.btn-ghost:hover {
+   398→  border-color: rgba(100, 255, 218, 0.45);
+   399→  background-color: rgba(100, 255, 218, 0.10);
+   400→  color: white;
+   401→}
+   402→
+   403→/* Input field — dark navy with mint focus ring */
+   404→.input-field {
+   405→  width: 100%;
+   406→  border-radius: 0.625rem;
+   407→  border: 1px solid rgba(255, 255, 255, 0.16);
+   408→  background-color: rgba(10, 25, 47, 0.92);
+   409→  padding: 0.7rem 1rem;
+   410→  color: var(--color-ink-50);
+   411→  transition: all 0.2s ease;
+   412→  outline: none;
+   413→}
+   414→.input-field::placeholder { color: var(--color-ink-500); }
+   415→.input-field:focus {
+   416→  border-color: rgba(100, 255, 218, 0.55);
+   417→  background-color: rgba(10, 25, 47, 1);
+   418→  box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.18);
+   419→}
+   420→
+   421→/* Status badges — color-coded per reference */
+   422→.badge {
+   423→  display: inline-flex;
+   424→  align-items: center;
+   425→  gap: 0.375rem;
+   426→  border-radius: 9999px;
+   427→  padding: 0.25rem 0.75rem;
+   428→  font-size: 0.7rem;
+   429→  font-weight: 600;
+   430→  letter-spacing: 0.02em;
+   431→}
+   432→.badge-pending   { background-color: rgba(245, 158, 11, 0.12); color: #fcd34d; box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.25); }
+   433→.badge-progress  { background-color: rgba(100, 255, 218, 0.12); color: #64ffda; box-shadow: inset 0 0 0 1px rgba(100, 255, 218, 0.30); }
+   434→.badge-review    { background-color: rgba(155, 126, 234, 0.14); color: #c4b5fd; box-shadow: inset 0 0 0 1px rgba(155, 126, 234, 0.30); }
+   435→.badge-completed { background-color: rgba(52, 211, 153, 0.12); color: #6ee7b7; box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.30); }
+   436→
+   437→/* Subtle dot grid background */
+   438→.grid-backdrop {
+   439→  background-image:
+   440→    linear-gradient(to right, rgba(100, 255, 218, 0.04) 1px, transparent 1px),
+   441→    linear-gradient(to bottom, rgba(100, 255, 218, 0.04) 1px, transparent 1px);
+   442→  background-size: 56px 56px;
+   443→  -webkit-mask-image: radial-gradient(ellipse at center, black 35%, transparent 75%);
+   444→          mask-image: radial-gradient(ellipse at center, black 35%, transparent 75%);
+   445→}
+   446→
+   447→/* Glowing text shadow */
+   448→.text-shadow-glow {
+   449→  text-shadow: 0 0 24px rgba(100, 255, 218, 0.35), 0 0 48px rgba(102, 126, 234, 0.25);
+   450→}
+   451→
+   452→/* Aurora blobs — mint + purple + violet floating glows */
+   453→.aurora-blobs::before,
+   454→.aurora-blobs::after,
+   455→.aurora-blobs > .blob-extra {
+   456→  content: '';
+   457→  position: absolute;
+   458→  width: 38rem;
+   459→  height: 38rem;
+   460→  border-radius: 9999px;
+   461→  filter: blur(120px);
+   462→  opacity: 0.30;
+   463→  pointer-events: none;
+   464→  z-index: 0;
+   465→}
+   466→.aurora-blobs::before {
+   467→  top: -10rem;
+   468→  left: -8rem;
+   469→  background: radial-gradient(circle, #667eea 0%, transparent 70%);
+   470→  animation: float-slow 14s ease-in-out infinite;
+   471→}
+   472→.aurora-blobs::after {
+   473→  bottom: -12rem;
+   474→  right: -10rem;
+   475→  background: radial-gradient(circle, #64ffda 0%, transparent 70%);
+   476→  animation: float-slow 16s ease-in-out infinite reverse;
+   477→}
+   478→
+   479→/* Custom scrollbar — mint gradient */
+   480→::-webkit-scrollbar { width: 10px; height: 10px; }
+   481→::-webkit-scrollbar-track { background: rgba(10, 25, 47, 0.5); }
+   482→::-webkit-scrollbar-thumb {
+   483→  background: linear-gradient(180deg, rgba(100,255,218,0.5), rgba(102,126,234,0.5));
+   484→  border-radius: 999px;
+   485→  border: 2px solid transparent;
+   486→  background-clip: padding-box;
+   487→}
+   488→::-webkit-scrollbar-thumb:hover {
+   489→  background: linear-gradient(180deg, rgba(100,255,218,0.7), rgba(102,126,234,0.7));
+   490→  background-clip: padding-box;
+   491→}
+   492→
+   493→/* Stagger delays */
+   494→.stagger-1 { animation-delay: 0.05s; }
+   495→.stagger-2 { animation-delay: 0.10s; }
+   496→.stagger-3 { animation-delay: 0.15s; }
+   497→.stagger-4 { animation-delay: 0.20s; }
+   498→.stagger-5 { animation-delay: 0.25s; }
+   499→.stagger-6 { animation-delay: 0.30s; }
+   500→.stagger-7 { animation-delay: 0.35s; }
+   501→.stagger-8 { animation-delay: 0.40s; }
+   502→
+   503→/* Vertical divider with gradient */
+   504→.divider-gradient {
+   505→  width: 1px;
+   506→  background: linear-gradient(180deg, transparent 0%, rgba(100, 255, 218, 0.3) 50%, transparent 100%);
+   507→}
+   508→
+   509→/* Subtle border with gradient (for cards that need emphasis) */
+   510→.border-gradient {
+   511→  position: relative;
+   512→}
+   513→.border-gradient::before {
+   514→  content: '';
+   515→  position: absolute;
+   516→  inset: 0;
+   517→  padding: 1px;
+   518→  border-radius: inherit;
+   519→  background: linear-gradient(135deg, rgba(100, 255, 218, 0.4), rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.2));
+   520→  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+   521→  -webkit-mask-composite: xor;
+   522→          mask-composite: exclude;
+   523→  pointer-events: none;
+   524→}
+   525→
+   526→/* ════════════════════════════════════════════════════════════════════ */
+   527→/* NEW EFFECTS — added for The Shield visual upgrade                     */
+   528→/* ════════════════════════════════════════════════════════════════════ */
+   529→
+   530→/* ─── Aurora drifting blobs (hero background) ─────────────────────────── */
+   531→/* Three color blobs that drift slowly around the hero. They sit behind   */
+   532→/* the content with heavy blur + low opacity for an ambient aurora feel.  */
+   533→@keyframes aurora-drift-1 {
+   534→  0%, 100% { transform: translate(0, 0) scale(1); }
+   535→  33%      { transform: translate(8vw, -6vh) scale(1.08); }
+   536→  66%      { transform: translate(-4vw, 8vh) scale(0.96); }
+   537→}
+   538→@keyframes aurora-drift-2 {
+   539→  0%, 100% { transform: translate(0, 0) scale(1); }
+   540→  33%      { transform: translate(-10vw, 5vh) scale(1.05); }
+   541→  66%      { transform: translate(6vw, -8vh) scale(0.94); }
+   542→}
+   543→@keyframes aurora-drift-3 {
+   544→  0%, 100% { transform: translate(0, 0) scale(1); }
+   545→  33%      { transform: translate(5vw, 8vh) scale(0.92); }
+   546→  66%      { transform: translate(-8vw, -5vh) scale(1.10); }
+   547→}
+   548→
+   549→/* Aurora stage — fixed full-viewport container behind everything */
+   550→.aurora-stage {
+   551→  position: fixed;
+   552→  inset: 0;
+   553→  z-index: -2;
+   554→  overflow: hidden;
+   555→  pointer-events: none;
+   556→}
+   557→
+   558→/* ─── Homepage fixed background image ────────────────────────────────── */
+   559→/* Sits behind the aurora blobs (z-index -3) so the colored glows still  */
+   560→/* drift over it. A dark gradient overlay sits on top of the image       */
+   561→/* (via the ::after pseudo) to guarantee text contrast.                  */
+   562→/* Only mounted on the homepage — admin + login views keep their clean   */
+   563→/* dark-navy backgrounds.                                                */
+   564→.homepage-bg {
+   565→  position: fixed;
+   566→  inset: 0;
+   567→  z-index: -3;
+   568→  background-image: url("https://res.cloudinary.com/dhd06wdov/image/upload/v1778418068/Company-free-wallpapers_pbai49.jpg");
+   569→  background-size: cover;
+   570→  background-position: center;
+   571→  background-repeat: no-repeat;
+   572→  background-attachment: fixed;
+   573→  /* No opacity here — image is at full strength, the ::after overlay
+   574→     controls how much of it shows through. This way the image actually
+   575→     reads as a visible texture instead of being crushed by transparency
+   576→     stacked on top of a solid body background. */
+   577→  pointer-events: none;
+   578→}
+   579→.homepage-bg::after {
+   580→  content: '';
+   581→  position: absolute;
+   582→  inset: 0;
+   583→  /* Dark navy overlay — heavy enough that the image reads as a subtle
+   584→     textured backdrop instead of competing with content. Solid dark
+   585→     navy across the whole viewport so all cards, text, and details
+   586→     sit on a clearly legible surface. */
+   587→  background:
+   588→    linear-gradient(180deg,
+   589→      rgba(5, 8, 22, 0.92) 0%,
+   590→      rgba(7, 13, 32, 0.85) 30%,
+   591→      rgba(7, 13, 32, 0.85) 70%,
+   592→      rgba(5, 8, 22, 0.94) 100%
+   593→    );
+   594→  pointer-events: none;
+   595→}
+   596→
+   597→/* When the homepage background image is mounted, drop the body's own
+   598→   background-image gradients so they don't fight with the image. The
+   599→   body's solid #0a192f fallback stays as a base. */
+   600→body:has(.homepage-bg) {
+   601→  background-image: none;
+   602→}
+   603→
+   604→.aurora-blob {
+   605→  position: absolute;
+   606→  width: 42rem;
+   607→  height: 42rem;
+   608→  border-radius: 9999px;
+   609→  filter: blur(110px);
+   610→  opacity: 0.28;
+   611→  will-change: transform;
+   612→}
+   613→/* Aurora blobs are STATIC — colors + blur stay, only the drift motion is
+   614→   removed. The constant background motion was the #1 cause of the page
+   615→   feeling like it was "jumping/dancing". Static glows still give the
+   616→   premium ambient feel without distraction. */
+   617→.aurora-blob-1 {
+   618→  top: -8rem;
+   619→  left: -6rem;
+   620→  background: radial-gradient(circle, #667eea 0%, transparent 70%);
+   621→}
+   622→.aurora-blob-2 {
+   623→  top: 20vh;
+   624→  right: -10rem;
+   625→  background: radial-gradient(circle, #64ffda 0%, transparent 70%);
+   626→}
+   627→.aurora-blob-3 {
+   628→  bottom: -12rem;
+   629→  left: 30vw;
+   630→  background: radial-gradient(circle, #9d8df1 0%, transparent 70%);
+   631→}
+   632→
+   633→/* ─── View transition (fade between home / login / dashboard) ────────── */
+   634→@keyframes view-fade {
+   635→  0%   { opacity: 0; transform: translateY(8px); }
+   636→  100% { opacity: 1; transform: translateY(0); }
+   637→}
+   638→.view-fade {
+   639→  animation: view-fade 0.45s ease-out both;
+   640→}
+   641→
+   642→/* ─── Skeleton shimmer (loading placeholders) ────────────────────────── */
+   643→@keyframes skeleton {
+   644→  0%, 100% { opacity: 0.35; }
+   645→  50%      { opacity: 0.75; }
+   646→}
+   647→.skeleton {
+   648→  background: linear-gradient(
+   649→    90deg,
+   650→    rgba(255, 255, 255, 0.04) 25%,
+   651→    rgba(255, 255, 255, 0.10) 37%,
+   652→    rgba(255, 255, 255, 0.04) 63%
+   653→  );
+   654→  background-size: 400% 100%;
+   655→  animation: skeleton 1.6s ease-in-out infinite;
+   656→  border-radius: 0.5rem;
+   657→}
+   658→
+   659→/* ─── Shine sweep (for primary buttons + headline) ───────────────────── */
+   660→/* Disabled the infinite 4.5s shine sweep — it was constantly passing a
+   661→   light streak across primary buttons which read as page motion. The
+   662→   shine element is hidden by default and only animates on hover, one-shot. */
+   663→@keyframes shine-sweep {
+   664→  0%   { transform: translateX(-120%); opacity: 0; }
+   665→  20%  { opacity: 1; }
+   666→  80%  { opacity: 1; }
+   667→  100% { transform: translateX(120%); opacity: 0; }
+   668→}
+   669→.shine-sweep {
+   670→  position: relative;
+   671→  overflow: hidden;
+   672→}
+   673→.shine-sweep::after {
+   674→  content: '';
+   675→  position: absolute;
+   676→  top: 0;
+   677→  left: 0;
+   678→  width: 40%;
+   679→  height: 100%;
+   680→  background: linear-gradient(
+   681→    90deg,
+   682→    transparent,
+   683→    rgba(255, 255, 255, 0.25),
+   684→    transparent
+   685→  );
+   686→  /* Hidden by default — no infinite animation */
+   687→  transform: translateX(-120%);
+   688→  opacity: 0;
+   689→  pointer-events: none;
+   690→}
+   691→/* One-shot shine on hover only */
+   692→.shine-sweep:hover::after {
+   693→  animation: shine-sweep 0.9s ease-out forwards;
+   694→}
+   695→
+   696→/* ─── Scroll progress bar (top of page) ──────────────────────────────── */
+   697→.scroll-progress-bar {
+   698→  position: fixed;
+   699→  top: 0;
+   700→  left: 0;
+   701→  height: 2px;
+   702→  background: linear-gradient(90deg, #64ffda 0%, #667eea 50%, #9d8df1 100%);
+   703→  box-shadow: 0 0 12px rgba(100, 255, 218, 0.5);
+   704→  z-index: 100;
+   705→  transition: width 0.08s linear;
+   706→}
+   707→
+   708→/* ─── Scroll reveal — initial hidden state, .revealed removes it ─────── */
+   709→.reveal-hidden {
+   710→  opacity: 0;
+   711→  transform: translateY(24px);
+   712→}
+   713→.reveal-visible {
+   714→  opacity: 1;
+   715→  transform: translateY(0);
+   716→  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+   717→              transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+   718→}
+   719→
+   720→/* ─── Showcase card hover (lift + glow + image zoom) ─────────────────── */
+   721→.showcase-card {
+   722→  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+   723→              box-shadow 0.4s ease,
+   724→              border-color 0.4s ease;
+   725→  transform-style: preserve-3d;
+   726→  will-change: transform;
+   727→}
+   728→.showcase-card:hover {
+   729→  box-shadow:
+   730→    0 22px 60px -20px rgba(100, 255, 218, 0.25),
+   731→    0 8px 24px -12px rgba(102, 126, 234, 0.20);
+   732→}
+   733→.showcase-card-image {
+   734→  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+   735→}
+   736→.showcase-card:hover .showcase-card-image {
+   737→  transform: scale(1.08);
+   738→}
+   739→
+   740→/* Reduced motion: respect user preference, kill all custom animations */
+   741→@media (prefers-reduced-motion: reduce) {
+   742→  *,
+   743→  *::before,
+   744→  *::after {
+   745→    animation-duration: 0.001ms !important;
+   746→    animation-iteration-count: 1 !important;
+   747→    transition-duration: 0.001ms !important;
+   748→  }
+   749→  .reveal-hidden { opacity: 1 !important; transform: none !important; }
+   750→}
+   751→
+   752→/* ─── Mobile UX utilities ────────────────────────────────────────────── */
+   753→
+   754→/* Hide scrollbar but keep scrolling — used for horizontal mobile pill bars */
+   755→.no-scrollbar {
+   756→  -ms-overflow-style: none;
+   757→  scrollbar-width: none;
+   758→}
+   759→.no-scrollbar::-webkit-scrollbar {
+   760→  display: none;
+   761→}
+   762→
+   763→/* Horizontal scroll-snap container for mobile nav pills.
+   764→   Children should be `<button class="mobile-nav-pill ...">`. */
+   765→.mobile-pill-bar {
+   766→  display: flex;
+   767→  gap: 0.5rem;
+   768→  overflow-x: auto;
+   769→  scroll-snap-type: x proximity;
+   770→  -webkit-overflow-scrolling: touch;
+   771→  padding: 0.25rem 0.25rem 0.5rem;
+   772→}
+   773→.mobile-pill-bar > * {
+   774→  scroll-snap-align: start;
+   775→  flex: 0 0 auto;
+   776→}
+   777→
+   778→/* Pill-shaped nav button used in mobile sidebars */
+   779→.mobile-nav-pill {
+   780→  display: inline-flex;
+   781→  align-items: center;
+   782→  gap: 0.4rem;
+   783→  padding: 0.5rem 0.9rem;
+   784→  border-radius: 9999px;
+   785→  font-size: 0.8rem;
+   786→  font-weight: 500;
+   787→  color: var(--color-ink-300);
+   788→  border: 1px solid rgba(255, 255, 255, 0.08);
+   789→  background-color: rgba(255, 255, 255, 0.02);
+   790→  white-space: nowrap;
+   791→  transition: all 0.2s ease;
+   792→  cursor: pointer;
+   793→}
+   794→.mobile-nav-pill:hover {
+   795→  color: white;
+   796→  background-color: rgba(255, 255, 255, 0.06);
+   797→}
+   798→.mobile-nav-pill.active {
+   799→  color: var(--color-mint-300);
+   800→  background: linear-gradient(135deg, rgba(100, 255, 218, 0.14), rgba(102, 126, 234, 0.10));
+   801→  border-color: rgba(100, 255, 218, 0.35);
+   802→  box-shadow: 0 4px 14px rgba(100, 255, 218, 0.18);
+   803→}
+   804→
+   805→/* Prevent horizontal overflow on small screens — applied to root containers */
+   806→.overflow-x-clip-mobile {
+   807→  overflow-x: clip;
+   808→}
+   809→@media (max-width: 640px) {
+   810→  .overflow-x-clip-mobile {
+   811→    max-width: 100vw;
+   812→  }
+   813→}
+   814→
+   815→

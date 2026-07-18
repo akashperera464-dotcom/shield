@@ -83,26 +83,29 @@
 
   --animate-float: float 6s ease-in-out infinite;
   --animate-float-slow: float-slow 9s ease-in-out infinite;
-  /* Gradient-shift disabled — kept the keyframe definition for reference
-     but no element references it anymore. */
+  --animate-gradient-x: gradient-x 12s ease infinite;
+  --animate-gradient-pan: gradient-pan 14s ease infinite;
   --animate-fade-up: fade-up 0.7s ease-out both;
   --animate-fade-in: fade-in 0.8s ease-out both;
   --animate-scale-in: scale-in 0.5s ease-out both;
   --animate-shimmer: shimmer 2.5s linear infinite;
   --animate-spin-slow: spin-slow 18s linear infinite;
-  /* Pulse-glow disabled — was causing constant "breathing" motion on
-     logo + hero panel glow. Element keeps its color/blur via the class
-     but the animation no longer runs. */
-  /* Marquee disabled — constant leftward scroll on the tech stack was a
-     major source of perceived page motion. The element keeps its layout
-     but the animation is paused (animation-play-state: paused is set via
-     an override on the marquee element below). */
-  --animate-aurora-drift-1: aurora-drift-1 22s ease-in-out infinite;
+  --animate-pulse-glow: pulse-glow 5s ease-in-out infinite;
+  --animate-marquee: marquee 38s linear infinite;
+  --animate-aurora-drift-1: aurora-drift-1 24s ease-in-out infinite;
   --animate-aurora-drift-2: aurora-drift-2 28s ease-in-out infinite;
   --animate-aurora-drift-3: aurora-drift-3 32s ease-in-out infinite;
   --animate-view-fade: view-fade 0.45s ease-out both;
   --animate-skeleton: skeleton 1.6s ease-in-out infinite;
-  --animate-shine-sweep: shine-sweep 4.5s ease-in-out infinite;
+  --animate-shine-sweep: shine-sweep 7s ease-in-out infinite;
+  /* NEW effects — added back per user request, all GPU-smooth */
+  --animate-float-orb: float-orb 9s ease-in-out infinite;
+  --animate-border-flow: border-flow 6s linear infinite;
+  --animate-bounce-soft: bounce-soft 2.2s ease-in-out infinite;
+  --animate-shimmer-text: shimmer-text 3.5s linear infinite;
+  --animate-glow-ring: glow-ring 3s ease-in-out infinite;
+  --animate-float-icon: float-icon 4.5s ease-in-out infinite;
+  --animate-pulse-ring: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes float {
@@ -113,9 +116,13 @@
   0%, 100% { transform: translateY(0) translateX(0); }
   50% { transform: translateY(-20px) translateX(10px); }
 }
-@keyframes gradient-shift {
+@keyframes gradient-x {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
+}
+@keyframes gradient-pan {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
 }
 @keyframes fade-up {
   0% { opacity: 0; transform: translateY(20px); }
@@ -138,19 +145,51 @@
   100% { transform: rotate(360deg); }
 }
 @keyframes pulse-glow {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.05); }
+  0%, 100% { opacity: 0.35; transform: translate3d(0,0,0) scale(1); }
+  50%      { opacity: 0.65; transform: translate3d(0,0,0) scale(1.04); }
 }
-/* Pulse-glow is now a STATIC glow — opacity locked at 0.55, no breathing.
-   The element still has its color + blur, just no animation loop. */
+/* NEW: floating orb — used for hero ambient particles. Uses translate3d
+   for GPU compositing so it never triggers layout/paint. */
+@keyframes float-orb {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  33%      { transform: translate3d(12px, -18px, 0); }
+  66%      { transform: translate3d(-10px, 14px, 0); }
+}
+/* NEW: animated gradient border for premium cards */
+@keyframes border-flow {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+/* NEW: soft bouncing scroll indicator */
+@keyframes bounce-soft {
+  0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.7; }
+  50%      { transform: translate3d(0, 8px, 0); opacity: 1; }
+}
+/* NEW: shimmering text effect for headlines */
+@keyframes shimmer-text {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+/* NEW: pulsing glow ring around badges */
+@keyframes glow-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(100, 255, 218, 0.5); }
+  50%      { box-shadow: 0 0 0 8px rgba(100, 255, 218, 0); }
+}
+/* NEW: idle floating for icons */
+@keyframes float-icon {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50%      { transform: translate3d(0, -6px, 0) rotate(2deg); }
+}
+/* NEW: pulse ring for live indicators */
+@keyframes pulse-ring {
+  0%   { transform: translate3d(0,0,0) scale(1); opacity: 0.8; }
+  100% { transform: translate3d(0,0,0) scale(2.2); opacity: 0; }
+}
 @keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
 }
-/* Pause the marquee — animation is defined but not running. */
-.animate-marquee {
-  animation-play-state: paused !important;
-}
+/* Marquee runs — smooth linear loop, GPU-composited via translate3d. */
 
 :root {
   --radius: 0.75rem;
@@ -338,15 +377,17 @@
   background-image: linear-gradient(110deg, #64ffda 0%, #88b8ff 40%, #9d8df1 70%, #64ffda 100%);
   background-size: 200% auto;
 }
-/* Gradient-animated is now STATIC — keeps the same gradient colors but
-   no longer shifts them every 8s. The 8s color-shift was creating
-   constant subtle motion on the navbar 'Shield' wordmark. */
+/* Gradient-animated — shifts colors smoothly across the gradient
+   stops. 14s duration is calm but visible. Uses background-position
+   only (no transform) so it stays GPU-friendly. */
 .text-gradient-animated {
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  background-image: linear-gradient(110deg, #64ffda 0%, #88b8ff 40%, #9d8df1 70%, #64ffda 100%);
+  background-image: linear-gradient(110deg, #64ffda 0%, #88b8ff 30%, #9d8df1 55%, #764ba2 75%, #64ffda 100%);
   background-size: 200% auto;
+  animation: gradient-pan 14s ease infinite;
+  will-change: background-position;
 }
 
 /* Primary button — mint to violet gradient */
@@ -528,22 +569,22 @@
 /* ════════════════════════════════════════════════════════════════════ */
 
 /* ─── Aurora drifting blobs (hero background) ─────────────────────────── */
-/* Three color blobs that drift slowly around the hero. They sit behind   */
-/* the content with heavy blur + low opacity for an ambient aurora feel.  */
+/* Three color blobs drift slowly behind hero content. All transforms
+   use translate3d for GPU compositing — no layout thrash, no jitter. */
 @keyframes aurora-drift-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33%      { transform: translate(8vw, -6vh) scale(1.08); }
-  66%      { transform: translate(-4vw, 8vh) scale(0.96); }
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33%      { transform: translate3d(8vw, -6vh, 0) scale(1.08); }
+  66%      { transform: translate3d(-4vw, 8vh, 0) scale(0.96); }
 }
 @keyframes aurora-drift-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33%      { transform: translate(-10vw, 5vh) scale(1.05); }
-  66%      { transform: translate(6vw, -8vh) scale(0.94); }
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33%      { transform: translate3d(-10vw, 5vh, 0) scale(1.05); }
+  66%      { transform: translate3d(6vw, -8vh, 0) scale(0.94); }
 }
 @keyframes aurora-drift-3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33%      { transform: translate(5vw, 8vh) scale(0.92); }
-  66%      { transform: translate(-8vw, -5vh) scale(1.10); }
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33%      { transform: translate3d(5vw, 8vh, 0) scale(0.92); }
+  66%      { transform: translate3d(-8vw, -5vh, 0) scale(1.10); }
 }
 
 /* Aurora stage — fixed full-viewport container behind everything */
@@ -607,27 +648,28 @@ body:has(.homepage-bg) {
   height: 42rem;
   border-radius: 9999px;
   filter: blur(110px);
-  opacity: 0.28;
+  opacity: 0.32;
   will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
-/* Aurora blobs are STATIC — colors + blur stay, only the drift motion is
-   removed. The constant background motion was the #1 cause of the page
-   feeling like it was "jumping/dancing". Static glows still give the
-   premium ambient feel without distraction. */
 .aurora-blob-1 {
   top: -8rem;
   left: -6rem;
   background: radial-gradient(circle, #667eea 0%, transparent 70%);
+  animation: aurora-drift-1 24s ease-in-out infinite;
 }
 .aurora-blob-2 {
   top: 20vh;
   right: -10rem;
   background: radial-gradient(circle, #64ffda 0%, transparent 70%);
+  animation: aurora-drift-2 28s ease-in-out infinite;
 }
 .aurora-blob-3 {
   bottom: -12rem;
   left: 30vw;
   background: radial-gradient(circle, #9d8df1 0%, transparent 70%);
+  animation: aurora-drift-3 32s ease-in-out infinite;
 }
 
 /* ─── View transition (fade between home / login / dashboard) ────────── */
@@ -657,14 +699,13 @@ body:has(.homepage-bg) {
 }
 
 /* ─── Shine sweep (for primary buttons + headline) ───────────────────── */
-/* Disabled the infinite 4.5s shine sweep — it was constantly passing a
-   light streak across primary buttons which read as page motion. The
-   shine element is hidden by default and only animates on hover, one-shot. */
+/* Infinite 7s shine sweep — light streak passes across primary buttons.
+   Uses translate3d for GPU smoothness, paused between sweeps. */
 @keyframes shine-sweep {
-  0%   { transform: translateX(-120%); opacity: 0; }
-  20%  { opacity: 1; }
-  80%  { opacity: 1; }
-  100% { transform: translateX(120%); opacity: 0; }
+  0%   { transform: translate3d(-120%, 0, 0); opacity: 0; }
+  15%  { opacity: 1; }
+  35%  { transform: translate3d(120%, 0, 0); opacity: 1; }
+  100% { transform: translate3d(120%, 0, 0); opacity: 0; }
 }
 .shine-sweep {
   position: relative;
@@ -683,12 +724,14 @@ body:has(.homepage-bg) {
     rgba(255, 255, 255, 0.25),
     transparent
   );
-  /* Hidden by default — no infinite animation */
-  transform: translateX(-120%);
+  transform: translate3d(-120%, 0, 0);
   opacity: 0;
   pointer-events: none;
+  animation: shine-sweep 7s ease-in-out infinite;
+  animation-delay: 1.5s;
+  will-change: transform, opacity;
 }
-/* One-shot shine on hover only */
+/* Hover triggers an extra one-shot pass for tactile feedback */
 .shine-sweep:hover::after {
   animation: shine-sweep 0.9s ease-out forwards;
 }
@@ -735,6 +778,171 @@ body:has(.homepage-bg) {
 }
 .showcase-card:hover .showcase-card-image {
   transform: scale(1.08);
+}
+
+/* ════════════════════════════════════════════════════════════════════ */
+/* NEW ANIMATION UTILITIES — added per user request for richer motion     */
+/* ════════════════════════════════════════════════════════════════════ */
+
+/* ─── Floating orb particles (hero ambient) ─────────────────────────── */
+/* Small colored dots that float gently in the hero section. Position   */
+/* them absolutely inside a relative hero container.                    */
+.float-orb {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  animation: float-orb 9s ease-in-out infinite;
+  backface-visibility: hidden;
+}
+.float-orb-sm { width: 6px; height: 6px; }
+.float-orb-md { width: 10px; height: 10px; }
+.float-orb-lg { width: 14px; height: 14px; }
+
+/* ─── Animated gradient border (premium cards) ──────────────────────── */
+/* Wraps an element with a flowing mint→violet gradient border.         */
+.gradient-border-flow {
+  position: relative;
+  border-radius: 1rem;
+  background-clip: padding-box;
+  isolation: isolate;
+}
+.gradient-border-flow::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(100, 255, 218, 0.6),
+    rgba(102, 126, 234, 0.6),
+    rgba(155, 126, 234, 0.6),
+    rgba(100, 255, 218, 0.6)
+  );
+  background-size: 200% 100%;
+  animation: border-flow 6s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ─── Soft bouncing scroll indicator ────────────────────────────────── */
+.scroll-indicator {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  animation: bounce-soft 2.2s ease-in-out infinite;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+
+/* ─── Shimmering text (headlines / callouts) ────────────────────────── */
+.text-shimmer {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(255, 255, 255, 0.4) 100%
+  );
+  background-size: 200% auto;
+  animation: shimmer-text 3.5s linear infinite;
+  will-change: background-position;
+}
+
+/* ─── Pulsing glow ring (live badges, notification dots) ────────────── */
+.glow-ring {
+  animation: glow-ring 3s ease-in-out infinite;
+  will-change: box-shadow;
+}
+
+/* ─── Floating icon (idle hover effect for service icons) ───────────── */
+.float-icon {
+  animation: float-icon 4.5s ease-in-out infinite;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+/* ─── Pulse ring (LIVE indicator outer ring) ────────────────────────── */
+.pulse-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+}
+
+/* ─── Marquee track — applies the smooth infinite scroll ────────────── */
+.animate-marquee {
+  animation: marquee 38s linear infinite;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+/* Pause marquee on hover — premium feel, user can read items */
+.marquee-pause-hover:hover .animate-marquee {
+  animation-play-state: paused;
+}
+
+/* ─── Tilt-wobble on idle for hero stat cards ───────────────────────── */
+/* Subtle 3D tilt that breathes — adds life without being distracting.  */
+@keyframes tilt-breathe {
+  0%, 100% { transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg); }
+  25%      { transform: translate3d(0, -2px, 0) rotateX(0.5deg) rotateY(0.5deg); }
+  50%      { transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg); }
+  75%      { transform: translate3d(0, -2px, 0) rotateX(-0.5deg) rotateY(-0.5deg); }
+}
+.tilt-breathe {
+  animation: tilt-breathe 8s ease-in-out infinite;
+  will-change: transform;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+/* ─── Reveal slide-up enhanced (for section reveals) ────────────────── */
+.reveal-slide-up {
+  opacity: 0;
+  transform: translate3d(0, 30px, 0);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+}
+.reveal-slide-up.revealed {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* ─── Glow trail (cursor-following effect — opt-in only) ────────────── */
+.glow-trail {
+  position: fixed;
+  pointer-events: none;
+  width: 200px;
+  height: 200px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(100, 255, 218, 0.15) 0%, transparent 70%);
+  transform: translate3d(-50%, -50%, 0);
+  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 0;
+  will-change: transform;
+  mix-blend-mode: screen;
+}
+
+/* ─── Stat number glow pulse ────────────────────────────────────────── */
+@keyframes number-glow {
+  0%, 100% { text-shadow: 0 0 24px rgba(100, 255, 218, 0.35), 0 0 48px rgba(102, 126, 234, 0.25); }
+  50%      { text-shadow: 0 0 36px rgba(100, 255, 218, 0.55), 0 0 72px rgba(102, 126, 234, 0.40); }
+}
+.number-glow {
+  animation: number-glow 4s ease-in-out infinite;
 }
 
 /* Reduced motion: respect user preference, kill all custom animations */

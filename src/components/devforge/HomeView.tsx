@@ -222,7 +222,7 @@ function StatCard({
     >
       <div className="flex items-end justify-between">
         <div>
-          <div className="text-3xl font-bold text-gradient-animated sm:text-4xl">
+          <div className="number-glow text-3xl font-bold text-gradient-animated sm:text-4xl">
             {count}{stat.value.replace(/[0-9]/g, "")}
           </div>
           <div className="mt-1 text-xs uppercase tracking-wider text-ink-400">{stat.label}</div>
@@ -582,17 +582,15 @@ export default function HomeView() {
   }, []);
 
   useEffect(() => {
-    // Hero slide rotation slowed from 2.6s → 9s. The fast 2.6s rotation
-    // was the most visible "jumping" on the page — text was changing
-    // constantly. 9s gives a calm, almost-still feel while still
-    // rotating through the topics. Reduced-motion users get no rotation.
+    // Hero slide rotation — 4.5s gives a lively feel without being too
+    // fast. Reduced-motion users get no rotation.
     const prefersReduced =
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReduced) return;
     const t = setInterval(() => {
       setSlideIdx((i) => (i + 1) % HERO_SLIDES.length);
-    }, 9000);
+    }, 4500);
     return () => clearInterval(t);
   }, []);
 
@@ -600,7 +598,18 @@ export default function HomeView() {
     <div className="relative">
       {/* ─────────── HERO ─────────── */}
       <section className="relative mx-auto max-w-7xl px-3 pt-8 pb-12 sm:px-6 sm:pt-12 sm:pb-20">
-        <div className="grid items-center gap-8 lg:grid-cols-12 lg:gap-10">
+        {/* Floating ambient orbs — add depth + life to the hero.
+            Pointer-events-none so they never block clicks. */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+          <span className="float-orb float-orb-sm bg-mint-300" style={{ top: "12%", left: "8%", animationDelay: "0s" }} />
+          <span className="float-orb float-orb-md bg-violet-400" style={{ top: "28%", left: "45%", animationDelay: "1.2s" }} />
+          <span className="float-orb float-orb-sm bg-brand-400" style={{ top: "55%", left: "18%", animationDelay: "2.5s" }} />
+          <span className="float-orb float-orb-lg bg-mint-300/70" style={{ top: "70%", left: "62%", animationDelay: "0.8s" }} />
+          <span className="float-orb float-orb-sm bg-violet-300" style={{ top: "18%", left: "78%", animationDelay: "3.2s" }} />
+          <span className="float-orb float-orb-md bg-brand-300/80" style={{ top: "82%", left: "38%", animationDelay: "1.8s" }} />
+        </div>
+
+        <div className="relative grid items-center gap-8 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-7">
             <div className="inline-flex items-center gap-2 rounded-full border border-mint-300/30 bg-mint-300/5 px-3 py-1.5 text-[11px] font-medium text-mint-300 animate-fade-up stagger-1 sm:px-4 sm:text-xs">
               <span className="relative flex h-2 w-2">
@@ -681,11 +690,11 @@ export default function HomeView() {
       </section>
 
       {/* ─────────── MARQUEE ─────────── */}
-      <section className="border-y border-white/10 bg-white/[0.05] py-4 overflow-hidden sm:py-6">
+      <section className="marquee-pause-hover border-y border-white/10 bg-white/[0.05] py-4 overflow-hidden sm:py-6">
         <div className="flex items-center gap-12 whitespace-nowrap animate-marquee">
           {[...TECH, ...TECH].map((t, i) => (
-            <span key={i} className="inline-flex items-center gap-2 text-sm font-medium text-ink-400">
-              <span className="h-1 w-1 rounded-full bg-mint-300/60" /> {t}
+            <span key={i} className="inline-flex items-center gap-2 text-sm font-medium text-ink-400 transition-colors hover:text-mint-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-mint-300 to-violet-400 shadow-[0_0_8px_rgba(100,255,218,0.6)]" /> {t}
             </span>
           ))}
         </div>
@@ -730,7 +739,10 @@ export default function HomeView() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map((s, i) => (
             <Reveal key={s.title} delay={i * 0.06} className="glass-card-hover group p-6">
-              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-mint-300/20 to-violet-600/15 ring-1 ring-white/10 transition-transform duration-500 group-hover:scale-110">
+              <div
+                className="float-icon mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-mint-300/20 to-violet-600/15 ring-1 ring-white/10 transition-transform duration-500 group-hover:scale-110"
+                style={{ animationDelay: `${i * 0.4}s` }}
+              >
                 <s.icon className="h-6 w-6 text-mint-300" />
               </div>
               <h3 className="text-lg font-semibold text-white">{s.title}</h3>
