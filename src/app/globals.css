@@ -232,35 +232,35 @@
 .glass-card {
   position: relative;
   border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background-color: rgba(17, 34, 64, 0.55);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background-color: rgba(13, 26, 50, 0.88);
+  backdrop-filter: blur(24px) saturate(120%);
+  -webkit-backdrop-filter: blur(24px) saturate(120%);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 10px 36px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 /* Glassmorphism card with hover effect — uses mint + purple glow on hover */
 .glass-card-hover {
   position: relative;
   border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background-color: rgba(17, 34, 64, 0.55);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background-color: rgba(13, 26, 50, 0.88);
+  backdrop-filter: blur(24px) saturate(120%);
+  -webkit-backdrop-filter: blur(24px) saturate(120%);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 10px 36px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .glass-card-hover:hover {
-  border-color: rgba(100, 255, 218, 0.35);
-  background-color: rgba(17, 34, 64, 0.75);
+  border-color: rgba(100, 255, 218, 0.45);
+  background-color: rgba(17, 34, 64, 0.95);
   box-shadow:
-    0 16px 48px rgba(102, 126, 234, 0.20),
-    0 0 0 1px rgba(100, 255, 218, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    0 18px 54px rgba(102, 126, 234, 0.30),
+    0 0 0 1px rgba(100, 255, 218, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
   transform: translateY(-3px);
 }
 
@@ -268,15 +268,15 @@
 .glass-card-gradient {
   position: relative;
   border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   background:
-    linear-gradient(135deg, rgba(102, 126, 234, 0.10) 0%, rgba(118, 75, 162, 0.05) 50%, rgba(100, 255, 218, 0.08) 100%),
-    rgba(17, 34, 64, 0.55);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+    linear-gradient(135deg, rgba(102, 126, 234, 0.16) 0%, rgba(118, 75, 162, 0.08) 50%, rgba(100, 255, 218, 0.12) 100%),
+    rgba(13, 26, 50, 0.90);
+  backdrop-filter: blur(24px) saturate(120%);
+  -webkit-backdrop-filter: blur(24px) saturate(120%);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 10px 36px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
 }
 
 /* Sidebar nav button — left vertical nav like reference screenshots */
@@ -371,18 +371,18 @@
   justify-content: center;
   gap: 0.5rem;
   border-radius: 0.625rem;
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  background-color: rgba(17, 34, 64, 0.4);
-  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background-color: rgba(17, 34, 64, 0.78);
+  backdrop-filter: blur(14px);
   padding: 0.7rem 1.25rem;
-  font-weight: 500;
-  color: var(--color-ink-100);
+  font-weight: 600;
+  color: var(--color-ink-50);
   transition: all 0.3s ease;
   cursor: pointer;
 }
 .btn-ghost:hover {
-  border-color: rgba(100, 255, 218, 0.35);
-  background-color: rgba(100, 255, 218, 0.05);
+  border-color: rgba(100, 255, 218, 0.45);
+  background-color: rgba(100, 255, 218, 0.10);
   color: white;
 }
 
@@ -390,8 +390,8 @@
 .input-field {
   width: 100%;
   border-radius: 0.625rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background-color: rgba(10, 25, 47, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background-color: rgba(10, 25, 47, 0.92);
   padding: 0.7rem 1rem;
   color: var(--color-ink-50);
   transition: all 0.2s ease;
@@ -399,9 +399,9 @@
 }
 .input-field::placeholder { color: var(--color-ink-500); }
 .input-field:focus {
-  border-color: rgba(100, 255, 218, 0.5);
-  background-color: rgba(10, 25, 47, 0.85);
-  box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.15);
+  border-color: rgba(100, 255, 218, 0.55);
+  background-color: rgba(10, 25, 47, 1);
+  box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.18);
 }
 
 /* Status badges — color-coded per reference */
@@ -566,16 +566,16 @@
   content: '';
   position: absolute;
   inset: 0;
-  /* Dark navy overlay — strong enough to keep text crisp, light enough
-     that the underlying image is clearly visible as a textured backdrop.
-     Stronger at top + bottom for navbar/footer legibility, lighter in
-     the middle so the image shows. */
+  /* Dark navy overlay — heavy enough that the image reads as a subtle
+     textured backdrop instead of competing with content. Solid dark
+     navy across the whole viewport so all cards, text, and details
+     sit on a clearly legible surface. */
   background:
     linear-gradient(180deg,
-      rgba(7, 8, 21, 0.78) 0%,
-      rgba(10, 25, 47, 0.45) 30%,
-      rgba(10, 25, 47, 0.45) 70%,
-      rgba(7, 8, 21, 0.85) 100%
+      rgba(5, 8, 22, 0.92) 0%,
+      rgba(7, 13, 32, 0.85) 30%,
+      rgba(7, 13, 32, 0.85) 70%,
+      rgba(5, 8, 22, 0.94) 100%
     );
   pointer-events: none;
 }

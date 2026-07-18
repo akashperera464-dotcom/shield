@@ -224,14 +224,14 @@ export default function HeroLivePanel() {
             </div>
             <div className="mt-4 grid grid-cols-3 gap-2">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+                <div key={i} className="rounded-lg border border-white/5 bg-white/[0.05] px-3 py-2">
                   <div className="skeleton h-2.5 w-12" />
                   <div className="skeleton mt-2 h-5 w-8" />
                   <div className="skeleton mt-1.5 h-2 w-10" />
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex items-center gap-4 rounded-lg border border-white/5 bg-white/[0.02] p-4">
+            <div className="mt-4 flex items-center gap-4 rounded-lg border border-white/5 bg-white/[0.05] p-4">
               <div className="skeleton h-24 w-24 rounded-full" />
               <div className="flex-1 space-y-2">
                 <div className="skeleton h-3 w-32" />
@@ -241,7 +241,7 @@ export default function HeroLivePanel() {
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+                <div key={i} className="rounded-lg border border-white/5 bg-white/[0.05] px-3 py-2">
                   <div className="flex items-center justify-between">
                     <div className="skeleton h-3 w-16" />
                     <div className="skeleton h-4 w-6" />
@@ -320,7 +320,7 @@ export default function HeroLivePanel() {
           </div>
 
           {/* Gauge + 7-day histogram */}
-          <div className="mt-4 flex items-center gap-4 rounded-lg border border-white/5 bg-white/[0.02] p-4">
+          <div className="mt-4 flex items-center gap-4 rounded-lg border border-white/5 bg-white/[0.05] p-4">
             <CircularGauge
               value={stats.completionRate}
               size={96}
@@ -357,7 +357,7 @@ export default function HeroLivePanel() {
             {STATUS_ROWS.map((s, i) => (
               <div
                 key={s.label}
-                className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 animate-fade-up"
+                className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.05] px-3 py-2 animate-fade-up"
                 style={{ animationDelay: `${0.4 + i * 0.08}s` }}
               >
                 <div className="flex items-center gap-2">
@@ -388,7 +388,7 @@ export default function HeroLivePanel() {
               </div>
             </div>
           ) : (
-            <div className="mt-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 text-center text-[11px] text-ink-500">
+            <div className="mt-3 rounded-lg border border-white/5 bg-white/[0.05] px-3 py-2 text-center text-[11px] text-ink-500">
               <Inbox className="mx-auto mb-1 h-3 w-3" />
               No submissions yet — be the first!
             </div>
@@ -433,7 +433,7 @@ function StatTile({
   color: string;
 }) {
   return (
-    <div className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+    <div className="rounded-lg border border-white/5 bg-white/[0.05] px-3 py-2">
       <div className="text-[9px] uppercase tracking-wider text-ink-500">{label}</div>
       <div className={`text-lg font-bold ${color}`}>{value}</div>
       <div className="text-[9px] text-ink-500">{sub}</div>

@@ -313,7 +313,7 @@ function TestimonialsSection({
       )}
 
       {feedback.length === 0 ? (
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-10 text-center text-sm text-ink-400">
+        <div className="rounded-2xl border border-white/5 bg-white/[0.05] p-10 text-center text-sm text-ink-400">
           No testimonials published yet — be the first to share your experience.
         </div>
       ) : (
@@ -636,7 +636,7 @@ export default function HomeView() {
               ))}
             </div>
 
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-300 animate-fade-up stagger-3">
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-100 animate-fade-up stagger-3">
               We provide full-cycle software development services encompassing planning,
               requirements definition, design and prototyping, software development,
               testing, deployment, and application maintenance.
@@ -667,7 +667,7 @@ export default function HomeView() {
       </section>
 
       {/* ─────────── MARQUEE ─────────── */}
-      <section className="border-y border-white/5 bg-white/[0.015] py-6 overflow-hidden">
+      <section className="border-y border-white/10 bg-white/[0.05] py-6 overflow-hidden">
         <div className="flex items-center gap-12 whitespace-nowrap animate-marquee">
           {[...TECH, ...TECH].map((t, i) => (
             <span key={i} className="inline-flex items-center gap-2 text-sm font-medium text-ink-400">
@@ -678,7 +678,7 @@ export default function HomeView() {
       </section>
 
       {/* ─────────── ACHIEVEMENTS / STATS ─────────── */}
-      <section className="border-b border-white/5 bg-white/[0.015]">
+      <section className="border-b border-white/10 bg-white/[0.05]">
         <div className="mx-auto max-w-7xl px-6 py-10">
           <div className="mb-8 text-center">
             <span className="text-xs font-semibold uppercase tracking-[0.25em] text-mint-300">
@@ -737,7 +737,7 @@ export default function HomeView() {
       </section>
 
       {/* ─────────── INDUSTRIES ─────────── */}
-      <section id="industries" className="border-y border-white/5 bg-white/[0.015]">
+      <section id="industries" className="border-y border-white/10 bg-white/[0.05]">
         <div className="mx-auto max-w-7xl px-6 py-16 scroll-mt-20">
           <Reveal className="mb-10 text-center">
             <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
@@ -808,14 +808,14 @@ export default function HomeView() {
       </section>
 
       {/* ─────────── TECH STACK ─────────── */}
-      <section className="border-y border-white/5 bg-white/[0.015]">
+      <section className="border-y border-white/10 bg-white/[0.05]">
         <div className="mx-auto max-w-7xl px-6 py-12">
           <div className="mb-6 text-center">
             <span className="text-xs font-semibold uppercase tracking-[0.25em] text-ink-400">
               Where Code Meets Intelligence
             </span>
             <h3 className="mt-2 text-2xl font-bold text-white">Our Technology Stack</h3>
-            <p className="mt-2 text-sm text-ink-400">
+            <p className="mt-2 text-sm text-ink-300">
               Building powerful digital products with cutting-edge technologies
             </p>
           </div>
@@ -823,7 +823,7 @@ export default function HomeView() {
             {TECH.map((t, i) => (
               <span
                 key={t}
-                className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-ink-200 transition-all duration-300 hover:border-mint-300/40 hover:bg-mint-300/5 hover:text-white animate-fade-up"
+                className="rounded-lg border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-ink-100 transition-all duration-300 hover:border-mint-300/50 hover:bg-mint-300/10 hover:text-white animate-fade-up"
                 style={{ animationDelay: `${i * 0.04}s` }}
               >
                 {t}
@@ -1057,7 +1057,7 @@ function ShowcaseCard({ project, index }: { project: ShowcaseProject; index: num
             {project.tags.slice(0, 4).map((t) => (
               <span
                 key={t}
-                className="rounded-md bg-white/[0.03] px-2 py-0.5 text-[10px] font-medium text-ink-400 ring-1 ring-white/5"
+                className="rounded-md bg-white/[0.06] px-2 py-0.5 text-[10px] font-medium text-ink-400 ring-1 ring-white/5"
               >
                 {t}
               </span>
@@ -1081,7 +1081,7 @@ function ShowcaseCard({ project, index }: { project: ShowcaseProject; index: num
     tilt.ref.current = el;
   };
 
-  const containerCls = `group showcase-card reveal-hidden ${reveal.visible ? "reveal-visible" : ""} flex h-full flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] hover:border-mint-300/40 hover:bg-white/[0.04]`;
+  const containerCls = `group showcase-card reveal-hidden ${reveal.visible ? "reveal-visible" : ""} flex h-full flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.05] hover:border-mint-300/40 hover:bg-white/[0.04]`;
 
   return (
     <div
@@ -1241,7 +1241,7 @@ function SubmitProjectSection() {
                           href={f.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 rounded-md border border-white/5 bg-white/[0.02] px-3 py-2 text-xs text-ink-200 transition-colors hover:border-mint-300/40 hover:text-mint-200"
+                          className="flex items-center gap-2 rounded-md border border-white/5 bg-white/[0.05] px-3 py-2 text-xs text-ink-200 transition-colors hover:border-mint-300/40 hover:text-mint-200"
                         >
                           {f.type.startsWith("image/") ? (
                             <ImageIcon className="h-3.5 w-3.5 shrink-0" />
@@ -1257,7 +1257,7 @@ function SubmitProjectSection() {
                 )}
                 <div>
                   <dt className="text-xs uppercase tracking-wider text-ink-500">Brief</dt>
-                  <dd className="mt-1 rounded-lg border border-white/5 bg-white/[0.02] p-3 text-ink-200">
+                  <dd className="mt-1 rounded-lg border border-white/5 bg-white/[0.05] p-3 text-ink-200">
                     {form.brief}
                   </dd>
                 </div>
@@ -1521,7 +1521,7 @@ function FileDropzone({
         className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors ${
           dragOver
             ? "border-mint-300 bg-mint-300/5"
-            : "border-white/10 bg-white/[0.02] hover:border-white/20"
+            : "border-white/10 bg-white/[0.05] hover:border-white/20"
         }`}
       >
         <Paperclip className="h-5 w-5 text-ink-400" />
@@ -1548,7 +1548,7 @@ function FileDropzone({
           {progress.map((p, i) => (
             <div
               key={p.fileName + i}
-              className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2"
+              className="rounded-lg border border-white/5 bg-white/[0.05] px-3 py-2"
             >
               <div className="flex items-center justify-between text-[11px]">
                 <span className="truncate text-ink-200">{p.fileName}</span>
@@ -1590,7 +1590,7 @@ function FileDropzone({
           {uploads.map((f, i) => (
             <div
               key={f.url}
-              className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 text-xs"
+              className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.05] px-3 py-2 text-xs"
             >
               {f.type.startsWith("image/") ? (
                 <ImageIcon className="h-3.5 w-3.5 shrink-0 text-mint-300" />
@@ -1695,7 +1695,7 @@ function TrackStatusSection() {
         {searched && !error && (
           <div className="mt-6">
             {results.length === 0 ? (
-              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-6 text-center text-sm text-ink-400">
+              <div className="rounded-xl border border-white/5 bg-white/[0.05] p-6 text-center text-sm text-ink-400">
                 No submissions found for <span className="font-mono text-ink-200">{email}</span>.
                 <br />
                 Try submitting a project above first.
@@ -1708,7 +1708,7 @@ function TrackStatusSection() {
                 {results.map((r) => (
                   <div
                     key={r.id}
-                    className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4"
+                    className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.05] p-4"
                   >
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-white">{r.projectTitle}</div>
