@@ -51,6 +51,7 @@ import {
   Users,
   MapPinned,
   Calendar,
+  Plus,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Sparkline } from "./Charts";
@@ -68,6 +69,12 @@ import {
 } from "@/lib/uploads";
 import { loadShowcase } from "@/lib/showcase";
 import { addSubmission, loadSubmissions, seedDemoSubmissions, type Submission } from "@/lib/submissions";
+import {
+  loadApprovedFeedback,
+  addFeedback,
+  seedFeedback,
+  type Feedback,
+} from "@/lib/feedback";
 import type { ShowcaseProject } from "@/data/demo";
 
 const LOGO_URL =
@@ -181,30 +188,6 @@ const TECH_AI = [
   "Big Data Analytics", "Cognitive Automation", "Robotics & RPA", "Predictive Modeling",
 ];
 
-const TESTIMONIALS = [
-  {
-    quote: "The Shield took our Figma mess and shipped a polished React app in 5 weeks. The dashboard alone saved my team 12 hours a week.",
-    name: "Sara Al-Mansoori",
-    role: "CEO, Layla Cosmetics",
-    initial: "S",
-    variant: "mint" as const,
-  },
-  {
-    quote: "The role-based admin panel is exactly what we needed. Superadmin can edit copy live, my ops team manages submissions — perfect.",
-    name: "Daniel Okafor",
-    role: "COO, FleetIQ",
-    initial: "D",
-    variant: "violet" as const,
-  },
-  {
-    quote: "Submission was friction-free — one quick form and we got a clear scope back within 48 hours. The whole process felt senior.",
-    name: "Mei Tanaka",
-    role: "Founder, Studio Mei",
-    initial: "M",
-    variant: "purple" as const,
-  },
-];
-
 const HERO_SLIDES = [
   "Application Development",
   "Graphic Design",
@@ -278,18 +261,315 @@ function MagneticButton({
   );
 }
 
+/* ─────────────────────────────────────────────────────────────────────── */
+/* TestimonialsSection — "Client love" with dynamic approved feedback +    */
+/* a built-in feedback form so visitors can submit their own testimonial.  */
+/* Submissions land in the superadmin moderation queue (status = pending). */
+/* ─────────────────────────────────────────────────────────────────────── */
+function TestimonialsSection({
+  feedback,
+  onSubmitted,
+}: {
+  feedback: Feedback[];
+  onSubmitted: () => void;
+}) {
+  const [showForm, setShowForm] = useState(false);
+
+  return (
+    <section className="mx-auto max-w-7xl px-6 py-20">
+      <div className="mb-12 flex flex-col items-center gap-4 text-center">
+        <span className="text-xs font-semibold uppercase tracking-[0.25em] text-mint-300">
+          Client love
+        </span>
+        <h2 className="text-3xl font-bold text-white sm:text-4xl">
+          What founders say about The Shield
+        </h2>
+        <button
+          onClick={() => setShowForm((s) => !s)}
+          className="btn-ghost text-sm"
+          aria-expanded={showForm}
+        >
+          {showForm ? (
+            <>
+              <X className="h-4 w-4" /> Close form
+            </>
+          ) : (
+            <>
+              <Plus className="h-4 w-4" /> Share your experience
+            </>
+          )}
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="mb-10">
+          <FeedbackForm
+            onDone={() => {
+              setShowForm(false);
+              onSubmitted();
+            }}
+          />
+        </div>
+      )}
+
+      {feedback.length === 0 ? (
+        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-10 text-center text-sm text-ink-400">
+          No testimonials published yet — be the first to share your experience.
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-3">
+          {feedback.map((t, i) => (
+            <div
+              key={t.id}
+              className="glass-card-hover p-6 animate-fade-up"
+              style={{ animationDelay: `${i * 0.1}s` }}
+            >
+              <div className="flex items-center justify-between">
+                <Quote className="h-7 w-7 text-mint-300/60" />
+                {t.featured && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> Featured
+                  </span>
+                )}
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-ink-200">&ldquo;{t.quote}&rdquo;</p>
+              <div className="mt-5 flex items-center gap-3">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white ring-1 ring-white/10"
+                  style={{
+                    background:
+                      t.variant === "mint"
+                        ? "linear-gradient(135deg, rgba(100, 255, 218, 0.30), rgba(102, 126, 234, 0.15))"
+                        : t.variant === "violet"
+                          ? "linear-gradient(135deg, rgba(102, 126, 234, 0.30), rgba(118, 75, 162, 0.15))"
+                          : "linear-gradient(135deg, rgba(155, 126, 234, 0.30), rgba(118, 75, 162, 0.10))",
+                  }}
+                >
+                  {t.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-white">{t.name}</div>
+                  <div className="truncate text-xs text-ink-400">{t.role}</div>
+                </div>
+                <div className="ml-auto flex gap-0.5">
+                  {Array.from({ length: 5 }).map((_, j) => (
+                    <Star
+                      key={j}
+                      className={`h-3.5 w-3.5 ${
+                        j < t.rating
+                          ? "fill-amber-400 text-amber-400"
+                          : "fill-white/5 text-white/10"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* FeedbackForm — visible to any visitor. Validates + writes to the store. */
+/* On success: shows a "pending approval" confirmation.                    */
+/* ─────────────────────────────────────────────────────────────────────── */
+function FeedbackForm({ onDone }: { onDone: () => void }) {
+  const [form, setForm] = useState({ name: "", role: "", quote: "", rating: 5 });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+
+  const update = (k: keyof typeof form, v: string | number) =>
+    setForm((f) => ({ ...f, [k]: v }));
+
+  const validate = (): string | null => {
+    if (!form.name.trim()) return "Please enter your name.";
+    if (!form.role.trim()) return "Please enter your role / company.";
+    if (form.quote.trim().length < 10) return "Tell us a bit more — at least 10 characters.";
+    if (form.quote.trim().length > 500) return "Keep it under 500 characters.";
+    if (form.rating < 1 || form.rating > 5) return "Pick a rating between 1 and 5 stars.";
+    return null;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const err = validate();
+    if (err) {
+      setError(err);
+      return;
+    }
+    setError(null);
+    setSubmitting(true);
+    // Simulate async to make the success state feel intentional
+    await new Promise((r) => setTimeout(r, 350));
+    addFeedback({
+      name: form.name,
+      role: form.role,
+      rating: form.rating,
+      quote: form.quote,
+    });
+    setSubmitting(false);
+    setDone(true);
+    // Auto-close after 4s
+    setTimeout(() => {
+      setDone(false);
+      setForm({ name: "", role: "", quote: "", rating: 5 });
+      onDone();
+    }, 4000);
+  };
+
+  if (done) {
+    return (
+      <Reveal className="glass-card-gradient mx-auto max-w-2xl p-8 text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/15">
+          <CheckCircle2 className="h-6 w-6 text-emerald-300" />
+        </div>
+        <h3 className="text-lg font-bold text-white">Thank you for your feedback!</h3>
+        <p className="mt-2 text-sm text-ink-300">
+          Your testimonial has been saved and is now awaiting approval from our team.
+          Once approved, it will appear here for the world to see.
+        </p>
+      </Reveal>
+    );
+  }
+
+  return (
+    <Reveal className="glass-card mx-auto max-w-2xl p-6 sm:p-8">
+      <div className="mb-5 flex items-center gap-2">
+        <MessageSquare className="h-5 w-5 text-mint-300" />
+        <h3 className="text-lg font-bold text-white">Share your experience</h3>
+      </div>
+      <p className="mb-5 text-sm text-ink-400">
+        Worked with The Shield? Tell other founders what it was like. Your feedback will be
+        reviewed by our team before appearing publicly.
+      </p>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-ink-300">
+              Your name <span className="text-rose-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => update("name", e.target.value)}
+              placeholder="e.g. Sara Al-Mansoori"
+              className="input-field"
+              maxLength={80}
+              required
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-ink-300">
+              Role / Company <span className="text-rose-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.role}
+              onChange={(e) => update("role", e.target.value)}
+              placeholder="e.g. CEO, Layla Cosmetics"
+              className="input-field"
+              maxLength={80}
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-ink-300">
+            Your rating <span className="text-rose-400">*</span>
+          </label>
+          <div className="flex items-center gap-1.5">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => update("rating", n)}
+                className="rounded-md p-1 transition-transform hover:scale-110"
+                aria-label={`${n} star${n > 1 ? "s" : ""}`}
+              >
+                <Star
+                  className={`h-7 w-7 transition-colors ${
+                    n <= form.rating
+                      ? "fill-amber-400 text-amber-400"
+                      : "fill-white/5 text-white/15"
+                  }`}
+                />
+              </button>
+            ))}
+            <span className="ml-2 text-xs text-ink-400">{form.rating} / 5</span>
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-ink-300">
+            Your testimonial <span className="text-rose-400">*</span>
+          </label>
+          <textarea
+            value={form.quote}
+            onChange={(e) => update("quote", e.target.value)}
+            placeholder="Tell us what working with The Shield was like — what was the project, what stood out, what results did you see?"
+            className="input-field min-h-[120px] resize-y"
+            maxLength={500}
+            required
+          />
+          <div className="mt-1 flex justify-end text-[10px] text-ink-500">
+            {form.quote.length} / 500
+          </div>
+        </div>
+
+        {error && (
+          <div className="rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+            {error}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-3 pt-2">
+          <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-ink-500">
+            <Clock className="h-3 w-3" /> Reviewed by our team before publishing
+          </span>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="btn-primary shine-sweep text-sm"
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Submitting…
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4" /> Submit feedback
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </Reveal>
+  );
+}
+
 export default function HomeView() {
   const { isAuthenticated, isAdmin, setView } = useAuth();
   const [slideIdx, setSlideIdx] = useState(0);
   const [showcase, setShowcase] = useState<ShowcaseProject[]>([]);
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
 
   useEffect(() => {
     setShowcase(loadShowcase());
     // Make sure the admin inbox has at least a few demo rows on first visit
     seedDemoSubmissions();
-    // Live-refresh showcase when superadmin edits project cards in another tab
+    // Make sure the testimonials grid has the demo entries on first visit
+    seedFeedback();
+    setFeedback(loadApprovedFeedback());
+    // Live-refresh showcase + feedback when superadmin edits in another tab
     const onStorage = (e: StorageEvent) => {
       if (e.key === "theshield_showcase") setShowcase(loadShowcase());
+      if (e.key === "theshield_feedback") setFeedback(loadApprovedFeedback());
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
@@ -569,53 +849,7 @@ export default function HomeView() {
       </section>
 
       {/* ─────────── TESTIMONIALS ─────────── */}
-      <section className="mx-auto max-w-7xl px-6 py-20">
-        <div className="mb-12 text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-mint-300">
-            Client love
-          </span>
-          <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
-            What founders say about The Shield
-          </h2>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-3">
-          {TESTIMONIALS.map((t, i) => (
-            <div
-              key={t.name}
-              className="glass-card-hover p-6 animate-fade-up"
-              style={{ animationDelay: `${i * 0.1}s` }}
-            >
-              <Quote className="h-7 w-7 text-mint-300/60" />
-              <p className="mt-3 text-sm leading-relaxed text-ink-200">&ldquo;{t.quote}&rdquo;</p>
-              <div className="mt-5 flex items-center gap-3">
-                <div
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white ring-1 ring-white/10"
-                  style={{
-                    background:
-                      t.variant === "mint"
-                        ? "linear-gradient(135deg, rgba(100, 255, 218, 0.30), rgba(102, 126, 234, 0.15))"
-                        : t.variant === "violet"
-                          ? "linear-gradient(135deg, rgba(102, 126, 234, 0.30), rgba(118, 75, 162, 0.15))"
-                          : "linear-gradient(135deg, rgba(155, 126, 234, 0.30), rgba(118, 75, 162, 0.10))",
-                  }}
-                >
-                  {t.initial}
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-white">{t.name}</div>
-                  <div className="text-xs text-ink-400">{t.role}</div>
-                </div>
-                <div className="ml-auto flex gap-0.5">
-                  {Array.from({ length: 5 }).map((_, j) => (
-                    <Star key={j} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <TestimonialsSection feedback={feedback} onSubmitted={() => setFeedback(loadApprovedFeedback())} />
 
       {/* ─────────── SHOWCASE / OUR PROJECTS ─────────── */}
       <ShowcaseSection projects={showcase} />

@@ -149,3 +149,43 @@ Stage Summary:
 - The hero live panel now has a clean glass-card border (no rotating conic gradient). Skeleton loader version also updated to match.
 - The other 9 visual effects remain fully intact: drifting aurora blobs, scroll-triggered fade-up, count-up counters, cursor tilt on showcase + hero cards, skeleton loaders, top scroll progress bar, card hover lift+glow+image-zoom, shimmer on CTAs, and parallax tilt on the hero panel.
 - Orphaned CSS rules cleaned up to keep the stylesheet tidy. Build remains green.
+
+---
+Task ID: client-feedback-feature
+Agent: main (continuation)
+Task: Add real client feedback feature to the "Client love" section. Visitors submit testimonials from the homepage; submissions are saved (localStorage now, Firestore swap is drop-in later) and require superadmin approval before appearing publicly.
+
+Work Log:
+- Created `/home/z/my-project/src/lib/feedback.ts` (new shared store):
+  * Feedback interface: id, name, role, rating (1-5), quote, variant (mint/violet/purple auto-assigned), status (pending/approved/rejected), featured, createdAt, source (seed/client).
+  * Functions: loadAllFeedback (admin), loadApprovedFeedback (public — featured-first then newest), addFeedback (inserts with status=pending), approveFeedback, rejectFeedback, toggleFeatured (only meaningful for approved), deleteFeedback, countPendingFeedback, seedFeedback.
+  * Persists to localStorage key `theshield_feedback`. Dispatches a synthetic StorageEvent on every write so same-tab listeners refresh too.
+  * Seeds the original 3 demo testimonials (Sara, Daniel, Mei) as approved + featured=true for Sara, so first-load UX matches the prior static section.
+- Modified `/home/z/my-project/src/components/devforge/HomeView.tsx`:
+  * Removed the static `TESTIMONIALS` array — section now renders from `loadApprovedFeedback()`.
+  * Added `feedback` state + seedFeedback() call + storage-event listener (refreshes when superadmin approves in another tab).
+  * New `TestimonialsSection` component: section heading + "Share your experience" toggle button + dynamic grid of approved feedback cards. Cards now show featured badge, correct star rating, dynamic initial from name.
+  * New `FeedbackForm` component: name, role/company, 1-5 star picker (clickable), testimonial textarea (10-500 chars). On submit → addFeedback() with status=pending → success screen ("Thank you — awaiting approval") for 4s → auto-collapses.
+  * Empty-state message when no approved testimonials exist.
+- Created `/home/z/my-project/src/components/devforge/FeedbackPanel.tsx` (new moderation panel):
+  * Lists every feedback entry (newest first) with author, role, rating, status pill (Pending/Approved/Rejected), featured badge, time-ago, source tag.
+  * Filter chips: All / Pending / Approved / Featured / Rejected — each with live count.
+  * Per-row actions: Approve, Reject, Feature/Unfeature (only when approved), Delete (two-click confirmation pattern).
+  * "Approve all pending" bulk action button in header.
+  * Live toast when a new feedback arrives from another tab (with delta count).
+  * Storage-event listener for cross-tab live updates.
+- Modified `/home/z/my-project/src/components/devforge/SuperAdminView.tsx`:
+  * Added "Feedback" sidebar entry (MessageSquare icon) between Notifications and User Management.
+  * TabId union extended with "feedback".
+  * isActive check + content router updated to render `<FeedbackPanel />` when tab === "feedback".
+  * Pending-feedback count badge (amber pill) on the Feedback sidebar entry — updates live as count changes.
+  * Imports added: MessageSquare icon, countPendingFeedback from lib/feedback, FeedbackPanel component.
+- Verified `npx tsc --noEmit` clean for project source. Dev server returns HTTP 200 on :3000 and :81.
+
+Stage Summary:
+- Clients can now submit testimonials from the public homepage "Client love" section via a "Share your experience" button that toggles a feedback form (name, role/company, 1-5 star rating, message).
+- New submissions are saved with status=pending — they do NOT appear publicly until a superadmin approves them.
+- SuperAdmin → Feedback tab provides full moderation: filter by status, approve / reject / feature / delete, plus an "Approve all pending" bulk action.
+- Live cross-tab sync: when a client submits feedback in one tab, the superadmin's Feedback panel shows a toast within ~1 second with the new pending count.
+- The 3 original demo testimonials (Sara, Daniel, Mei) are seeded as approved on first load so the section is never empty. Sara is featured by default.
+- Build is green; no TypeScript errors in project source. Swap to Firestore later is a drop-in — only the function bodies in lib/feedback.ts need to change.
