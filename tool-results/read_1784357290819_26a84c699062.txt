@@ -1,0 +1,652 @@
+     1→"use client";
+     2→
+     3→import React, { useMemo, useState } from "react";
+     4→import {
+     5→  LayoutDashboard,
+     6→  Inbox,
+     7→  Clock,
+     8→  CheckCircle2,
+     9→  Loader2,
+    10→  Search,
+    11→  Filter,
+    12→  ChevronRight,
+    13→  X,
+    14→  StickyNote,
+    15→  Send,
+    16→  Eye,
+    17→  Paperclip,
+    18→  Calendar,
+    19→  User,
+    20→  Mail,
+    21→  DollarSign,
+    22→  TrendingUp,
+    23→  Activity,
+    24→  Shield,
+    25→  Settings,
+    26→  Bell,
+    27→  Home as HomeIcon,
+    28→} from "lucide-react";
+    29→import { useAuth } from "@/context/AuthContext";
+    30→import {
+    31→  DEMO_PROJECTS,
+    32→  STATUS_CLASS,
+    33→  STATUSES,
+    34→  type Project,
+    35→  type ProjectNote,
+    36→} from "@/data/demo";
+    37→import {
+    38→  CircularGauge,
+    39→  MiniAreaChart,
+    40→  MiniBarChart,
+    41→  Sparkline,
+    42→  GradientAvatar,
+    43→} from "./Charts";
+    44→import { loadSubmissions, getMeta } from "@/lib/submissions";
+    45→import NotificationsPanel from "./NotificationsPanel";
+    46→
+    47→const LOGO_URL =
+    48→  "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png";
+    49→
+    50→const SIDEBAR_NAV = [
+    51→  { id: "home",          label: "Back to site",    icon: HomeIcon },
+    52→  { id: "dashboard",     label: "Overview",        icon: LayoutDashboard },
+    53→  { id: "projects",      label: "Projects",        icon: Inbox },
+    54→  { id: "notifications", label: "Notifications",  icon: Bell },
+    55→  { id: "analytics",     label: "Analytics",       icon: Activity },
+    56→  { id: "settings",      label: "Settings",        icon: Settings },
+    57→] as const;
+    58→
+    59→const REVENUE_DATA  = [42, 38, 55, 48, 65, 58, 72, 68, 85, 78, 92, 96];
+    60→const ACTIVITY_DATA = [12, 18, 14, 22, 19, 28, 24, 32, 30, 38, 35, 45];
+    61→
+    62→const WEEKLY_BARS = [
+    63→  { label: "Mon", value: 28, color: "mint"   as const },
+    64→  { label: "Tue", value: 42, color: "violet" as const },
+    65→  { label: "Wed", value: 35, color: "mint"   as const },
+    66→  { label: "Thu", value: 58, color: "purple" as const },
+    67→  { label: "Fri", value: 48, color: "violet" as const },
+    68→  { label: "Sat", value: 22, color: "mint"   as const },
+    69→  { label: "Sun", value: 18, color: "amber"  as const },
+    70→];
+    71→
+    72→export default function DashboardView() {
+    73→  const { profile, isSuperadmin, setView } = useAuth();
+    74→  const [projects] = useState<Project[]>(DEMO_PROJECTS);
+    75→  const [filter, setFilter] = useState<string>("All");
+    76→  const [query, setQuery] = useState("");
+    77→  const [selected, setSelected] = useState<Project | null>(null);
+    78→  const [activeNav, setActiveNav] = useState<string>("dashboard");
+    79→
+    80→  const metrics = useMemo(
+    81→    () => ({
+    82→      total: projects.length,
+    83→      pending: projects.filter((p) => p.status === "Pending").length,
+    84→      progress: projects.filter((p) => p.status === "In Progress").length,
+    85→      completed: projects.filter((p) => p.status === "Completed").length,
+    86→      review: projects.filter((p) => p.status === "Under Review").length,
+    87→    }),
+    88→    [projects]
+    89→  );
+    90→
+    91→  const completionRate = Math.round((metrics.completed / metrics.total) * 100);
+    92→  const activeRate = Math.round(((metrics.progress + metrics.review) / metrics.total) * 100);
+    93→
+    94→  const filtered = useMemo(() => {
+    95→    return projects.filter((p) => {
+    96→      const matchesStatus = filter === "All" || p.status === filter;
+    97→      const q = query.trim().toLowerCase();
+    98→      const matchesQuery =
+    99→        !q ||
+   100→        p.clientName.toLowerCase().includes(q) ||
+   101→        p.clientEmail.toLowerCase().includes(q) ||
+   102→        p.projectTitle.toLowerCase().includes(q);
+   103→      return matchesStatus && matchesQuery;
+   104→    });
+   105→  }, [projects, filter, query]);
+   106→
+   107→  const handleNav = (id: string) => {
+   108→    if (id === "home") {
+   109→      setView("home");
+   110→      return;
+   111→    }
+   112→    if (id === "settings" && isSuperadmin) {
+   113→      setView("superadmin");
+   114→      return;
+   115→    }
+   116→    setActiveNav(id);
+   117→  };
+   118→
+   119→  const METRICS = [
+   120→    {
+   121→      label: "Total Projects",
+   122→      icon: Inbox as React.ComponentType<{ className?: string; style?: React.CSSProperties }>,
+   123→      value: metrics.total,
+   124→      delta: "+12%",
+   125→      spark: [3, 4, 5, 5, 6, 7, 8, 9],
+   126→      color: "#64ffda",
+   127→    },
+   128→    {
+   129→      label: "In Progress",
+   130→      icon: Loader2 as React.ComponentType<{ className?: string; style?: React.CSSProperties }>,
+   131→      value: metrics.progress,
+   132→      delta: "+3",
+   133→      spark: [1, 2, 2, 3, 2, 3, 3, 2],
+   134→      color: "#667eea",
+   135→    },
+   136→    {
+   137→      label: "Pending Review",
+   138→      icon: Clock as React.ComponentType<{ className?: string; style?: React.CSSProperties }>,
+   139→      value: metrics.pending + metrics.review,
+   140→      delta: "+1",
+   141→      spark: [2, 3, 2, 4, 3, 5, 4, 5],
+   142→      color: "#9d8df1",
+   143→    },
+   144→    {
+   145→      label: "Completed",
+   146→      icon: CheckCircle2 as React.ComponentType<{ className?: string; style?: React.CSSProperties }>,
+   147→      value: metrics.completed,
+   148→      delta: "+5",
+   149→      spark: [10, 12, 14, 18, 22, 26, 32, 38],
+   150→      color: "#64ffda",
+   151→    },
+   152→  ];
+   153→
+   154→  return (
+   155→    <div className="relative mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
+   156→      <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+   157→        {/* ─────────── SIDEBAR ─────────── */}
+   158→        <aside className="lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)]">
+   159→          <div className="glass-card flex h-full flex-col p-4">
+   160→            {/* User greeting card */}
+   161→            <div className="relative overflow-hidden rounded-xl border border-white/5 bg-gradient-to-br from-violet-600/15 via-navy-800/60 to-mint-300/10 p-4">
+   162→              <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-mint-300/15 blur-2xl" />
+   163→              <div className="relative flex items-center gap-3">
+   164→                <GradientAvatar
+   165→                  initial={(profile?.name || "A").charAt(0)}
+   166→                  size={42}
+   167→                  variant={isSuperadmin ? "violet" : "mint"}
+   168→                />
+   169→                <div className="min-w-0 flex-1">
+   170→                  <div className="truncate text-sm font-semibold text-white">
+   171→                    {profile?.name || "Admin"}
+   172→                  </div>
+   173→                  <div className="text-[10px] uppercase tracking-wider text-mint-300">
+   174→                    {profile?.role}
+   175→                  </div>
+   176→                </div>
+   177→              </div>
+   178→              <div className="relative mt-3 flex items-center gap-2 text-[10px] text-ink-400">
+   179→                <span className="inline-flex items-center gap-1">
+   180→                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+   181→                  online
+   182→                </span>
+   183→                <span>·</span>
+   184→                <span>live</span>
+   185→              </div>
+   186→            </div>
+   187→
+   188→            {/* Nav */}
+   189→            <nav className="mt-4 flex flex-col gap-1">
+   190→              <div className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+   191→                Workspace
+   192→              </div>
+   193→              {SIDEBAR_NAV.map((item) => {
+   194→                const isActive = activeNav === item.id;
+   195→                const unreadCount = item.id === "notifications"
+   196→                  ? loadSubmissions().filter((s) => !getMeta(s.id).readAt).length
+   197→                  : 0;
+   198→                return (
+   199→                  <button
+   200→                    key={item.id}
+   201→                    onClick={() => handleNav(item.id)}
+   202→                    className={`sidebar-nav-btn ${isActive ? "active" : ""}`}
+   203→                  >
+   204→                    <item.icon className="h-4 w-4" />
+   205→                    <span className="flex-1 text-left">{item.label}</span>
+   206→                    {item.id === "projects" && (
+   207→                      <span className="rounded-md bg-mint-300/15 px-1.5 py-0.5 text-[10px] font-bold text-mint-300">
+   208→                        {metrics.total}
+   209→                      </span>
+   210→                    )}
+   211→                    {item.id === "notifications" && unreadCount > 0 && (
+   212→                      <span className="rounded-md bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">
+   213→                        {unreadCount}
+   214→                      </span>
+   215→                    )}
+   216→                  </button>
+   217→                );
+   218→              })}
+   219→            </nav>
+   220→
+   221→            {/* Quick stat tile at bottom */}
+   222→            <div className="mt-auto pt-4">
+   223→              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+   224→                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-ink-500">
+   225→                  <TrendingUp className="h-3 w-3 text-mint-300" /> Completion rate
+   226→                </div>
+   227→                <div className="mt-1 text-2xl font-bold text-white">{completionRate}%</div>
+   228→                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/5">
+   229→                  <div
+   230→                    className="h-full rounded-full bg-gradient-to-r from-mint-300 to-violet-600 transition-all duration-1000"
+   231→                    style={{ width: `${completionRate}%` }}
+   232→                  />
+   233→                </div>
+   234→              </div>
+   235→            </div>
+   236→          </div>
+   237→        </aside>
+   238→
+   239→        {/* ─────────── MAIN ─────────── */}
+   240→        <main className="min-w-0">
+   241→          {/* Top bar */}
+   242→          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+   243→            <div>
+   244→              <div className="inline-flex items-center gap-2 rounded-full bg-mint-300/10 px-3 py-1 text-xs font-medium text-mint-300">
+   245→                <LayoutDashboard className="h-3.5 w-3.5" /> Admin Dashboard
+   246→              </div>
+   247→              <h1 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
+   248→                Welcome back, {profile?.name?.split(" ")[0] || "Admin"} 👋
+   249→              </h1>
+   250→              <p className="mt-1 text-sm text-ink-400">
+   251→                Logged in as <span className="font-mono text-mint-300">{profile?.email}</span>
+   252→              </p>
+   253→            </div>
+   254→            <div className="flex items-center gap-2">
+   255→              <button className="btn-ghost text-sm" title="Notifications">
+   256→                <Bell className="h-4 w-4" />
+   257→                <span className="hidden sm:inline">Alerts</span>
+   258→                <span className="ml-1 rounded-md bg-mint-300/20 px-1.5 py-0.5 text-[10px] font-bold text-mint-300">3</span>
+   259→              </button>
+   260→              {isSuperadmin && (
+   261→                <button onClick={() => setView("superadmin")} className="btn-ghost text-sm">
+   262→                  <Shield className="h-4 w-4" /> Superadmin
+   263→                  <ChevronRight className="h-4 w-4" />
+   264→                </button>
+   265→              )}
+   266→            </div>
+   267→          </div>
+   268→
+   269→          {/* Metric cards */}
+   270→          {activeNav === "notifications" ? (
+   271→            <div className="mt-6">
+   272→              <NotificationsPanel />
+   273→            </div>
+   274→          ) : (
+   275→          <>
+   276→          <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+   277→            {METRICS.map((m, i) => (
+   278→              <div
+   279→                key={m.label}
+   280→                className="glass-card-hover group p-5 animate-fade-up"
+   281→                style={{ animationDelay: `${i * 0.08}s` }}
+   282→              >
+   283→                <div className="flex items-start justify-between">
+   284→                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-white/10 to-white/[0.02] ring-1 ring-white/10">
+   285→                    <m.icon
+   286→                      className={`h-5 w-5 ${m.label === "In Progress" ? "animate-spin-fast" : ""}`}
+   287→                      style={{ color: m.color }}
+   288→                    />
+   289→                  </div>
+   290→                  <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300">
+   291→                    {m.delta}
+   292→                  </span>
+   293→                </div>
+   294→                <div className="mt-3 text-3xl font-bold text-white">{m.value}</div>
+   295→                <div className="flex items-end justify-between">
+   296→                  <span className="text-xs uppercase tracking-wider text-ink-400">{m.label}</span>
+   297→                  <Sparkline data={m.spark} color={m.color} width={56} height={20} />
+   298→                </div>
+   299→              </div>
+   300→            ))}
+   301→          </div>
+   302→
+   303→          {/* Gauges + Chart row */}
+   304→          <div className="mt-6 grid gap-4 lg:grid-cols-3">
+   305→            {/* Two gauges */}
+   306→            <div className="glass-card p-6 animate-fade-up stagger-2">
+   307→              <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
+   308→                <Activity className="h-3.5 w-3.5 text-mint-300" /> Project health
+   309→              </div>
+   310→              <div className="mt-4 grid grid-cols-2 gap-2">
+   311→                <div className="flex flex-col items-center rounded-xl border border-white/5 bg-white/[0.02] p-3">
+   312→                  <CircularGauge
+   313→                    value={completionRate}
+   314→                    size={92}
+   315→                    stroke={8}
+   316→                    sublabel="done"
+   317→                    gradientFrom="#64ffda"
+   318→                    gradientTo="#26d0a8"
+   319→                  />
+   320→                </div>
+   321→                <div className="flex flex-col items-center rounded-xl border border-white/5 bg-white/[0.02] p-3">
+   322→                  <CircularGauge
+   323→                    value={activeRate}
+   324→                    size={92}
+   325→                    stroke={8}
+   326→                    sublabel="active"
+   327→                    gradientFrom="#667eea"
+   328→                    gradientTo="#764ba2"
+   329→                  />
+   330→                </div>
+   331→              </div>
+   332→            </div>
+   333→
+   334→            {/* Revenue trend area chart */}
+   335→            <div className="glass-card p-6 animate-fade-up stagger-3 lg:col-span-2">
+   336→              <div className="flex items-center justify-between">
+   337→                <div>
+   338→                  <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
+   339→                    <TrendingUp className="h-3.5 w-3.5 text-mint-300" /> Revenue trend
+   340→                  </div>
+   341→                  <div className="mt-1 text-2xl font-bold text-white">
+   342→                    $284.5k
+   343→                    <span className="ml-2 text-xs font-normal text-emerald-300">+18.2%</span>
+   344→                  </div>
+   345→                </div>
+   346→                <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.02] p-1 text-[10px]">
+   347→                  {["1M", "3M", "6M", "1Y"].map((t, i) => (
+   348→                    <button
+   349→                      key={t}
+   350→                      className={`rounded-md px-2 py-1 ${
+   351→                        i === 2 ? "bg-mint-300/15 text-mint-300" : "text-ink-400 hover:text-white"
+   352→                      }`}
+   353→                    >
+   354→                      {t}
+   355→                    </button>
+   356→                  ))}
+   357→                </div>
+   358→              </div>
+   359→              <div className="mt-4">
+   360→                <MiniAreaChart
+   361→                  data={REVENUE_DATA}
+   362→                  width={520}
+   363→                  height={140}
+   364→                  stroke="#64ffda"
+   365→                  fillFrom="rgba(100, 255, 218, 0.30)"
+   366→                  fillTo="rgba(100, 255, 218, 0)"
+   367→                  strokeWidth={2}
+   368→                />
+   369→              </div>
+   370→            </div>
+   371→          </div>
+   372→
+   373→          {/* Activity + Weekly bars */}
+   374→          <div className="mt-4 grid gap-4 lg:grid-cols-3">
+   375→            <div className="glass-card p-6 animate-fade-up stagger-4 lg:col-span-2">
+   376→              <div className="flex items-center justify-between">
+   377→                <div>
+   378→                  <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
+   379→                    <Activity className="h-3.5 w-3.5 text-violet-300" /> Team activity
+   380→                  </div>
+   381→                  <div className="mt-1 text-sm text-ink-200">Submissions per week</div>
+   382→                </div>
+   383→                <span className="badge badge-progress">
+   384→                  <span className="h-1.5 w-1.5 rounded-full bg-mint-300" /> Live
+   385→                </span>
+   386→              </div>
+   387→              <div className="mt-4 flex items-end">
+   388→                <MiniBarChart data={WEEKLY_BARS} width={520} height={120} barWidth={32} gap={18} />
+   389→              </div>
+   390→            </div>
+   391→
+   392→            <div className="glass-card p-6 animate-fade-up stagger-5">
+   393→              <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-400">
+   394→                <TrendingUp className="h-3.5 w-3.5 text-mint-300" /> Throughput
+   395→              </div>
+   396→              <div className="mt-3 text-3xl font-bold text-white">
+   397→                304<span className="text-base font-normal text-ink-400">.56</span>
+   398→              </div>
+   399→              <div className="mt-1 text-xs text-emerald-300">+12.4% vs last month</div>
+   400→              <div className="mt-4">
+   401→                <MiniAreaChart
+   402→                  data={ACTIVITY_DATA}
+   403→                  width={240}
+   404→                  height={70}
+   405→                  stroke="#667eea"
+   406→                  fillFrom="rgba(102, 126, 234, 0.30)"
+   407→                  fillTo="rgba(102, 126, 234, 0)"
+   408→                />
+   409→              </div>
+   410→            </div>
+   411→          </div>
+   412→
+   413→          {/* Toolbar */}
+   414→          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+   415→            <div>
+   416→              <h2 className="text-xl font-semibold text-white">Project submissions</h2>
+   417→              <p className="mt-1 text-xs text-ink-400">{filtered.length} of {projects.length} shown</p>
+   418→            </div>
+   419→            <div className="flex flex-wrap items-center gap-2">
+   420→              <div className="relative">
+   421→                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+   422→                <input
+   423→                  type="text"
+   424→                  value={query}
+   425→                  onChange={(e) => setQuery(e.target.value)}
+   426→                  placeholder="Search by client or title…"
+   427→                  className="input-field w-64 py-2 pl-10 text-sm"
+   428→                />
+   429→              </div>
+   430→              <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.02] p-1">
+   431→                <Filter className="ml-1.5 mr-1 h-3.5 w-3.5 text-ink-500" />
+   432→                {["All", ...STATUSES].map((s) => (
+   433→                  <button
+   434→                    key={s}
+   435→                    onClick={() => setFilter(s)}
+   436→                    className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-200 ${
+   437→                      filter === s ? "bg-mint-300/15 text-mint-300" : "text-ink-400 hover:text-white"
+   438→                    }`}
+   439→                  >
+   440→                    {s}
+   441→                  </button>
+   442→                ))}
+   443→              </div>
+   444→            </div>
+   445→          </div>
+   446→
+   447→          {/* Project grid */}
+   448→          <div className="mt-4 grid gap-3">
+   449→            {filtered.length === 0 && (
+   450→              <div className="glass-card p-10 text-center text-sm text-ink-400">
+   451→                No projects match your filters.
+   452→              </div>
+   453→            )}
+   454→            {filtered.map((p, i) => (
+   455→              <button
+   456→                key={p.id}
+   457→                onClick={() => setSelected(p)}
+   458→                className="glass-card-hover group p-4 text-left animate-fade-up"
+   459→                style={{ animationDelay: `${i * 0.04}s` }}
+   460→              >
+   461→                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+   462→                  <div className="flex-1 min-w-0">
+   463→                    <div className="flex items-center gap-2 flex-wrap">
+   464→                      <span className={STATUS_CLASS[p.status]}>{p.status}</span>
+   465→                      <span className="text-base font-semibold text-white">{p.projectTitle}</span>
+   466→                    </div>
+   467→                    <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-400">
+   468→                      <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> {p.clientName}</span>
+   469→                      <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3" /> {p.clientEmail}</span>
+   470→                      <span className="inline-flex items-center gap-1"><DollarSign className="h-3 w-3" /> {p.budget}</span>
+   471→                      <span className="inline-flex items-center gap-1"><Paperclip className="h-3 w-3" /> {p.attachments.length} files</span>
+   472→                      <span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" /> {p.createdAt}</span>
+   473→                    </div>
+   474→                  </div>
+   475→                  <div className="flex items-center gap-2 text-ink-400">
+   476→                    <span className="hidden sm:inline-flex items-center gap-1 text-xs">
+   477→                      <StickyNote className="h-3 w-3" /> {p.notes.length} notes
+   478→                    </span>
+   479→                    <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+   480→                  </div>
+   481→                </div>
+   482→              </button>
+   483→            ))}
+   484→          </div>
+   485→
+   486→          {/* Detail drawer */}
+   487→          {selected && (
+   488→            <DetailDrawer project={selected} onClose={() => setSelected(null)} />
+   489→          )}
+   490→          </>
+   491→          )}
+   492→        </main>
+   493→      </div>
+   494→    </div>
+   495→  );
+   496→}
+   497→
+   498→function DetailDrawer({
+   499→  project,
+   500→  onClose,
+   501→}: {
+   502→  project: Project;
+   503→  onClose: () => void;
+   504→}) {
+   505→  const [note, setNote] = useState("");
+   506→  const [localNotes, setLocalNotes] = useState<ProjectNote[]>(project.notes);
+   507→  const [status, setStatus] = useState<Project["status"]>(project.status);
+   508→
+   509→  const handleAddNote = (e: React.FormEvent) => {
+   510→    e.preventDefault();
+   511→    if (!note.trim()) return;
+   512→    setLocalNotes([
+   513→      ...localNotes,
+   514→      {
+   515→        author: "You",
+   516→        text: note.trim(),
+   517→        createdAt: new Date().toISOString().slice(0, 10),
+   518→      },
+   519→    ]);
+   520→    setNote("");
+   521→  };
+   522→
+   523→  return (
+   524→    <div className="fixed inset-0 z-50 flex justify-end">
+   525→      <div
+   526→        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+   527→        onClick={onClose}
+   528→      />
+   529→      <div className="relative h-full w-full max-w-xl overflow-y-auto border-l border-white/10 bg-navy-900/95 backdrop-blur-xl animate-scale-in">
+   530→        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/5 bg-navy-900/90 px-6 py-4 backdrop-blur-xl">
+   531→          <div>
+   532→            <div className="flex items-center gap-2">
+   533→              <span className={STATUS_CLASS[status]}>{status}</span>
+   534→              <span className="text-[11px] text-ink-500">ID: {project.id}</span>
+   535→            </div>
+   536→            <h2 className="mt-1 text-lg font-semibold text-white">{project.projectTitle}</h2>
+   537→          </div>
+   538→          <button
+   539→            onClick={onClose}
+   540→            className="rounded-lg p-2 text-ink-400 hover:bg-white/5 hover:text-white"
+   541→          >
+   542→            <X className="h-5 w-5" />
+   543→          </button>
+   544→        </div>
+   545→
+   546→        <div className="space-y-6 px-6 py-6">
+   547→          <section>
+   548→            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-400">Client</h3>
+   549→            <div className="grid grid-cols-2 gap-3 text-sm">
+   550→              <InfoRow icon={User} label="Name" value={project.clientName} />
+   551→              <InfoRow icon={Mail} label="Email" value={project.clientEmail} />
+   552→              <InfoRow icon={DollarSign} label="Budget" value={project.budget} />
+   553→              <InfoRow icon={Calendar} label="Submitted" value={project.createdAt} />
+   554→            </div>
+   555→          </section>
+   556→
+   557→          <section>
+   558→            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Description</h3>
+   559→            <p className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-sm leading-relaxed text-ink-200">
+   560→              {project.description}
+   561→            </p>
+   562→          </section>
+   563→
+   564→          <section>
+   565→            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Attachments</h3>
+   566→            <div className="space-y-2">
+   567→              {project.attachments.map((a) => (
+   568→                <div
+   569→                  key={a}
+   570→                  className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 text-sm"
+   571→                >
+   572→                  <Paperclip className="h-4 w-4 text-ink-400" />
+   573→                  <span className="flex-1 text-ink-200">{a}</span>
+   574→                  <a href="#" onClick={(e) => e.preventDefault()} className="text-mint-300 hover:text-mint-200">
+   575→                    <Eye className="h-4 w-4" />
+   576→                  </a>
+   577→                </div>
+   578→              ))}
+   579→            </div>
+   580→          </section>
+   581→
+   582→          <section>
+   583→            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-400">Update status</h3>
+   584→            <div className="flex flex-wrap gap-2">
+   585→              {STATUSES.map((s) => (
+   586→                <button
+   587→                  key={s}
+   588→                  onClick={() => setStatus(s)}
+   589→                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+   590→                    status === s
+   591→                      ? "bg-mint-300/15 text-mint-300 ring-1 ring-mint-300/40"
+   592→                      : "border border-white/10 bg-white/[0.02] text-ink-300 hover:bg-white/5"
+   593→                  }`}
+   594→                >
+   595→                  {s}
+   596→                </button>
+   597→              ))}
+   598→            </div>
+   599→          </section>
+   600→
+   601→          <section>
+   602→            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-400">
+   603→              Internal notes ({localNotes.length})
+   604→            </h3>
+   605→            <div className="space-y-2">
+   606→              {localNotes.map((n, i) => (
+   607→                <div key={i} className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+   608→                  <div className="flex items-center justify-between text-[11px] text-ink-500">
+   609→                    <span className="font-medium text-mint-300">{n.author}</span>
+   610→                    <span>{n.createdAt}</span>
+   611→                  </div>
+   612→                  <p className="mt-1 text-sm text-ink-200">{n.text}</p>
+   613→                </div>
+   614→              ))}
+   615→            </div>
+   616→            <form onSubmit={handleAddNote} className="mt-3 flex gap-2">
+   617→              <input
+   618→                value={note}
+   619→                onChange={(e) => setNote(e.target.value)}
+   620→                placeholder="Add an internal note for the team…"
+   621→                className="input-field flex-1 text-sm"
+   622→              />
+   623→              <button type="submit" className="btn-primary text-sm">
+   624→                <Send className="h-4 w-4" />
+   625→              </button>
+   626→            </form>
+   627→          </section>
+   628→        </div>
+   629→      </div>
+   630→    </div>
+   631→  );
+   632→}
+   633→
+   634→function InfoRow({
+   635→  icon: Icon,
+   636→  label,
+   637→  value,
+   638→}: {
+   639→  icon: React.ComponentType<{ className?: string }>;
+   640→  label: string;
+   641→  value: string;
+   642→}) {
+   643→  return (
+   644→    <div className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+   645→      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-ink-500">
+   646→        <Icon className="h-3 w-3" /> {label}
+   647→      </div>
+   648→      <div className="mt-0.5 text-sm text-ink-100">{value}</div>
+   649→    </div>
+   650→  );
+   651→}
+   652→
