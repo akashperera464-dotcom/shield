@@ -1,34 +1,55 @@
-// Shared showcase storage — used by both HomeView (read) and SuperAdminView (CRUD).
-// Persists to localStorage so admin edits are reflected on the public site instantly
-// (same browser session). Firestore wiring lands later.
+// Showcase store — thin client over /api/showcase.
+// MongoDB is the source of truth. localStorage is a read cache.
 
-import { DEMO_SHOWCASE, type ShowcaseProject } from "@/data/demo";
+import type { ShowcaseProject } from "@/data/demo";
 
 const KEY = "theshield_showcase";
 
-export function loadShowcase(): ShowcaseProject[] {
-  if (typeof window === "undefined") return DEMO_SHOWCASE;
+function readCache(): ShowcaseProject[] {
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) {
-      localStorage.setItem(KEY, JSON.stringify(DEMO_SHOWCASE));
-      return DEMO_SHOWCASE;
-    }
-    const parsed = JSON.parse(raw) as ShowcaseProject[];
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      localStorage.setItem(KEY, JSON.stringify(DEMO_SHOWCASE));
-      return DEMO_SHOWCASE;
-    }
-    return parsed;
+    return raw ? (JSON.parse(raw) as ShowcaseProject[]) : [];
   } catch {
-    return DEMO_SHOWCASE;
+    return [];
   }
 }
 
-export function saveShowcase(projects: ShowcaseProject[]): void {
+function writeCache(list: ShowcaseProject[]) {
+  if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(KEY, JSON.stringify(projects));
+    localStorage.setItem(KEY, JSON.stringify(list));
+    window.dispatchEvent(new StorageEvent("storage", { key: KEY }));
   } catch {}
+}
+
+async function apiGet(): Promise<ShowcaseProject[]> {
+  const res = await fetch("/api/showcase", { cache: "no-store" });
+  if (!res.ok) return [];
+  return (await res.json()) as ShowcaseProject[];
+}
+
+/** Load all showcase projects. Featured first, then by order. Cache + refresh. */
+export function loadShowcase(): ShowcaseProject[] {
+  const cached = readCache();
+  apiGet().then(writeCache).catch(() => {});
+  return cached.sort((a, b) => {
+    if (a.featured !== b.featured) return a.featured ? -1 : 1;
+    return (a.order || 0) - (b.order || 0);
+  });
+}
+
+/**
+ * Bulk-replace the entire showcase list. Used by SuperAdmin when
+ * editing/adding/deleting cards — the admin saves the whole list at once.
+ */
+export async function saveShowcase(projects: ShowcaseProject[]): Promise<void> {
+  await fetch("/api/showcase", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ projects }),
+  });
+  writeCache(projects);
 }
 
 export function newShowcaseId(): string {

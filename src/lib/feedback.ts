@@ -1,113 +1,76 @@
-// Shared client feedback (testimonials) store.
+// Feedback store — thin client over /api/feedback.
 //
-// Clients submit feedback from the homepage "Client love" section. New
-// submissions land with status = "pending" and only appear on the public
-// site once a superadmin approves them. Approved entries can additionally
-// be marked "featured" to pin them to the top of the grid.
-//
-// Persists to localStorage so the same browser session sees admin + client
-// data consistent. Firestore wiring lands later — the API below mirrors
-// what a Firestore implementation would expose so the swap is drop-in.
+// Source of truth is MongoDB (Prisma). localStorage is used only as a
+// read cache so the testimonials section renders instantly. Writes go
+// through the API and refresh the cache.
 
 export type FeedbackStatus = "pending" | "approved" | "rejected";
 
 export interface Feedback {
   id: string;
-  name: string;           // client name (required)
-  role: string;           // role + company, e.g. "CEO, Layla Cosmetics" (required)
-  rating: number;         // 1-5 stars
-  quote: string;          // the testimonial text (required, 10-500 chars)
-  variant: "mint" | "violet" | "purple"; // drives avatar gradient — auto-assigned
+  name: string;
+  role: string;
+  rating: number;
+  quote: string;
+  variant: "mint" | "violet" | "purple";
   status: FeedbackStatus;
-  featured: boolean;      // pinned to the top of the public grid
-  createdAt: string;      // ISO timestamp
-  source?: "seed" | "client"; // seed = pre-populated demo, client = real submission
+  featured: boolean;
+  createdAt: string;
+  source?: "seed" | "client";
 }
 
 const KEY = "theshield_feedback";
 
-// Three demo testimonials so the section looks populated on first load.
-// These mirror the original static TESTIMONIALS array so the visual is
-// preserved exactly when no client feedback exists yet.
-const SEED: Feedback[] = [
-  {
-    id: "fb_seed_1",
-    name: "Sara Al-Mansoori",
-    role: "CEO, Layla Cosmetics",
-    rating: 5,
-    quote:
-      "The Shield took our Figma mess and shipped a polished React app in 5 weeks. The dashboard alone saved my team 12 hours a week.",
-    variant: "mint",
-    status: "approved",
-    featured: true,
-    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-    source: "seed",
-  },
-  {
-    id: "fb_seed_2",
-    name: "Daniel Okafor",
-    role: "COO, FleetIQ",
-    rating: 5,
-    quote:
-      "The role-based admin panel is exactly what we needed. Superadmin can edit copy live, my ops team manages submissions — perfect.",
-    variant: "violet",
-    status: "approved",
-    featured: false,
-    createdAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
-    source: "seed",
-  },
-  {
-    id: "fb_seed_3",
-    name: "Mei Tanaka",
-    role: "Founder, Studio Mei",
-    rating: 5,
-    quote:
-      "Submission was friction-free — one quick form and we got a clear scope back within 48 hours. The whole process felt senior.",
-    variant: "purple",
-    status: "approved",
-    featured: false,
-    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    source: "seed",
-  },
-];
-
-function readRaw(): Feedback[] {
-  if (typeof window === "undefined") return SEED;
+// ── Cache helpers ────────────────────────────────────────────────────
+function readCache(): Feedback[] {
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) {
-      localStorage.setItem(KEY, JSON.stringify(SEED));
-      return SEED;
-    }
-    const parsed = JSON.parse(raw) as Feedback[];
-    if (!Array.isArray(parsed)) {
-      localStorage.setItem(KEY, JSON.stringify(SEED));
-      return SEED;
-    }
-    return parsed;
+    return raw ? (JSON.parse(raw) as Feedback[]) : [];
   } catch {
-    return SEED;
+    return [];
   }
 }
 
-function writeAll(list: Feedback[]): void {
+function writeCache(list: Feedback[]) {
+  if (typeof window === "undefined") return;
   try {
     localStorage.setItem(KEY, JSON.stringify(list));
-    // Cross-tab + same-tab notification
     window.dispatchEvent(new StorageEvent("storage", { key: KEY }));
   } catch {}
 }
 
-/** Load ALL feedback (admin view). Newest first. */
+// ── Network ──────────────────────────────────────────────────────────
+async function apiGet(scope: "all" | "approved" | "pending" = "approved"): Promise<Feedback[]> {
+  const res = await fetch(`/api/feedback?scope=${scope}`, { cache: "no-store" });
+  if (!res.ok) return [];
+  return (await res.json()) as Feedback[];
+}
+
+async function apiPatch(id: string, action: string): Promise<void> {
+  await fetch(`/api/feedback/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action }),
+  });
+}
+
+// ── Public API ───────────────────────────────────────────────────────
+
+/** Load ALL feedback (admin view). Newest first. Uses cache, then refreshes. */
 export function loadAllFeedback(): Feedback[] {
-  return [...readRaw()].sort(
+  const cached = readCache();
+  apiGet("all").then(writeCache).catch(() => {});
+  return cached.sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 }
 
 /** Load only approved feedback for public display. Featured first, then newest. */
 export function loadApprovedFeedback(): Feedback[] {
-  return readRaw()
+  const cached = readCache();
+  apiGet("approved").then(writeCache).catch(() => {});
+  return cached
     .filter((f) => f.status === "approved")
     .sort((a, b) => {
       if (a.featured !== b.featured) return a.featured ? -1 : 1;
@@ -117,66 +80,86 @@ export function loadApprovedFeedback(): Feedback[] {
 
 /** Count of pending feedback awaiting moderation. */
 export function countPendingFeedback(): number {
-  return readRaw().filter((f) => f.status === "pending").length;
+  return readCache().filter((f) => f.status === "pending").length;
 }
 
 /** Insert a new client-submitted feedback (status = pending). */
-export function addFeedback(input: {
+export async function addFeedback(input: {
   name: string;
   role: string;
   rating: number;
   quote: string;
-}): Feedback {
-  const variants: Feedback["variant"][] = ["mint", "violet", "purple"];
-  const fb: Feedback = {
-    id: "fb_" + Math.random().toString(36).slice(2, 9),
-    name: input.name.trim(),
-    role: input.role.trim(),
-    rating: Math.max(1, Math.min(5, Math.round(input.rating))),
-    quote: input.quote.trim(),
-    // Distribute variants by hash of name so the grid stays colorful
-    variant: variants[
-      Array.from(input.name).reduce((acc, c) => acc + c.charCodeAt(0), 0) % 3
-    ],
-    status: "pending",
-    featured: false,
-    createdAt: new Date().toISOString(),
-    source: "client",
-  };
-  const list = readRaw();
-  writeAll([fb, ...list]);
-  return fb;
+}): Promise<Feedback> {
+  const res = await fetch("/api/feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to submit feedback" }));
+    throw new Error(err.error || "Failed to submit feedback");
+  }
+  const created = (await res.json()) as Feedback;
+  // Refresh cache so the new pending item shows up in admin queue
+  const fresh = await apiGet("all");
+  writeCache(fresh);
+  return created;
 }
 
 /** Approve a pending feedback so it appears on the public site. */
-export function approveFeedback(id: string): void {
-  writeAll(readRaw().map((f) => (f.id === id ? { ...f, status: "approved" } : f)));
+export async function approveFeedback(id: string): Promise<void> {
+  await apiPatch(id, "approve");
+  const fresh = await apiGet("all");
+  writeCache(fresh);
 }
 
 /** Reject a feedback (hidden from public, kept in admin for record). */
-export function rejectFeedback(id: string): void {
-  writeAll(readRaw().map((f) => (f.id === id ? { ...f, status: "rejected" } : f)));
+export async function rejectFeedback(id: string): Promise<void> {
+  await apiPatch(id, "reject");
+  const fresh = await apiGet("all");
+  writeCache(fresh);
 }
 
 /** Toggle the featured flag (only meaningful for approved items). */
-export function toggleFeatured(id: string): void {
-  writeAll(
-    readRaw().map((f) =>
-      f.id === id && f.status === "approved" ? { ...f, featured: !f.featured } : f
-    )
-  );
+export async function toggleFeatured(id: string): Promise<void> {
+  const current = readCache().find((f) => f.id === id);
+  // Optimistic
+  if (current && current.featured) {
+    await apiPatch(id, "unfeature");
+  } else {
+    await apiPatch(id, "feature");
+  }
+  const fresh = await apiGet("all");
+  writeCache(fresh);
 }
 
 /** Permanently delete a feedback entry. */
-export function deleteFeedback(id: string): void {
-  writeAll(readRaw().filter((f) => f.id !== id));
+export async function deleteFeedback(id: string): Promise<void> {
+  await fetch(`/api/feedback/${id}`, { method: "DELETE" });
+  writeCache(readCache().filter((f) => f.id !== id));
 }
 
-/** Ensure the seed is present on first load. Safe to call repeatedly. */
-export function seedFeedback(): void {
+/**
+ * Ensure the seed feedback is present in MongoDB. Idempotent — only
+ * fires the API call once per browser (subsequent visits skip it).
+ */
+export async function seedFeedback(): Promise<void> {
   if (typeof window === "undefined") return;
-  const existing = readRaw();
-  if (existing.length === 0) {
-    writeAll(SEED);
+  const flag = localStorage.getItem("theshield_seeded_feedback");
+  if (flag) {
+    // Still refresh the cache so the homepage shows them.
+    const fresh = await apiGet("approved");
+    writeCache(fresh);
+    return;
+  }
+  try {
+    const res = await fetch("/api/seed", { method: "POST" });
+    if (res.ok) {
+      localStorage.setItem("theshield_seeded_feedback", "1");
+      const fresh = await apiGet("approved");
+      writeCache(fresh);
+    }
+  } catch {
+    // swallow
   }
 }

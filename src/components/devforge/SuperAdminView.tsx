@@ -352,18 +352,16 @@ function CMSPanel({ isDemo }: { isDemo: boolean }) {
 }
 
 /* ─────────────────────────────────────────────────────────────────────── */
-
-/* ─────────────────────────────────────────────────────────────────────── */
 /* USER MANAGEMENT — full CRUD                                            */
 /* • Superadmin (you) can never be deleted                                 */
 /* • Superadmin can add / edit / delete any other admin                    */
-/* • Persists to localStorage so changes survive reloads                   */
+/* • Persists to MongoDB via /api/team endpoints                           */
 /* ─────────────────────────────────────────────────────────────────────── */
 
 const TEAM_STORAGE_KEY = "theshield_team";
-const SUPERADMIN_UID = "u_001"; // matches DEMO_TEAM[0] — Akash Perera
+const SUPERADMIN_UID = "u_001"; // matches SEED_TEAM[0] — Akash Perera
 
-// Always-seed superadmin row (in case localStorage is empty)
+// Always-seed superadmin row (used as fallback if API is unreachable)
 const SEED_SUPERADMIN: TeamMember = {
   uid: SUPERADMIN_UID,
   name: "Akash Perera",
@@ -375,31 +373,80 @@ const SEED_SUPERADMIN: TeamMember = {
   username: "akashperera",
 };
 
-function loadTeam(): TeamMember[] {
-  if (typeof window === "undefined") return DEMO_TEAM;
+function readTeamCache(): TeamMember[] {
+  if (typeof window === "undefined") return [SEED_SUPERADMIN];
   try {
     const raw = localStorage.getItem(TEAM_STORAGE_KEY);
-    if (!raw) {
-      const seeded = [SEED_SUPERADMIN, ...DEMO_TEAM.filter((m) => m.uid !== SUPERADMIN_UID)];
-      localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(seeded));
-      return seeded;
-    }
+    if (!raw) return [SEED_SUPERADMIN];
     const parsed = JSON.parse(raw) as TeamMember[];
-    // Always guarantee the superadmin exists & is unchanged
+    if (!Array.isArray(parsed)) return [SEED_SUPERADMIN];
+    // Always guarantee the superadmin exists in the cache
     if (!parsed.some((m) => m.uid === SUPERADMIN_UID)) {
       parsed.unshift(SEED_SUPERADMIN);
-      localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(parsed));
     }
     return parsed;
   } catch {
-    return DEMO_TEAM;
+    return [SEED_SUPERADMIN];
   }
 }
 
-function saveTeam(team: TeamMember[]) {
+function writeTeamCache(team: TeamMember[]) {
+  if (typeof window === "undefined") return;
   try {
     localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(team));
+    window.dispatchEvent(new StorageEvent("storage", { key: TEAM_STORAGE_KEY }));
   } catch {}
+}
+
+async function apiGetTeam(): Promise<TeamMember[]> {
+  const res = await fetch("/api/team", { cache: "no-store" });
+  if (!res.ok) return [];
+  return (await res.json()) as TeamMember[];
+}
+
+async function apiCreateTeamMember(m: TeamMember): Promise<TeamMember> {
+  const res = await fetch("/api/team", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(m),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to add admin" }));
+    throw new Error(err.error || "Failed to add admin");
+  }
+  return res.json();
+}
+
+async function apiUpdateTeamMember(uid: string, patch: Partial<TeamMember>): Promise<TeamMember> {
+  const res = await fetch(`/api/team/${uid}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to update admin" }));
+    throw new Error(err.error || "Failed to update admin");
+  }
+  return res.json();
+}
+
+async function apiDeleteTeamMember(uid: string): Promise<void> {
+  const res = await fetch(`/api/team/${uid}`, { method: "DELETE" });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to delete admin" }));
+    throw new Error(err.error || "Failed to delete admin");
+  }
+}
+
+function loadTeam(): TeamMember[] {
+  const cached = readTeamCache();
+  // Background refresh from MongoDB
+  apiGetTeam()
+    .then((fresh) => {
+      if (fresh.length > 0) writeTeamCache(fresh);
+    })
+    .catch(() => {});
+  return cached;
 }
 
 const JOB_FIELDS = [
@@ -455,7 +502,7 @@ function TeamPanel({ isDemo }: { isDemo: boolean }) {
 
   const persist = (next: TeamMember[]) => {
     setTeam(next);
-    saveTeam(next);
+    writeTeamCache(next);
   };
 
   const validate = (): string | null => {
@@ -491,21 +538,16 @@ function TeamPanel({ isDemo }: { isDemo: boolean }) {
     try {
       if (editingUid) {
         // ── UPDATE ──
-        const next = team.map((m) =>
-          m.uid === editingUid
-            ? {
-                ...m,
-                name: form.name.trim(),
-                email: form.email.trim(),
-                username: form.username.trim(),
-                mobile: form.mobile.trim(),
-                jobField: form.jobField,
-                // superadmin role is locked
-                role: m.uid === SUPERADMIN_UID ? "superadmin" : m.role,
-              }
-            : m
-        );
-        persist(next);
+        const patch: Partial<TeamMember> = {
+          name: form.name.trim(),
+          email: form.email.trim(),
+          username: form.username.trim(),
+          mobile: form.mobile.trim(),
+          jobField: form.jobField,
+        };
+        await apiUpdateTeamMember(editingUid, patch);
+        const fresh = await apiGetTeam();
+        persist(fresh);
         setMsg({ type: "ok", text: `Updated ${form.name}.` });
         setEditingUid(null);
         setForm(EMPTY_FORM);
@@ -524,7 +566,9 @@ function TeamPanel({ isDemo }: { isDemo: boolean }) {
           role: "admin",
           createdAt: new Date().toISOString().slice(0, 10),
         };
-        persist([newMember, ...team]);
+        await apiCreateTeamMember(newMember);
+        const fresh = await apiGetTeam();
+        persist(fresh);
         setMsg({ type: "ok", text: `Admin added: ${form.email}` });
         setForm(EMPTY_FORM);
       }
@@ -562,7 +606,7 @@ function TeamPanel({ isDemo }: { isDemo: boolean }) {
   };
 
   // ── Delete ───────────────────────────────────────────────
-  const handleDelete = (m: TeamMember) => {
+  const handleDelete = async (m: TeamMember) => {
     if (isProtectedSuperadmin(m)) {
       setMsg({ type: "err", text: "The superadmin account cannot be deleted." });
       return;
@@ -571,10 +615,21 @@ function TeamPanel({ isDemo }: { isDemo: boolean }) {
       setConfirmDeleteUid(m.uid);
       return;
     }
-    persist(team.filter((x) => x.uid !== m.uid));
-    setConfirmDeleteUid(null);
-    setMsg({ type: "ok", text: `Removed ${m.name}.` });
-    if (editingUid === m.uid) cancelEdit();
+    setBusy(true);
+    try {
+      await apiDeleteTeamMember(m.uid);
+      const fresh = await apiGetTeam();
+      persist(fresh);
+      setConfirmDeleteUid(null);
+      setMsg({ type: "ok", text: `Removed ${m.name}.` });
+      if (editingUid === m.uid) cancelEdit();
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "Failed to delete admin.";
+      setMsg({ type: "err", text: errMsg });
+      setConfirmDeleteUid(null);
+    } finally {
+      setBusy(false);
+    }
   };
 
   // ── Render ───────────────────────────────────────────────
@@ -920,9 +975,16 @@ function ShowcasePanel() {
   const update = <K extends keyof ShowcaseFormState>(k: K, v: ShowcaseFormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const persist = (next: ShowcaseProject[]) => {
+  const persist = async (next: ShowcaseProject[]) => {
     setProjects(next);
-    saveShowcase(next);
+    try {
+      await saveShowcase(next);
+    } catch (e) {
+      setMsg({
+        type: "err",
+        text: e instanceof Error ? e.message : "Failed to save to database.",
+      });
+    }
   };
 
   const validate = (): string | null => {
@@ -966,7 +1028,7 @@ function ShowcasePanel() {
               }
             : p
         );
-        persist(next);
+        await persist(next);
         setMsg({ type: "ok", text: `Updated "${form.title}".` });
       } else {
         const newProject: ShowcaseProject = {
@@ -980,7 +1042,7 @@ function ShowcasePanel() {
           featured: form.featured,
           order: projects.length + 1,
         };
-        persist([newProject, ...projects]);
+        await persist([newProject, ...projects]);
         setMsg({ type: "ok", text: `Added "${form.title}".` });
       }
       setForm(EMPTY_SHOWCASE_FORM);
@@ -1021,14 +1083,14 @@ function ShowcasePanel() {
       setConfirmDeleteId(p.id);
       return;
     }
-    persist(projects.filter((x) => x.id !== p.id));
+    void persist(projects.filter((x) => x.id !== p.id));
     setConfirmDeleteId(null);
     setMsg({ type: "ok", text: `Removed "${p.title}".` });
     if (editingId === p.id) cancelEdit();
   };
 
   const toggleFeatured = (p: ShowcaseProject) => {
-    persist(
+    void persist(
       projects.map((x) => (x.id === p.id ? { ...x, featured: !x.featured } : x))
     );
   };
@@ -1042,7 +1104,7 @@ function ShowcasePanel() {
     const tmpOrder = sorted[idx].order;
     sorted[idx] = { ...sorted[idx], order: swap.order };
     sorted[target] = { ...swap, order: tmpOrder };
-    persist(sorted);
+    void persist(sorted);
   };
 
   const sorted = [...projects].sort((a, b) => {

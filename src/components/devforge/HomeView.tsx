@@ -561,11 +561,11 @@ export default function HomeView() {
 
   useEffect(() => {
     setShowcase(loadShowcase());
-    // Make sure the admin inbox has at least a few demo rows on first visit
-    seedDemoSubmissions();
-    // Make sure the testimonials grid has the demo entries on first visit
-    seedFeedback();
     setFeedback(loadApprovedFeedback());
+    // Make sure the DB has demo rows on first visit. Async — fires in
+    // background, refreshes state when complete.
+    seedDemoSubmissions().then(() => setFeedback(loadApprovedFeedback()));
+    seedFeedback().then(() => setFeedback(loadApprovedFeedback()));
     // Live-refresh showcase + feedback when superadmin edits in another tab
     const onStorage = (e: StorageEvent) => {
       if (e.key === "theshield_showcase") setShowcase(loadShowcase());
@@ -1155,15 +1155,17 @@ function SubmitProjectSection() {
         createdAt: new Date().toISOString(),
       };
 
-      addSubmission(submission);
-
-      await new Promise((r) => setTimeout(r, 400));
+      await addSubmission(submission);
 
       setSubmitting(false);
       setDone(true);
-    } catch {
+    } catch (e) {
       setSubmitting(false);
-      setError("Could not save submission locally. Please try again.");
+      setError(
+        e instanceof Error && e.message
+          ? `Could not save submission: ${e.message}`
+          : "Could not save submission. Please try again."
+      );
     }
   };
 
