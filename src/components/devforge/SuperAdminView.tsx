@@ -1203,13 +1203,13 @@ function ShowcasePanel() {
   const startEdit = (p: ShowcaseProject) => {
     setEditingId(p.id);
     setForm({
-      title: p.title,
-      category: p.category,
-      description: p.description,
-      imageUrl: p.imageUrl,
-      projectUrl: p.projectUrl,
-      tagsText: p.tags.join(", "),
-      featured: p.featured,
+      title: p.title ?? "",
+      category: p.category ?? "Other",
+      description: p.description ?? "",
+      imageUrl: p.imageUrl ?? "",
+      projectUrl: p.projectUrl ?? "",
+      tagsText: Array.isArray(p.tags) ? p.tags.join(", ") : "",
+      featured: Boolean(p.featured),
     });
     setMsg(null);
     if (typeof window !== "undefined") {
@@ -1241,20 +1241,20 @@ function ShowcasePanel() {
   };
 
   const move = (p: ShowcaseProject, dir: -1 | 1) => {
-    const sorted = [...projects].sort((a, b) => a.order - b.order);
+    const sorted = [...projects].sort((a, b) => (a.order || 0) - (b.order || 0));
     const idx = sorted.findIndex((x) => x.id === p.id);
     const target = idx + dir;
     if (target < 0 || target >= sorted.length) return;
     const swap = sorted[target];
-    const tmpOrder = sorted[idx].order;
-    sorted[idx] = { ...sorted[idx], order: swap.order };
+    const tmpOrder = sorted[idx].order || 0;
+    sorted[idx] = { ...sorted[idx], order: swap.order || 0 };
     sorted[target] = { ...swap, order: tmpOrder };
     void persist(sorted);
   };
 
   const sorted = [...projects].sort((a, b) => {
-    if (a.featured !== b.featured) return a.featured ? -1 : 1;
-    return a.order - b.order;
+    if (Boolean(a.featured) !== Boolean(b.featured)) return a.featured ? -1 : 1;
+    return (a.order || 0) - (b.order || 0);
   });
 
   return (

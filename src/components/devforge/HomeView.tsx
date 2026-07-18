@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Component } from "react";
 import {
   Paperclip,
   X,
@@ -858,7 +858,9 @@ export default function HomeView() {
       <TestimonialsSection feedback={feedback} onSubmitted={() => setFeedback(loadApprovedFeedback())} />
 
       {/* ─────────── SHOWCASE / OUR PROJECTS ─────────── */}
-      <ShowcaseSection projects={showcase} />
+      <ShowcaseErrorBoundary>
+        <ShowcaseSection projects={showcase} />
+      </ShowcaseErrorBoundary>
 
       {/* ─────────── SUBMIT (now functional) ─────────── */}
       <SubmitProjectSection />
@@ -964,9 +966,17 @@ export default function HomeView() {
 /* ─────────────────────────────────────────────────────────────────────── */
 
 function ShowcaseSection({ projects }: { projects: ShowcaseProject[] }) {
-  const sorted = [...projects].sort((a, b) => {
-    if (a.featured !== b.featured) return a.featured ? -1 : 1;
-    return a.order - b.order;
+  // Filter out any projects that are missing critical identity fields so
+  // they don't slip into the render pipeline and crash a card.
+  const valid = projects.filter(
+    (p) => p && typeof p === "object" && typeof p.id === "string" && p.id
+  );
+
+  const sorted = [...valid].sort((a, b) => {
+    if (Boolean(a.featured) !== Boolean(b.featured)) return a.featured ? -1 : 1;
+    const ao = typeof a.order === "number" ? a.order : 0;
+    const bo = typeof b.order === "number" ? b.order : 0;
+    return ao - bo;
   });
 
   if (sorted.length === 0) return null;
@@ -995,8 +1005,22 @@ function ShowcaseSection({ projects }: { projects: ShowcaseProject[] }) {
 }
 
 function ShowcaseCard({ project, index }: { project: ShowcaseProject; index: number }) {
-  const hasUrl = /^https?:\/\/.+/.test(project.projectUrl || "");
-  const hasImg = /^https?:\/\/.+/.test(project.imageUrl || "");
+  // Defensive defaults — even if normalization in loadShowcase missed
+  // something, we never throw here.
+  const p: ShowcaseProject = {
+    id: project?.id ?? "sp_unknown",
+    title: project?.title ?? "Untitled project",
+    category: project?.category ?? "Other",
+    description: project?.description ?? "",
+    imageUrl: project?.imageUrl ?? "",
+    projectUrl: project?.projectUrl ?? "",
+    tags: Array.isArray(project?.tags) ? project.tags : [],
+    featured: Boolean(project?.featured),
+    order: typeof project?.order === "number" ? project.order : 0,
+  };
+
+  const hasUrl = /^https?:\/\/.+/.test(p.projectUrl);
+  const hasImg = /^https?:\/\/.+/.test(p.imageUrl);
   const tilt = useTilt<HTMLDivElement>(5);     // gentle 5° cursor tilt
   const reveal = useScrollReveal<HTMLDivElement>({ threshold: 0.2 });
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -1010,8 +1034,8 @@ function ShowcaseCard({ project, index }: { project: ShowcaseProject; index: num
             {!imgLoaded && <div className="absolute inset-0 skeleton" />}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={project.imageUrl}
-              alt={project.title}
+              src={p.imageUrl}
+              alt={p.title}
               loading="lazy"
               onLoad={() => setImgLoaded(true)}
               className={`showcase-card-image h-full w-full object-cover ${imgLoaded ? "opacity-100" : "opacity-0"}`}
@@ -1028,12 +1052,12 @@ function ShowcaseCard({ project, index }: { project: ShowcaseProject; index: num
         {/* Category chip */}
         <div className="absolute left-3 top-3">
           <span className="inline-flex items-center gap-1 rounded-full bg-navy-950/80 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-mint-300 ring-1 ring-white/10 backdrop-blur">
-            {project.category}
+            {p.category}
           </span>
         </div>
 
         {/* Featured star */}
-        {project.featured && (
+        {p.featured && (
           <div className="absolute right-3 top-3">
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-1 text-[10px] font-medium text-amber-300 ring-1 ring-amber-400/30 backdrop-blur">
               <Star className="h-3 w-3" /> Featured
@@ -1052,14 +1076,14 @@ function ShowcaseCard({ project, index }: { project: ShowcaseProject; index: num
       {/* Body */}
       <div className="flex flex-1 flex-col p-5">
         <h3 className="text-base font-semibold leading-snug text-white group-hover:text-mint-200 transition-colors">
-          {project.title}
+          {p.title}
         </h3>
         <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-300">
-          {project.description}
+          {p.description}
         </p>
-        {project.tags.length > 0 && (
+        {p.tags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {project.tags.slice(0, 4).map((t) => (
+            {p.tags.slice(0, 4).map((t) => (
               <span
                 key={t}
                 className="rounded-md bg-white/[0.06] px-2 py-0.5 text-[10px] font-medium text-ink-400 ring-1 ring-white/5"
@@ -1096,7 +1120,7 @@ function ShowcaseCard({ project, index }: { project: ShowcaseProject; index: num
     >
       {hasUrl ? (
         <a
-          href={project.projectUrl}
+          href={p.projectUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex h-full flex-col"
@@ -1731,4 +1755,65 @@ function TrackStatusSection() {
       </form>
     </section>
   );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* ErrorBoundary — wraps ShowcaseSection so a single broken card (or a    */
+/* malformed project pulled from cache/DB) cannot crash the entire       */
+/* homepage render. React unmounts the whole tree on uncaught render     */
+/* errors; this prevents that by catching and showing a fallback.        */
+/* ─────────────────────────────────────────────────────────────────────── */
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}
+interface ErrorBoundaryState {
+  hasError: boolean;
+  message?: string;
+}
+
+class ShowcaseErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(err: unknown): ErrorBoundaryState {
+    const message = err instanceof Error ? err.message : "Unknown render error";
+    return { hasError: true, message };
+  }
+
+  componentDidCatch(err: unknown, info: { componentStack?: string }) {
+    // Log to console so the developer can see what broke — but do not
+    // rethrow, otherwise the whole page still dies.
+    console.error("[ShowcaseSection] render error:", err, info?.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      if (this.props.fallback) return this.props.fallback;
+      return (
+        <section className="mx-auto max-w-7xl px-3 py-12 sm:px-6 sm:py-20">
+          <div className="rounded-2xl border border-amber-400/20 bg-amber-500/[0.04] p-6 text-center">
+            <p className="text-sm font-medium text-amber-300">
+              Projects temporarily unavailable
+            </p>
+            <p className="mx-auto mt-2 max-w-md text-xs text-ink-400">
+              One of the saved projects has malformed data and couldn&apos;t be
+              displayed. Other sections of the page are unaffected.
+            </p>
+            <button
+              type="button"
+              onClick={() => this.setState({ hasError: false })}
+              className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-ink-100 transition-colors hover:border-mint-300/40 hover:text-white"
+            >
+              Try again
+            </button>
+          </div>
+        </section>
+      );
+    }
+    return this.props.children;
+  }
 }
