@@ -76,8 +76,11 @@ import {
   type Feedback,
 } from "@/lib/feedback";
 import type { ShowcaseProject } from "@/data/demo";
+import { fetchSiteConfig, type SiteConfigWithMeta } from "@/lib/config";
 
-const LOGO_URL =
+// Fallback logo — used until /api/config returns. Replaced at runtime by
+// the live `logoUrl` from MongoDB when available.
+const DEFAULT_LOGO_URL =
   "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png";
 
 const STATS = [
@@ -558,6 +561,7 @@ export default function HomeView() {
   const [slideIdx, setSlideIdx] = useState(0);
   const [showcase, setShowcase] = useState<ShowcaseProject[]>([]);
   const [feedback, setFeedback] = useState<Feedback[]>([]);
+  const [config, setConfig] = useState<SiteConfigWithMeta | null>(null);
 
   useEffect(() => {
     setShowcase(loadShowcase());
@@ -566,6 +570,8 @@ export default function HomeView() {
     // background, refreshes state when complete.
     seedDemoSubmissions().then(() => setFeedback(loadApprovedFeedback()));
     seedFeedback().then(() => setFeedback(loadApprovedFeedback()));
+    // Fetch live site config from MongoDB (hero text, logo URL, contact email…)
+    fetchSiteConfig().then(setConfig).catch(() => {});
     // Live-refresh showcase + feedback when superadmin edits in another tab
     const onStorage = (e: StorageEvent) => {
       if (e.key === "theshield_showcase") setShowcase(loadShowcase());
@@ -593,7 +599,7 @@ export default function HomeView() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-300 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-mint-300" />
               </span>
-              Bridging the gap between business and technology
+              {config?.heroSubtitle || "Bridging the gap between business and technology"}
             </div>
 
             <h1 className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl animate-fade-up stagger-2">
@@ -709,7 +715,7 @@ export default function HomeView() {
             Transforming ideas into powerful digital solutions
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-ink-300">
-            Bridging the gap between business and technology — across every technology domain.
+            {config?.heroSubtitle || "Bridging the gap between business and technology"} — across every technology domain.
           </p>
         </Reveal>
 
@@ -877,7 +883,7 @@ export default function HomeView() {
               <MagneticButton href="#submit" className="btn-primary">
                 <Send className="h-4 w-4" /> Submit Project
               </MagneticButton>
-              <a href="mailto:akashperera464@gmail.com" className="btn-ghost">
+              <a href={`mailto:${config?.contactEmail || "akashperera464@gmail.com"}`} className="btn-ghost">
                 <Mail className="h-4 w-4" /> Email us
               </a>
             </div>
@@ -892,7 +898,7 @@ export default function HomeView() {
             <div className="md:col-span-2">
               <div className="flex items-center gap-3">
                 <img
-                  src={LOGO_URL}
+                  src={config?.logoUrl || DEFAULT_LOGO_URL}
                   alt="The Shield logo"
                   className="h-12 w-12 rounded-xl object-cover ring-1 ring-white/15"
                 />
@@ -901,15 +907,14 @@ export default function HomeView() {
                 </span>
               </div>
               <p className="mt-3 max-w-sm text-sm text-ink-400">
-                Bridging the gap between business and technology. We design, build,
-                and ship production software across every technology domain.
+                {config?.aboutText || "Bridging the gap between business and technology. We design, build, and ship production software across every technology domain."}
               </p>
               <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-ink-500">
                 <span className="inline-flex items-center gap-1.5">
                   <MapPin className="h-3.5 w-3.5" /> 15+ service locations
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Mail className="h-3.5 w-3.5" /> akashperera464@gmail.com
+                  <Mail className="h-3.5 w-3.5" /> {config?.contactEmail || "akashperera464@gmail.com"}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Phone className="h-3.5 w-3.5" /> 0741622795

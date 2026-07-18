@@ -85,3 +85,18 @@ model TeamMember {
 
   @@index([role])
 }
+
+// ───────────────────────────────────────────────────────────────────────
+// SITE CONFIG — single document storing editable homepage content.
+// Always queried by key="global". Updates replace this document.
+// ───────────────────────────────────────────────────────────────────────
+model SiteConfig {
+  id           String @id @map("_id") // always "global"
+  heroTitle    String
+  heroSubtitle String
+  aboutText    String
+  contactEmail String
+  logoUrl      String
+  mainBgUrl    String
+  updatedAt    String
+}

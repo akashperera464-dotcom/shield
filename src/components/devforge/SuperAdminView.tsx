@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Shield,
   Settings,
@@ -48,6 +48,7 @@ import { GradientAvatar, MiniAreaChart, CircularGauge } from "./Charts";
 import { loadShowcase, saveShowcase, newShowcaseId } from "@/lib/showcase";
 import { loadSubmissions, getMeta } from "@/lib/submissions";
 import { countPendingFeedback } from "@/lib/feedback";
+import { fetchSiteConfig, saveSiteConfig, clearConfigCache } from "@/lib/config";
 import NotificationsPanel from "./NotificationsPanel";
 import FeedbackPanel from "./FeedbackPanel";
 
@@ -257,23 +258,82 @@ function StatTile({
 function CMSPanel({ isDemo }: { isDemo: boolean }) {
   const [form, setForm] = useState<SiteConfig>(DEMO_CONFIG);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
-  const handleSave = (e: React.FormEvent) => {
+  // Load live config from MongoDB on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const data = await fetchSiteConfig();
+      if (cancelled) return;
+      setForm(data);
+      setLastUpdated(data.updatedAt ?? null);
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setBusy(true);
+    setError(null);
+    try {
+      const saved = await saveSiteConfig(form);
+      setForm(saved);
+      setLastUpdated(saved.updatedAt ?? null);
+      clearConfigCache(); // force other tabs/components to refetch
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "Failed to save settings.";
+      setError(m);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const isValidUrl = (u: string) => /^https?:\/\/.+/.test(u);
 
+  if (loading) {
+    return (
+      <div className="glass-card p-6">
+        <div className="flex items-center gap-3 text-sm text-ink-400">
+          <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/20 border-t-mint-300" />
+          Loading site configuration…
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <form onSubmit={handleSave} className="glass-card p-6 lg:col-span-2">
-        <h2 className="text-xl font-semibold text-white">Site content</h2>
-        <p className="mt-1 text-sm text-ink-400">
-          Edit the <code className="rounded bg-white/5 px-1.5 py-0.5 text-ink-200">siteContent/globalConfig</code> document.
-          Changes go live instantly on the public site.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-white">Site content</h2>
+            <p className="mt-1 text-sm text-ink-400">
+              Edit the{" "}
+              <code className="rounded bg-white/5 px-1.5 py-0.5 text-ink-200">
+                siteConfig/global
+              </code>{" "}
+              document. Changes go live instantly on the public site.
+            </p>
+          </div>
+          {lastUpdated && (
+            <div className="hidden text-right text-[10px] text-ink-500 sm:block">
+              <div className="uppercase tracking-wider">Last saved</div>
+              <div className="mt-0.5 font-mono">
+                {new Date(lastUpdated).toLocaleString()}
+              </div>
+            </div>
+          )}
+        </div>
         <div className="mt-6 space-y-4">
           <Field label="Hero Title" value={form.heroTitle} onChange={(v) => setForm({ ...form, heroTitle: v })} />
           <Field label="Hero Subtitle" value={form.heroSubtitle} onChange={(v) => setForm({ ...form, heroSubtitle: v })} />
@@ -291,8 +351,11 @@ function CMSPanel({ isDemo }: { isDemo: boolean }) {
           </div>
           <p className="-mt-2 text-xs text-ink-500">
             Upload your logo and background images to your own Cloudinary account, then paste the
-            resulting <code className="rounded bg-white/5 px-1 py-0.5 text-ink-300">res.cloudinary.com/...</code> URL below.
-            We do not host client uploads.
+            resulting{" "}
+            <code className="rounded bg-white/5 px-1 py-0.5 text-ink-300">
+              res.cloudinary.com/...
+            </code>{" "}
+            URL below. We do not host client uploads.
           </p>
 
           <UrlField
@@ -301,6 +364,7 @@ function CMSPanel({ isDemo }: { isDemo: boolean }) {
             onChange={(v) => setForm({ ...form, logoUrl: v })}
             placeholder="https://res.cloudinary.com/<cloud>/image/upload/.../logo.png"
             preview={isValidUrl(form.logoUrl) ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={form.logoUrl} alt="logo" className="h-10 w-10 rounded-lg object-cover ring-1 ring-mint-300/30" />
             ) : null}
           />
@@ -310,21 +374,44 @@ function CMSPanel({ isDemo }: { isDemo: boolean }) {
             onChange={(v) => setForm({ ...form, mainBgUrl: v })}
             placeholder="https://res.cloudinary.com/<cloud>/image/upload/.../bg.jpg"
             preview={isValidUrl(form.mainBgUrl) ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={form.mainBgUrl} alt="bg" className="h-10 w-16 rounded-lg object-cover ring-1 ring-mint-300/30" />
             ) : null}
           />
 
+          {error && (
+            <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-200">
+              {error}
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
-            <button type="submit" className="btn-primary">
-              <Save className="h-4 w-4" /> {saved ? "Saved!" : "Save changes"}
+            <button type="submit" disabled={busy} className="btn-primary disabled:opacity-60">
+              {busy ? (
+                <>
+                  <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/40 border-t-white" />
+                  Saving…
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" /> {saved ? "Saved!" : "Save changes"}
+                </>
+              )}
             </button>
+            {saved && (
+              <span className="text-xs text-emerald-300">
+                ✓ Live on the public site now
+              </span>
+            )}
           </div>
         </div>
       </form>
 
       <div className="glass-card p-6">
         <h3 className="text-lg font-semibold text-white">Live preview</h3>
-        <p className="mt-1 text-xs text-ink-400">Read-only snapshot of current public site config.</p>
+        <p className="mt-1 text-xs text-ink-400">
+          Read-only snapshot of the current public site config.
+        </p>
         <div className="mt-4 space-y-3 text-sm">
           <PreviewRow k="heroTitle" v={form.heroTitle.slice(0, 30) + (form.heroTitle.length > 30 ? "…" : "")} />
           <PreviewRow k="heroSubtitle" v={form.heroSubtitle.slice(0, 30) + (form.heroSubtitle.length > 30 ? "…" : "")} />
@@ -334,9 +421,12 @@ function CMSPanel({ isDemo }: { isDemo: boolean }) {
         </div>
 
         <div className="mt-6 rounded-xl border border-white/5 bg-white/[0.02] p-4">
-          <div className="text-[10px] uppercase tracking-wider text-ink-500">Logo preview</div>
+          <div className="text-[10px] uppercase tracking-wider text-ink-500">
+            Logo preview
+          </div>
           <div className="mt-2 flex items-center gap-3">
             {isValidUrl(form.logoUrl) ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={form.logoUrl} alt="logo" className="h-12 w-12 rounded-lg object-cover ring-1 ring-mint-300/30" />
             ) : (
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white/[0.02] ring-1 ring-white/5">
