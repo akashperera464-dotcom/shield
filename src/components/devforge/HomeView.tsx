@@ -894,7 +894,7 @@ export default function HomeView() {
                 <img
                   src={LOGO_URL}
                   alt="The Shield logo"
-                  className="h-9 w-9 rounded-xl object-cover ring-1 ring-white/15"
+                  className="h-12 w-12 rounded-xl object-cover ring-1 ring-white/15"
                 />
                 <span className="text-lg font-semibold text-white">
                   The <span className="text-gradient-animated">Shield</span>

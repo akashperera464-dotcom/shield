@@ -14,7 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 const LOGO_URL =
   "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png";
 
-function Logo({ size = 36 }: { size?: number }) {
+function Logo({ size = 48 }: { size?: number }) {
   return (
     <div
       className="relative inline-flex items-center justify-center"
@@ -69,9 +69,9 @@ export default function Navbar() {
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
         <button
           onClick={() => setView("home")}
-          className="group flex items-center gap-3"
+          className="group flex items-center gap-4"
         >
-          <Logo size={36} />
+          <Logo size={48} />
           <div className="flex flex-col leading-tight">
             <span className="font-sans text-lg font-semibold tracking-tight text-white">
               The <span className="text-gradient-animated">Shield</span>

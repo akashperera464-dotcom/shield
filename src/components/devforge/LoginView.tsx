@@ -59,7 +59,7 @@ export default function LoginView() {
             <img
               src={LOGO_URL}
               alt="The Shield"
-              className="h-14 w-14 rounded-xl object-cover ring-1 ring-mint-300/30"
+              className="h-20 w-20 rounded-xl object-cover ring-1 ring-mint-300/30"
             />
             <h1 className="mt-6 text-4xl font-bold leading-tight text-white">
               Admin <span className="text-gradient-animated">Portal</span>
@@ -88,7 +88,7 @@ export default function LoginView() {
             <img
               src={LOGO_URL}
               alt="The Shield"
-              className="h-12 w-12 rounded-xl object-cover ring-1 ring-mint-300/30"
+              className="h-16 w-16 rounded-xl object-cover ring-1 ring-mint-300/30"
             />
           </div>
           <h2 className="text-2xl font-semibold text-white">Welcome back</h2>
