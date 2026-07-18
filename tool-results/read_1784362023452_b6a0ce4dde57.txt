@@ -1,0 +1,1735 @@
+     1→"use client";
+     2→
+     3→import React, { useState, useEffect } from "react";
+     4→import {
+     5→  Paperclip,
+     6→  X,
+     7→  FileText,
+     8→  Image as ImageIcon,
+     9→  Loader2,
+    10→  ArrowUpRight,
+    11→  ExternalLink,
+    12→  FolderKanban,
+    13→  ArrowRight,
+    14→  Code2,
+    15→  Database,
+    16→  Smartphone,
+    17→  Palette,
+    18→  GitBranch,
+    19→  Globe,
+    20→  Quote,
+    21→  Star,
+    22→  Mail,
+    23→  MessageSquare,
+    24→  MapPin,
+    25→  Phone,
+    26→  Send,
+    27→  Search,
+    28→  Sparkles,
+    29→  ShieldCheck,
+    30→  Rocket,
+    31→  CheckCircle2,
+    32→  Clock,
+    33→  Brain,
+    34→  Cpu,
+    35→  Network,
+    36→  Layout,
+    37→  Megaphone,
+    38→  ServerCog,
+    39→  TrendingUp,
+    40→  Building2,
+    41→  ShoppingCart,
+    42→  Landmark,
+    43→  HeartPulse,
+    44→  Truck,
+    45→  Home as HomeIcon,
+    46→  Plane,
+    47→  GraduationCap,
+    48→  Factory,
+    49→  Bot,
+    50→  Trophy,
+    51→  Users,
+    52→  MapPinned,
+    53→  Calendar,
+    54→  Plus,
+    55→} from "lucide-react";
+    56→import { useAuth } from "@/context/AuthContext";
+    57→import { Sparkline } from "./Charts";
+    58→import HeroLivePanel from "./HeroLivePanel";
+    59→import Reveal from "./Reveal";
+    60→import { useCountUp, useMagnetic, useScrollReveal, useTilt } from "@/hooks/use-animations";
+    61→import {
+    62→  uploadFile,
+    63→  validateFile,
+    64→  formatBytes,
+    65→  UPLOAD_CONFIGURED,
+    66→  MAX_FILES,
+    67→  type UploadedFile,
+    68→  type UploadProgress,
+    69→} from "@/lib/uploads";
+    70→import { loadShowcase } from "@/lib/showcase";
+    71→import { addSubmission, loadSubmissions, seedDemoSubmissions, type Submission } from "@/lib/submissions";
+    72→import {
+    73→  loadApprovedFeedback,
+    74→  addFeedback,
+    75→  seedFeedback,
+    76→  type Feedback,
+    77→} from "@/lib/feedback";
+    78→import type { ShowcaseProject } from "@/data/demo";
+    79→import { fetchSiteConfig, type SiteConfigWithMeta } from "@/lib/config";
+    80→
+    81→// Fallback logo — used until /api/config returns. Replaced at runtime by
+    82→// the live `logoUrl` from MongoDB when available.
+    83→const DEFAULT_LOGO_URL =
+    84→  "https://res.cloudinary.com/dhd06wdov/image/upload/v1784282735/ChatGPT_Image_Jul_17_2026_05_03_17_PM_adkeeh.png";
+    85→
+    86→const STATS = [
+    87→  { label: "Years Experience",        value: "10+",  target: 10,  spark: [3, 4, 5, 6, 7, 8, 9, 10], color: "#64ffda" },
+    88→  { label: "Apps, Software & Sites",  value: "100+", target: 100, spark: [40, 50, 60, 70, 80, 85, 95, 100], color: "#667eea" },
+    89→  { label: "Service Locations",       value: "15+",  target: 15,  spark: [5, 7, 9, 10, 11, 13, 14, 15], color: "#9d8df1" },
+    90→  { label: "Happy Customers",         value: "45+",  target: 45,  spark: [10, 15, 20, 25, 30, 35, 40, 45], color: "#64ffda" },
+    91→];
+    92→
+    93→const SERVICES = [
+    94→  {
+    95→    icon: Brain,
+    96→    title: "Artificial Intelligence",
+    97→    desc: "AI simulates human intelligence in machines, enabling them to think, learn, and make decisions to improve efficiency.",
+    98→    tags: ["AI", "Automation", "Decision"],
+    99→  },
+   100→  {
+   101→    icon: Cpu,
+   102→    title: "Machine Learning",
+   103→    desc: "Subset of AI that enables systems to learn from data, identify patterns, and make predictions with minimal human intervention.",
+   104→    tags: ["ML", "Predictions", "Data"],
+   105→  },
+   106→  {
+   107→    icon: Network,
+   108→    title: "SharePoint Integration",
+   109→    desc: "Connects SharePoint with applications to streamline management, collaboration, and workflows across teams.",
+   110→    tags: ["SharePoint", "Collab", "Workflow"],
+   111→  },
+   112→  {
+   113→    icon: ServerCog,
+   114→    title: "NetSuite Integration",
+   115→    desc: "Integrating NetSuite with systems unifies operations, automates data flow, and boosts productivity.",
+   116→    tags: ["NetSuite", "ERP", "Automation"],
+   117→  },
+   118→  {
+   119→    icon: Palette,
+   120→    title: "Graphic Design",
+   121→    desc: "Creative visual design for brands — logos, marketing collateral, social media assets, and complete brand identity systems that captivate and convert.",
+   122→    tags: ["Branding", "Logo", "Visual Identity"],
+   123→  },
+   124→  {
+   125→    icon: Code2,
+   126→    title: "Software Development",
+   127→    desc: "Process involving creation, maintenance of applications, frameworks — design, programming, testing, and bug fixing.",
+   128→    tags: ["Custom", "Full-cycle", "Maintenance"],
+   129→  },
+   130→  {
+   131→    icon: Smartphone,
+   132→    title: "Mobile App Development",
+   133→    desc: "Developing apps suitable for mobile devices — writing software for small, wireless computing devices.",
+   134→    tags: ["iOS", "Android", "Hybrid"],
+   135→  },
+   136→  {
+   137→    icon: Globe,
+   138→    title: "Website Development",
+   139→    desc: "Building and maintaining websites — makes the site look great, work quickly, with firm user experience.",
+   140→    tags: ["Web", "Performance", "UX"],
+   141→  },
+   142→  {
+   143→    icon: Layout,
+   144→    title: "UI / UX Designing",
+   145→    desc: "Increases user experience and customer satisfaction, which ultimately grows the number of customers and business.",
+   146→    tags: ["Design", "UX", "UI"],
+   147→  },
+   148→  {
+   149→    icon: Database,
+   150→    title: "CRM Software Development",
+   151→    desc: "Tools and techniques that help companies build healthy relationships with customers by organizing the data.",
+   152→    tags: ["CRM", "Sales", "Data"],
+   153→  },
+   154→  {
+   155→    icon: Megaphone,
+   156→    title: "Digital Marketing",
+   157→    desc: "Strategy that uses multiple channels to attract, engage, and convert customers online.",
+   158→    tags: ["SEO", "SEM", "Social"],
+   159→  },
+   160→];
+   161→
+   162→const INDUSTRIES = [
+   163→  { icon: Cpu,            title: "Technology",          desc: "Next-gen software & IT solutions" },
+   164→  { icon: ShoppingCart,   title: "Ecommerce",           desc: "Dynamic retail & digital storefronts" },
+   165→  { icon: Landmark,       title: "Fintech & Banking",   desc: "Secure financial & payment platforms" },
+   166→  { icon: HeartPulse,     title: "Healthcare",          desc: "Modern medical & patient portals" },
+   167→  { icon: Truck,          title: "Logistics & Shipping",desc: "Smart supply chain & fleet systems" },
+   168→  { icon: HomeIcon,       title: "Real Estate / PropTech", desc: "Smart property & brokerage tech" },
+   169→  { icon: Bot,            title: "AI & Machine Learning", desc: "Predictive analytics & neural networks" },
+   170→  { icon: Plane,          title: "Travel",              desc: "Seamless booking & trip planning" },
+   171→  { icon: GraduationCap,  title: "Education",           desc: "Interactive e-learning environments" },
+   172→  { icon: Factory,        title: "Manufacturing",       desc: "Automated production & ERP systems" },
+   173→];
+   174→
+   175→const PROCESS = [
+   176→  { n: "01", icon: Send,          title: "Submit Project",    desc: "Tell us about scope and timeline — no login or file upload required." },
+   177→  { n: "02", icon: MessageSquare, title: "Discovery Call",    desc: "Within 48h we schedule a call to align on milestones, deliverables, and success metrics." },
+   178→  { n: "03", icon: GitBranch,     title: "Build Sprint",      desc: "Two-week sprints with weekly demos. You watch your product come alive in real time." },
+   179→  { n: "04", icon: Rocket,        title: "Launch & Support",  desc: "We ship to production, hand over docs, and stay on retainer for iteration sprints." },
+   180→];
+   181→
+   182→const TECH = [
+   183→  "Python", "Java", "JavaScript", "Vue.js", "AngularJS", "React",
+   184→  "Solidity", "PHP", "React Native", "CSS", "Node.js", "Swift",
+   185→  "HTML", "Golang", "Kotlin",
+   186→];
+   187→
+   188→const TECH_AI = [
+   189→  "Artificial Intelligence", "Machine Learning", "Deep Learning",
+   190→  "NLP", "Computer Vision", "Generative AI",
+   191→  "Big Data Analytics", "Cognitive Automation", "Robotics & RPA", "Predictive Modeling",
+   192→];
+   193→
+   194→const HERO_SLIDES = [
+   195→  "Application Development",
+   196→  "Graphic Design",
+   197→  "Software Development",
+   198→  "Mobile App Development",
+   199→  "Website Development",
+   200→  "UI / UX Designing",
+   201→  "Digital Marketing",
+   202→  "AI & Machine Learning",
+   203→];
+   204→
+   205→/* ─────────────────────────────────────────────────────────────────────── */
+   206→/* StatCard — count-up animated counter that triggers on scroll-into-view  */
+   207→/* ─────────────────────────────────────────────────────────────────────── */
+   208→function StatCard({
+   209→  stat,
+   210→  delay,
+   211→}: {
+   212→  stat: { label: string; value: string; target: number; spark: number[]; color: string };
+   213→  delay: number;
+   214→}) {
+   215→  const { ref, visible } = useScrollReveal<HTMLDivElement>({ threshold: 0.3 });
+   216→  const count = useCountUp(stat.target, visible, 1800);
+   217→  return (
+   218→    <div
+   219→      ref={ref}
+   220→      className={`glass-card-hover p-5 reveal-hidden ${visible ? "reveal-visible" : ""}`}
+   221→      style={{ transitionDelay: `${delay}s` }}
+   222→    >
+   223→      <div className="flex items-end justify-between">
+   224→        <div>
+   225→          <div className="text-3xl font-bold text-gradient-animated sm:text-4xl">
+   226→            {count}{stat.value.replace(/[0-9]/g, "")}
+   227→          </div>
+   228→          <div className="mt-1 text-xs uppercase tracking-wider text-ink-400">{stat.label}</div>
+   229→        </div>
+   230→        <Sparkline data={stat.spark} color={stat.color} width={64} height={24} />
+   231→      </div>
+   232→    </div>
+   233→  );
+   234→}
+   235→
+   236→/* ─────────────────────────────────────────────────────────────────────── */
+   237→/* MagneticButton — wraps an <a> or <button> and applies a magnetic cursor */
+   238→/* pull effect. Use for primary CTAs to give a premium feel.               */
+   239→/* ─────────────────────────────────────────────────────────────────────── */
+   240→function MagneticButton({
+   241→  as: Tag = "a",
+   242→  href,
+   243→  onClick,
+   244→  className = "",
+   245→  children,
+   246→}: {
+   247→  as?: "a" | "button";
+   248→  href?: string;
+   249→  onClick?: () => void;
+   250→  className?: string;
+   251→  children: React.ReactNode;
+   252→}) {
+   253→  const magnetic = useMagnetic<HTMLAnchorElement & HTMLButtonElement>(6);
+   254→  return (
+   255→    <Tag
+   256→      ref={magnetic.ref as never}
+   257→      href={href}
+   258→      onClick={onClick}
+   259→      style={magnetic.style}
+   260→      className={`shine-sweep ${className}`}
+   261→    >
+   262→      {children}
+   263→    </Tag>
+   264→  );
+   265→}
+   266→
+   267→/* ─────────────────────────────────────────────────────────────────────── */
+   268→/* TestimonialsSection — "Client love" with dynamic approved feedback +    */
+   269→/* a built-in feedback form so visitors can submit their own testimonial.  */
+   270→/* Submissions land in the superadmin moderation queue (status = pending). */
+   271→/* ─────────────────────────────────────────────────────────────────────── */
+   272→function TestimonialsSection({
+   273→  feedback,
+   274→  onSubmitted,
+   275→}: {
+   276→  feedback: Feedback[];
+   277→  onSubmitted: () => void;
+   278→}) {
+   279→  const [showForm, setShowForm] = useState(false);
+   280→
+   281→  return (
+   282→    <section className="mx-auto max-w-7xl px-3 py-12 sm:px-6 sm:py-20">
+   283→      <div className="mb-12 flex flex-col items-center gap-4 text-center">
+   284→        <span className="text-xs font-semibold uppercase tracking-[0.25em] text-mint-300">
+   285→          Client love
+   286→        </span>
+   287→        <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
+   288→          What founders say about The Shield
+   289→        </h2>
+   290→        <button
+   291→          onClick={() => setShowForm((s) => !s)}
+   292→          className="btn-ghost text-sm"
+   293→          aria-expanded={showForm}
+   294→        >
+   295→          {showForm ? (
+   296→            <>
+   297→              <X className="h-4 w-4" /> Close form
+   298→            </>
+   299→          ) : (
+   300→            <>
+   301→              <Plus className="h-4 w-4" /> Share your experience
+   302→            </>
+   303→          )}
+   304→        </button>
+   305→      </div>
+   306→
+   307→      {showForm && (
+   308→        <div className="mb-10">
+   309→          <FeedbackForm
+   310→            onDone={() => {
+   311→              setShowForm(false);
+   312→              onSubmitted();
+   313→            }}
+   314→          />
+   315→        </div>
+   316→      )}
+   317→
+   318→      {feedback.length === 0 ? (
+   319→        <div className="rounded-2xl border border-white/5 bg-white/[0.05] p-10 text-center text-sm text-ink-400">
+   320→          No testimonials published yet — be the first to share your experience.
+   321→        </div>
+   322→      ) : (
+   323→        <div className="grid gap-6 md:grid-cols-3">
+   324→          {feedback.map((t, i) => (
+   325→            <div
+   326→              key={t.id}
+   327→              className="glass-card-hover p-6 animate-fade-up"
+   328→              style={{ animationDelay: `${i * 0.1}s` }}
+   329→            >
+   330→              <div className="flex items-center justify-between">
+   331→                <Quote className="h-7 w-7 text-mint-300/60" />
+   332→                {t.featured && (
+   333→                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+   334→                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> Featured
+   335→                  </span>
+   336→                )}
+   337→              </div>
+   338→              <p className="mt-3 text-sm leading-relaxed text-ink-200">&ldquo;{t.quote}&rdquo;</p>
+   339→              <div className="mt-5 flex items-center gap-3">
+   340→                <div
+   341→                  className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white ring-1 ring-white/10"
+   342→                  style={{
+   343→                    background:
+   344→                      t.variant === "mint"
+   345→                        ? "linear-gradient(135deg, rgba(100, 255, 218, 0.30), rgba(102, 126, 234, 0.15))"
+   346→                        : t.variant === "violet"
+   347→                          ? "linear-gradient(135deg, rgba(102, 126, 234, 0.30), rgba(118, 75, 162, 0.15))"
+   348→                          : "linear-gradient(135deg, rgba(155, 126, 234, 0.30), rgba(118, 75, 162, 0.10))",
+   349→                  }}
+   350→                >
+   351→                  {t.name.charAt(0).toUpperCase()}
+   352→                </div>
+   353→                <div className="min-w-0">
+   354→                  <div className="truncate text-sm font-semibold text-white">{t.name}</div>
+   355→                  <div className="truncate text-xs text-ink-400">{t.role}</div>
+   356→                </div>
+   357→                <div className="ml-auto flex gap-0.5">
+   358→                  {Array.from({ length: 5 }).map((_, j) => (
+   359→                    <Star
+   360→                      key={j}
+   361→                      className={`h-3.5 w-3.5 ${
+   362→                        j < t.rating
+   363→                          ? "fill-amber-400 text-amber-400"
+   364→                          : "fill-white/5 text-white/10"
+   365→                      }`}
+   366→                    />
+   367→                  ))}
+   368→                </div>
+   369→              </div>
+   370→            </div>
+   371→          ))}
+   372→        </div>
+   373→      )}
+   374→    </section>
+   375→  );
+   376→}
+   377→
+   378→/* ─────────────────────────────────────────────────────────────────────── */
+   379→/* FeedbackForm — visible to any visitor. Validates + writes to the store. */
+   380→/* On success: shows a "pending approval" confirmation.                    */
+   381→/* ─────────────────────────────────────────────────────────────────────── */
+   382→function FeedbackForm({ onDone }: { onDone: () => void }) {
+   383→  const [form, setForm] = useState({ name: "", role: "", quote: "", rating: 5 });
+   384→  const [submitting, setSubmitting] = useState(false);
+   385→  const [error, setError] = useState<string | null>(null);
+   386→  const [done, setDone] = useState(false);
+   387→
+   388→  const update = (k: keyof typeof form, v: string | number) =>
+   389→    setForm((f) => ({ ...f, [k]: v }));
+   390→
+   391→  const validate = (): string | null => {
+   392→    if (!form.name.trim()) return "Please enter your name.";
+   393→    if (!form.role.trim()) return "Please enter your role / company.";
+   394→    if (form.quote.trim().length < 10) return "Tell us a bit more — at least 10 characters.";
+   395→    if (form.quote.trim().length > 500) return "Keep it under 500 characters.";
+   396→    if (form.rating < 1 || form.rating > 5) return "Pick a rating between 1 and 5 stars.";
+   397→    return null;
+   398→  };
+   399→
+   400→  const handleSubmit = async (e: React.FormEvent) => {
+   401→    e.preventDefault();
+   402→    const err = validate();
+   403→    if (err) {
+   404→      setError(err);
+   405→      return;
+   406→    }
+   407→    setError(null);
+   408→    setSubmitting(true);
+   409→    // Simulate async to make the success state feel intentional
+   410→    await new Promise((r) => setTimeout(r, 350));
+   411→    addFeedback({
+   412→      name: form.name,
+   413→      role: form.role,
+   414→      rating: form.rating,
+   415→      quote: form.quote,
+   416→    });
+   417→    setSubmitting(false);
+   418→    setDone(true);
+   419→    // Auto-close after 4s
+   420→    setTimeout(() => {
+   421→      setDone(false);
+   422→      setForm({ name: "", role: "", quote: "", rating: 5 });
+   423→      onDone();
+   424→    }, 4000);
+   425→  };
+   426→
+   427→  if (done) {
+   428→    return (
+   429→      <Reveal className="glass-card-gradient mx-auto max-w-2xl p-8 text-center">
+   430→        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/15">
+   431→          <CheckCircle2 className="h-6 w-6 text-emerald-300" />
+   432→        </div>
+   433→        <h3 className="text-lg font-bold text-white">Thank you for your feedback!</h3>
+   434→        <p className="mt-2 text-sm text-ink-300">
+   435→          Your testimonial has been saved and is now awaiting approval from our team.
+   436→          Once approved, it will appear here for the world to see.
+   437→        </p>
+   438→      </Reveal>
+   439→    );
+   440→  }
+   441→
+   442→  return (
+   443→    <Reveal className="glass-card mx-auto max-w-2xl p-6 sm:p-8">
+   444→      <div className="mb-5 flex items-center gap-2">
+   445→        <MessageSquare className="h-5 w-5 text-mint-300" />
+   446→        <h3 className="text-lg font-bold text-white">Share your experience</h3>
+   447→      </div>
+   448→      <p className="mb-5 text-sm text-ink-400">
+   449→        Worked with The Shield? Tell other founders what it was like. Your feedback will be
+   450→        reviewed by our team before appearing publicly.
+   451→      </p>
+   452→
+   453→      <form onSubmit={handleSubmit} className="space-y-4">
+   454→        <div className="grid gap-4 sm:grid-cols-2">
+   455→          <div>
+   456→            <label className="mb-1.5 block text-xs font-medium text-ink-300">
+   457→              Your name <span className="text-rose-400">*</span>
+   458→            </label>
+   459→            <input
+   460→              type="text"
+   461→              value={form.name}
+   462→              onChange={(e) => update("name", e.target.value)}
+   463→              placeholder="e.g. Sara Al-Mansoori"
+   464→              className="input-field"
+   465→              maxLength={80}
+   466→              required
+   467→            />
+   468→          </div>
+   469→          <div>
+   470→            <label className="mb-1.5 block text-xs font-medium text-ink-300">
+   471→              Role / Company <span className="text-rose-400">*</span>
+   472→            </label>
+   473→            <input
+   474→              type="text"
+   475→              value={form.role}
+   476→              onChange={(e) => update("role", e.target.value)}
+   477→              placeholder="e.g. CEO, Layla Cosmetics"
+   478→              className="input-field"
+   479→              maxLength={80}
+   480→              required
+   481→            />
+   482→          </div>
+   483→        </div>
+   484→
+   485→        <div>
+   486→          <label className="mb-1.5 block text-xs font-medium text-ink-300">
+   487→            Your rating <span className="text-rose-400">*</span>
+   488→          </label>
+   489→          <div className="flex items-center gap-1.5">
+   490→            {[1, 2, 3, 4, 5].map((n) => (
+   491→              <button
+   492→                key={n}
+   493→                type="button"
+   494→                onClick={() => update("rating", n)}
+   495→                className="rounded-md p-1 transition-transform hover:scale-110"
+   496→                aria-label={`${n} star${n > 1 ? "s" : ""}`}
+   497→              >
+   498→                <Star
+   499→                  className={`h-7 w-7 transition-colors ${
+   500→                    n <= form.rating
+   501→                      ? "fill-amber-400 text-amber-400"
+   502→                      : "fill-white/5 text-white/15"
+   503→                  }`}
+   504→                />
+   505→              </button>
+   506→            ))}
+   507→            <span className="ml-2 text-xs text-ink-400">{form.rating} / 5</span>
+   508→          </div>
+   509→        </div>
+   510→
+   511→        <div>
+   512→          <label className="mb-1.5 block text-xs font-medium text-ink-300">
+   513→            Your testimonial <span className="text-rose-400">*</span>
+   514→          </label>
+   515→          <textarea
+   516→            value={form.quote}
+   517→            onChange={(e) => update("quote", e.target.value)}
+   518→            placeholder="Tell us what working with The Shield was like — what was the project, what stood out, what results did you see?"
+   519→            className="input-field min-h-[120px] resize-y"
+   520→            maxLength={500}
+   521→            required
+   522→          />
+   523→          <div className="mt-1 flex justify-end text-[10px] text-ink-500">
+   524→            {form.quote.length} / 500
+   525→          </div>
+   526→        </div>
+   527→
+   528→        {error && (
+   529→          <div className="rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+   530→            {error}
+   531→          </div>
+   532→        )}
+   533→
+   534→        <div className="flex items-center justify-between gap-3 pt-2">
+   535→          <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-ink-500">
+   536→            <Clock className="h-3 w-3" /> Reviewed by our team before publishing
+   537→          </span>
+   538→          <button
+   539→            type="submit"
+   540→            disabled={submitting}
+   541→            className="btn-primary shine-sweep text-sm"
+   542→          >
+   543→            {submitting ? (
+   544→              <>
+   545→                <Loader2 className="h-4 w-4 animate-spin" /> Submitting…
+   546→              </>
+   547→            ) : (
+   548→              <>
+   549→                <Send className="h-4 w-4" /> Submit feedback
+   550→              </>
+   551→            )}
+   552→          </button>
+   553→        </div>
+   554→      </form>
+   555→    </Reveal>
+   556→  );
+   557→}
+   558→
+   559→export default function HomeView() {
+   560→  const { isAuthenticated, isAdmin, setView } = useAuth();
+   561→  const [slideIdx, setSlideIdx] = useState(0);
+   562→  const [showcase, setShowcase] = useState<ShowcaseProject[]>([]);
+   563→  const [feedback, setFeedback] = useState<Feedback[]>([]);
+   564→  const [config, setConfig] = useState<SiteConfigWithMeta | null>(null);
+   565→
+   566→  useEffect(() => {
+   567→    setShowcase(loadShowcase());
+   568→    setFeedback(loadApprovedFeedback());
+   569→    // Make sure the DB has demo rows on first visit. Async — fires in
+   570→    // background, refreshes state when complete.
+   571→    seedDemoSubmissions().then(() => setFeedback(loadApprovedFeedback()));
+   572→    seedFeedback().then(() => setFeedback(loadApprovedFeedback()));
+   573→    // Fetch live site config from MongoDB (hero text, logo URL, contact email…)
+   574→    fetchSiteConfig().then(setConfig).catch(() => {});
+   575→    // Live-refresh showcase + feedback when superadmin edits in another tab
+   576→    const onStorage = (e: StorageEvent) => {
+   577→      if (e.key === "theshield_showcase") setShowcase(loadShowcase());
+   578→      if (e.key === "theshield_feedback") setFeedback(loadApprovedFeedback());
+   579→    };
+   580→    window.addEventListener("storage", onStorage);
+   581→    return () => window.removeEventListener("storage", onStorage);
+   582→  }, []);
+   583→
+   584→  useEffect(() => {
+   585→    const t = setInterval(() => {
+   586→      setSlideIdx((i) => (i + 1) % HERO_SLIDES.length);
+   587→    }, 2600);
+   588→    return () => clearInterval(t);
+   589→  }, []);
+   590→
+   591→  return (
+   592→    <div className="relative">
+   593→      {/* ─────────── HERO ─────────── */}
+   594→      <section className="relative mx-auto max-w-7xl px-3 pt-8 pb-12 sm:px-6 sm:pt-12 sm:pb-20">
+   595→        <div className="grid items-center gap-8 lg:grid-cols-12 lg:gap-10">
+   596→          <div className="lg:col-span-7">
+   597→            <div className="inline-flex items-center gap-2 rounded-full border border-mint-300/30 bg-mint-300/5 px-3 py-1.5 text-[11px] font-medium text-mint-300 animate-fade-up stagger-1 sm:px-4 sm:text-xs">
+   598→              <span className="relative flex h-2 w-2">
+   599→                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-300 opacity-75" />
+   600→                <span className="relative inline-flex h-2 w-2 rounded-full bg-mint-300" />
+   601→              </span>
+   602→              {config?.heroSubtitle || "Bridging the gap between business and technology"}
+   603→            </div>
+   604→
+   605→            <h1 className="mt-4 text-3xl font-bold leading-[1.1] tracking-tight text-white sm:mt-6 sm:text-5xl lg:text-7xl animate-fade-up stagger-2">
+   606→              <span className="block">We craft</span>
+   607→              <span className="relative block min-h-[1.1em] overflow-hidden">
+   608→                {HERO_SLIDES.map((slide, i) => (
+   609→                  <span
+   610→                    key={slide}
+   611→                    aria-hidden={i !== slideIdx}
+   612→                    className={`text-gradient-animated text-shadow-glow absolute inset-0 transition-all duration-700 ${
+   613→                      i === slideIdx
+   614→                        ? "opacity-100 translate-y-0"
+   615→                        : "opacity-0 translate-y-4 pointer-events-none"
+   616→                    }`}
+   617→                  >
+   618→                    {slide}
+   619→                  </span>
+   620→                ))}
+   621→                {/* Spacer to size the rotating slot to the tallest slide */}
+   622→                <span className="text-gradient-animated text-shadow-glow opacity-0">
+   623→                  {HERO_SLIDES.reduce((a, b) => (a.length > b.length ? a : b), "")}
+   624→                </span>
+   625→              </span>
+   626→            </h1>
+   627→
+   628→            {/* Slide indicators */}
+   629→            <div className="mt-3 flex flex-wrap gap-1.5 animate-fade-up stagger-3 sm:mt-4">
+   630→              {HERO_SLIDES.map((s, i) => (
+   631→                <button
+   632→                  key={s}
+   633→                  type="button"
+   634→                  onClick={() => setSlideIdx(i)}
+   635→                  aria-label={`Show ${s}`}
+   636→                  className={`h-1.5 rounded-full transition-all duration-300 ${
+   637→                    i === slideIdx
+   638→                      ? "w-8 bg-mint-300"
+   639→                      : "w-3 bg-white/20 hover:bg-white/40"
+   640→                  }`}
+   641→                />
+   642→              ))}
+   643→            </div>
+   644→
+   645→            <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-100 animate-fade-up stagger-3 sm:mt-6 sm:text-lg">
+   646→              We provide full-cycle software development services encompassing planning,
+   647→              requirements definition, design and prototyping, software development,
+   648→              testing, deployment, and application maintenance.
+   649→            </p>
+   650→
+   651→            <div className="mt-6 flex flex-wrap items-center gap-3 animate-fade-up stagger-4 sm:mt-8">
+   652→              <MagneticButton href="#submit" className="btn-primary">
+   653→                <Send className="h-4 w-4" /> Submit a Project
+   654→              </MagneticButton>
+   655→              <a href="#services" className="btn-ghost">
+   656→                <Sparkles className="h-4 w-4" /> Know More
+   657→              </a>
+   658→              {isAuthenticated && isAdmin && (
+   659→                <button onClick={() => setView("dashboard")} className="btn-ghost">
+   660→                  Dashboard <ArrowRight className="h-4 w-4" />
+   661→                </button>
+   662→              )}
+   663→            </div>
+   664→          </div>
+   665→
+   666→          {/* Live system data panel — pulls real numbers from the same
+   667→              localStorage the admin panel reads/writes. Updates in real time
+   668→              via storage events + 5s safety-net polling. */}
+   669→          <div className="lg:col-span-5">
+   670→            <HeroLivePanel />
+   671→          </div>
+   672→        </div>
+   673→      </section>
+   674→
+   675→      {/* ─────────── MARQUEE ─────────── */}
+   676→      <section className="border-y border-white/10 bg-white/[0.05] py-4 overflow-hidden sm:py-6">
+   677→        <div className="flex items-center gap-12 whitespace-nowrap animate-marquee">
+   678→          {[...TECH, ...TECH].map((t, i) => (
+   679→            <span key={i} className="inline-flex items-center gap-2 text-sm font-medium text-ink-400">
+   680→              <span className="h-1 w-1 rounded-full bg-mint-300/60" /> {t}
+   681→            </span>
+   682→          ))}
+   683→        </div>
+   684→      </section>
+   685→
+   686→      {/* ─────────── ACHIEVEMENTS / STATS ─────────── */}
+   687→      <section className="border-b border-white/10 bg-white/[0.05]">
+   688→        <div className="mx-auto max-w-7xl px-3 py-8 sm:px-6 sm:py-10">
+   689→          <div className="mb-8 text-center">
+   690→            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-mint-300">
+   691→              Our Milestones
+   692→            </span>
+   693→            <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl">
+   694→              Achievements
+   695→            </h2>
+   696→            <p className="mt-2 text-sm text-ink-400">
+   697→              Powering digital growth with innovation and trust
+   698→            </p>
+   699→          </div>
+   700→          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+   701→            {STATS.map((s, i) => (
+   702→              <StatCard key={s.label} stat={s} delay={i * 0.1} />
+   703→            ))}
+   704→          </div>
+   705→        </div>
+   706→      </section>
+   707→
+   708→      {/* ─────────── SERVICES ─────────── */}
+   709→      <section id="services" className="mx-auto max-w-7xl px-3 py-12 scroll-mt-20 sm:px-6 sm:py-20">
+   710→        <Reveal className="mb-12 text-center">
+   711→          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-mint-300">
+   712→            Our Services
+   713→          </span>
+   714→          <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
+   715→            Transforming ideas into powerful digital solutions
+   716→          </h2>
+   717→          <p className="mx-auto mt-3 max-w-2xl text-ink-300">
+   718→            {config?.heroSubtitle || "Bridging the gap between business and technology"} — across every technology domain.
+   719→          </p>
+   720→        </Reveal>
+   721→
+   722→        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+   723→          {SERVICES.map((s, i) => (
+   724→            <Reveal key={s.title} delay={i * 0.06} className="glass-card-hover group p-6">
+   725→              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-mint-300/20 to-violet-600/15 ring-1 ring-white/10 transition-transform duration-500 group-hover:scale-110">
+   726→                <s.icon className="h-6 w-6 text-mint-300" />
+   727→              </div>
+   728→              <h3 className="text-lg font-semibold text-white">{s.title}</h3>
+   729→              <p className="mt-2 text-sm leading-relaxed text-ink-300">{s.desc}</p>
+   730→              <div className="mt-4 flex flex-wrap gap-1.5">
+   731→                {s.tags.map((t) => (
+   732→                  <span
+   733→                    key={t}
+   734→                    className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-ink-300"
+   735→                  >
+   736→                    {t}
+   737→                  </span>
+   738→                ))}
+   739→              </div>
+   740→            </Reveal>
+   741→          ))}
+   742→        </div>
+   743→      </section>
+   744→
+   745→      {/* ─────────── INDUSTRIES ─────────── */}
+   746→      <section id="industries" className="border-y border-white/10 bg-white/[0.05]">
+   747→        <div className="mx-auto max-w-7xl px-6 py-16 scroll-mt-20">
+   748→          <Reveal className="mb-10 text-center">
+   749→            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
+   750→              What We Serve
+   751→            </span>
+   752→            <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl lg:text-4xl">Industries</h2>
+   753→            <p className="mx-auto mt-3 max-w-2xl text-ink-300">
+   754→              Domain expertise across the verticals that move the modern economy.
+   755→            </p>
+   756→          </Reveal>
+   757→          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+   758→            {INDUSTRIES.map((it, i) => (
+   759→              <div
+   760→                key={it.title}
+   761→                className="glass-card-hover group p-5 animate-fade-up"
+   762→                style={{ animationDelay: `${i * 0.05}s` }}
+   763→              >
+   764→                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-violet-600/10 ring-1 ring-white/10 transition-transform duration-500 group-hover:scale-110">
+   765→                  <it.icon className="h-5 w-5 text-violet-300" />
+   766→                </div>
+   767→                <h3 className="text-sm font-semibold text-white">{it.title}</h3>
+   768→                <p className="mt-1 text-xs leading-relaxed text-ink-400">{it.desc}</p>
+   769→              </div>
+   770→            ))}
+   771→          </div>
+   772→        </div>
+   773→      </section>
+   774→
+   775→      {/* ─────────── PROCESS ─────────── */}
+   776→      <section id="process" className="relative mx-auto max-w-7xl px-3 py-12 scroll-mt-20 sm:px-6 sm:py-20">
+   777→        <Reveal className="mb-12 text-center">
+   778→          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
+   779→            How we work
+   780→          </span>
+   781→          <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
+   782→            A 4-step path from idea to launch
+   783→          </h2>
+   784→          <p className="mx-auto mt-3 max-w-2xl text-ink-300">
+   785→            Transparent sprints. Real-time status tracking. No black boxes.
+   786→          </p>
+   787→        </Reveal>
+   788→
+   789→        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+   790→          {PROCESS.map((p, i) => (
+   791→            <Reveal
+   792→              key={p.n}
+   793→              delay={i * 0.1}
+   794→              className="relative glass-card-hover p-6"
+   795→            >
+   796→              <div className="absolute -top-4 left-6 text-5xl font-bold text-white/10">
+   797→                {p.n}
+   798→              </div>
+   799→              <div className="relative">
+   800→                <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-mint-300/20 to-violet-600/15 ring-1 ring-white/10">
+   801→                  <p.icon className="h-5 w-5 text-mint-300" />
+   802→                </div>
+   803→                <h3 className="text-lg font-semibold text-white">{p.title}</h3>
+   804→                <p className="mt-2 text-sm leading-relaxed text-ink-300">{p.desc}</p>
+   805→              </div>
+   806→              {i < PROCESS.length - 1 && (
+   807→                <div className="absolute -right-3 top-1/2 hidden -translate-y-1/2 text-ink-600 lg:block">
+   808→                  <ArrowRight className="h-5 w-5" />
+   809→                </div>
+   810→              )}
+   811→            </Reveal>
+   812→          ))}
+   813→        </div>
+   814→      </section>
+   815→
+   816→      {/* ─────────── TECH STACK ─────────── */}
+   817→      <section className="border-y border-white/10 bg-white/[0.05]">
+   818→        <div className="mx-auto max-w-7xl px-3 py-10 sm:px-6 sm:py-12">
+   819→          <div className="mb-6 text-center">
+   820→            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-ink-400">
+   821→              Where Code Meets Intelligence
+   822→            </span>
+   823→            <h3 className="mt-2 text-2xl font-bold text-white">Our Technology Stack</h3>
+   824→            <p className="mt-2 text-sm text-ink-300">
+   825→              Building powerful digital products with cutting-edge technologies
+   826→            </p>
+   827→          </div>
+   828→          <div className="flex flex-wrap justify-center gap-2.5">
+   829→            {TECH.map((t, i) => (
+   830→              <span
+   831→                key={t}
+   832→                className="rounded-lg border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-ink-100 transition-all duration-300 hover:border-mint-300/50 hover:bg-mint-300/10 hover:text-white animate-fade-up"
+   833→                style={{ animationDelay: `${i * 0.04}s` }}
+   834→              >
+   835→                {t}
+   836→              </span>
+   837→            ))}
+   838→          </div>
+   839→          <div className="mx-auto mt-10 max-w-4xl rounded-2xl border border-violet-500/20 bg-violet-600/[0.04] p-6">
+   840→            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-violet-300">
+   841→              <Bot className="h-3.5 w-3.5" /> AI &amp; Data Technologies — Next-Gen Intelligent Tech
+   842→            </div>
+   843→            <div className="flex flex-wrap gap-2">
+   844→              {TECH_AI.map((t) => (
+   845→                <span
+   846→                  key={t}
+   847→                  className="rounded-md bg-white/5 px-3 py-1 text-xs font-medium text-ink-200 hover:bg-violet-600/15 hover:text-white transition-colors"
+   848→                >
+   849→                  {t}
+   850→                </span>
+   851→              ))}
+   852→            </div>
+   853→          </div>
+   854→        </div>
+   855→      </section>
+   856→
+   857→      {/* ─────────── TESTIMONIALS ─────────── */}
+   858→      <TestimonialsSection feedback={feedback} onSubmitted={() => setFeedback(loadApprovedFeedback())} />
+   859→
+   860→      {/* ─────────── SHOWCASE / OUR PROJECTS ─────────── */}
+   861→      <ShowcaseSection projects={showcase} />
+   862→
+   863→      {/* ─────────── SUBMIT (now functional) ─────────── */}
+   864→      <SubmitProjectSection />
+   865→
+   866→      {/* ─────────── TRACK ─────────── */}
+   867→      <TrackStatusSection />
+   868→
+   869→      {/* ─────────── CTA ─────────── */}
+   870→      <section className="mx-auto max-w-7xl px-6 py-16">
+   871→        <Reveal className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-navy-800 via-navy-900 to-ink-950 p-10 sm:p-14">
+   872→          <div className="absolute inset-0 -z-10 grid-backdrop opacity-60" />
+   873→          <div className="relative flex flex-col items-center gap-6 text-center md:flex-row md:text-left">
+   874→            <div className="flex-1">
+   875→              <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
+   876→                Got a project in mind?
+   877→              </h2>
+   878→              <p className="mt-2 max-w-xl text-ink-300">
+   879→                Tell us what you&apos;re building. We&apos;ll reply within 48 hours with a scope, timeline, and transparent quote.
+   880→              </p>
+   881→            </div>
+   882→            <div className="flex flex-wrap items-center justify-center gap-3">
+   883→              <MagneticButton href="#submit" className="btn-primary">
+   884→                <Send className="h-4 w-4" /> Submit Project
+   885→              </MagneticButton>
+   886→              <a href={`mailto:${config?.contactEmail || "akashperera464@gmail.com"}`} className="btn-ghost">
+   887→                <Mail className="h-4 w-4" /> Email us
+   888→              </a>
+   889→            </div>
+   890→          </div>
+   891→        </Reveal>
+   892→      </section>
+   893→
+   894→      {/* ─────────── FOOTER ─────────── */}
+   895→      <footer className="border-t border-white/5 bg-navy-950/40 px-3 py-10 sm:px-6 sm:py-12">
+   896→        <div className="mx-auto max-w-7xl">
+   897→          <div className="grid gap-10 md:grid-cols-4">
+   898→            <div className="md:col-span-2">
+   899→              <div className="flex items-center gap-3">
+   900→                <img
+   901→                  src={config?.logoUrl || DEFAULT_LOGO_URL}
+   902→                  alt="The Shield logo"
+   903→                  className="h-12 w-12 rounded-xl object-cover ring-1 ring-white/15"
+   904→                />
+   905→                <span className="text-lg font-semibold text-white">
+   906→                  The <span className="text-gradient-animated">Shield</span>
+   907→                </span>
+   908→              </div>
+   909→              <p className="mt-3 max-w-sm text-sm text-ink-400">
+   910→                {config?.aboutText || "Bridging the gap between business and technology. We design, build, and ship production software across every technology domain."}
+   911→              </p>
+   912→              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-ink-500">
+   913→                <span className="inline-flex items-center gap-1.5">
+   914→                  <MapPin className="h-3.5 w-3.5" /> 15+ service locations
+   915→                </span>
+   916→                <span className="inline-flex items-center gap-1.5">
+   917→                  <Mail className="h-3.5 w-3.5" /> {config?.contactEmail || "akashperera464@gmail.com"}
+   918→                </span>
+   919→                <span className="inline-flex items-center gap-1.5">
+   920→                  <Phone className="h-3.5 w-3.5" /> 0741622795
+   921→                </span>
+   922→              </div>
+   923→            </div>
+   924→
+   925→            <div>
+   926→              <h4 className="text-sm font-semibold text-white">Company</h4>
+   927→              <ul className="mt-3 space-y-2 text-sm text-ink-400">
+   928→                <li><a href="#services" className="hover:text-white">Services</a></li>
+   929→                <li><a href="#industries" className="hover:text-white">Industries</a></li>
+   930→                <li><a href="#process" className="hover:text-white">Process</a></li>
+   931→                <li><a href="#submit" className="hover:text-white">Submit Project</a></li>
+   932→                <li><a href="#track" className="hover:text-white">Track Status</a></li>
+   933→              </ul>
+   934→            </div>
+   935→
+   936→            <div>
+   937→              <h4 className="text-sm font-semibold text-white">Stack</h4>
+   938→              <ul className="mt-3 space-y-2 text-sm text-ink-400">
+   939→                <li>React + Next.js</li>
+   940→                <li>Python · Node.js · Java</li>
+   941→                <li>AI / ML / Data</li>
+   942→                <li>Mobile · Web · Cloud</li>
+   943→              </ul>
+   944→            </div>
+   945→          </div>
+   946→
+   947→          {/* Aligned bottom bar */}
+   948→          <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/5 pt-6 sm:flex-row">
+   949→            <span className="text-sm text-ink-400">
+   950→              © {new Date().getFullYear()} The Shield. All rights reserved.
+   951→            </span>
+   952→            <span className="flex items-center gap-2 text-sm text-ink-500">
+   953→              <Sparkles className="h-4 w-4 text-mint-300" /> Crafted by The Shield team
+   954→            </span>
+   955→          </div>
+   956→        </div>
+   957→      </footer>
+   958→    </div>
+   959→  );
+   960→}
+   961→
+   962→/* ─────────────────────────────────────────────────────────────────────── */
+   963→/* SHOWCASE / OUR PROJECTS — public portfolio cards                      */
+   964→/* ─────────────────────────────────────────────────────────────────────── */
+   965→
+   966→function ShowcaseSection({ projects }: { projects: ShowcaseProject[] }) {
+   967→  const sorted = [...projects].sort((a, b) => {
+   968→    if (a.featured !== b.featured) return a.featured ? -1 : 1;
+   969→    return a.order - b.order;
+   970→  });
+   971→
+   972→  if (sorted.length === 0) return null;
+   973→
+   974→  return (
+   975→    <section id="projects" className="mx-auto max-w-7xl px-3 py-12 scroll-mt-20 sm:px-6 sm:py-20">
+   976→      <Reveal className="mb-12 text-center">
+   977→        <span className="inline-flex items-center gap-2 rounded-full bg-mint-300/10 px-3 py-1 text-xs font-medium text-mint-300">
+   978→          <FolderKanban className="h-3.5 w-3.5" /> Our Projects
+   979→        </span>
+   980→        <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
+   981→          Work we&apos;re proud of
+   982→        </h2>
+   983→        <p className="mx-auto mt-3 max-w-2xl text-ink-300">
+   984→          A snapshot of recent products we&apos;ve shipped for clients across web, mobile, design, and software. Click any card to view the live project.
+   985→        </p>
+   986→      </Reveal>
+   987→
+   988→      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+   989→        {sorted.map((p, i) => (
+   990→          <ShowcaseCard key={p.id} project={p} index={i} />
+   991→        ))}
+   992→      </div>
+   993→    </section>
+   994→  );
+   995→}
+   996→
+   997→function ShowcaseCard({ project, index }: { project: ShowcaseProject; index: number }) {
+   998→  const hasUrl = /^https?:\/\/.+/.test(project.projectUrl || "");
+   999→  const hasImg = /^https?:\/\/.+/.test(project.imageUrl || "");
+  1000→  const tilt = useTilt<HTMLDivElement>(5);     // gentle 5° cursor tilt
+  1001→  const reveal = useScrollReveal<HTMLDivElement>({ threshold: 0.2 });
+  1002→  const [imgLoaded, setImgLoaded] = useState(false);
+  1003→
+  1004→  const CardInner = (
+  1005→    <>
+  1006→      {/* Image */}
+  1007→      <div className="relative aspect-[16/10] overflow-hidden rounded-t-2xl bg-navy-800">
+  1008→        {hasImg ? (
+  1009→          <>
+  1010→            {!imgLoaded && <div className="absolute inset-0 skeleton" />}
+  1011→            {/* eslint-disable-next-line @next/next/no-img-element */}
+  1012→            <img
+  1013→              src={project.imageUrl}
+  1014→              alt={project.title}
+  1015→              loading="lazy"
+  1016→              onLoad={() => setImgLoaded(true)}
+  1017→              className={`showcase-card-image h-full w-full object-cover ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+  1018→            />
+  1019→          </>
+  1020→        ) : (
+  1021→          <div className="flex h-full w-full items-center justify-center">
+  1022→            <ImageIcon className="h-10 w-10 text-ink-600" />
+  1023→          </div>
+  1024→        )}
+  1025→        {/* Top gradient overlay */}
+  1026→        <div className="absolute inset-0 bg-gradient-to-t from-navy-950/80 via-transparent to-transparent pointer-events-none" />
+  1027→
+  1028→        {/* Category chip */}
+  1029→        <div className="absolute left-3 top-3">
+  1030→          <span className="inline-flex items-center gap-1 rounded-full bg-navy-950/80 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-mint-300 ring-1 ring-white/10 backdrop-blur">
+  1031→            {project.category}
+  1032→          </span>
+  1033→        </div>
+  1034→
+  1035→        {/* Featured star */}
+  1036→        {project.featured && (
+  1037→          <div className="absolute right-3 top-3">
+  1038→            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-1 text-[10px] font-medium text-amber-300 ring-1 ring-amber-400/30 backdrop-blur">
+  1039→              <Star className="h-3 w-3" /> Featured
+  1040→            </span>
+  1041→          </div>
+  1042→        )}
+  1043→
+  1044→        {/* External link hint */}
+  1045→        {hasUrl && (
+  1046→          <div className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-mint-300/90 text-navy-950 opacity-0 shadow-lg transition-all duration-300 group-hover:opacity-100 group-hover:scale-110">
+  1047→            <ArrowUpRight className="h-4 w-4" />
+  1048→          </div>
+  1049→        )}
+  1050→      </div>
+  1051→
+  1052→      {/* Body */}
+  1053→      <div className="flex flex-1 flex-col p-5">
+  1054→        <h3 className="text-base font-semibold leading-snug text-white group-hover:text-mint-200 transition-colors">
+  1055→          {project.title}
+  1056→        </h3>
+  1057→        <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-300">
+  1058→          {project.description}
+  1059→        </p>
+  1060→        {project.tags.length > 0 && (
+  1061→          <div className="mt-3 flex flex-wrap gap-1.5">
+  1062→            {project.tags.slice(0, 4).map((t) => (
+  1063→              <span
+  1064→                key={t}
+  1065→                className="rounded-md bg-white/[0.06] px-2 py-0.5 text-[10px] font-medium text-ink-400 ring-1 ring-white/5"
+  1066→              >
+  1067→                {t}
+  1068→              </span>
+  1069→            ))}
+  1070→          </div>
+  1071→        )}
+  1072→        {hasUrl && (
+  1073→          <div className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-mint-300">
+  1074→            <ExternalLink className="h-3.5 w-3.5" /> View project
+  1075→          </div>
+  1076→        )}
+  1077→      </div>
+  1078→    </>
+  1079→  );
+  1080→
+  1081→  // Combined classes: showcase-card adds the lift + glow + image-zoom hover
+  1082→  // reveal-hidden/visible handles scroll-triggered fade-up
+  1083→  // We need both refs (reveal + tilt) on the same element — use a callback ref.
+  1084→  const setRef = (el: HTMLDivElement | null) => {
+  1085→    reveal.ref.current = el;
+  1086→    tilt.ref.current = el;
+  1087→  };
+  1088→
+  1089→  const containerCls = `group showcase-card reveal-hidden ${reveal.visible ? "reveal-visible" : ""} flex h-full flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.05] hover:border-mint-300/40 hover:bg-white/[0.04]`;
+  1090→
+  1091→  return (
+  1092→    <div
+  1093→      ref={setRef}
+  1094→      style={{ transitionDelay: `${index * 0.08}s`, ...tilt.style }}
+  1095→      className={containerCls}
+  1096→    >
+  1097→      {hasUrl ? (
+  1098→        <a
+  1099→          href={project.projectUrl}
+  1100→          target="_blank"
+  1101→          rel="noopener noreferrer"
+  1102→          className="flex h-full flex-col"
+  1103→        >
+  1104→          {CardInner}
+  1105→        </a>
+  1106→      ) : (
+  1107→        <div className="flex h-full flex-col">{CardInner}</div>
+  1108→      )}
+  1109→    </div>
+  1110→  );
+  1111→}
+  1112→
+  1113→/* ─────────────────────────────────────────────────────────────────────── */
+  1114→
+  1115→function SubmitProjectSection() {
+  1116→  const [form, setForm] = useState({
+  1117→    name: "",
+  1118→    email: "",
+  1119→    company: "",
+  1120→    service: "",
+  1121→    timeline: "",
+  1122→    brief: "",
+  1123→  });
+  1124→  const [submitting, setSubmitting] = useState(false);
+  1125→  const [done, setDone] = useState(false);
+  1126→  const [error, setError] = useState<string | null>(null);
+  1127→  const [uploads, setUploads] = useState<UploadedFile[]>([]);
+  1128→  const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
+  1129→  const [dragOver, setDragOver] = useState(false);
+  1130→
+  1131→  const update = (k: keyof typeof form, v: string) =>
+  1132→    setForm((f) => ({ ...f, [k]: v }));
+  1133→
+  1134→  const handleSubmit = async (e: React.FormEvent) => {
+  1135→    e.preventDefault();
+  1136→    setError(null);
+  1137→
+  1138→    if (!form.name.trim() || !form.email.trim() || !form.brief.trim()) {
+  1139→      setError("Name, email, and project brief are required.");
+  1140→      return;
+  1141→    }
+  1142→    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+  1143→      setError("Please enter a valid email address.");
+  1144→      return;
+  1145→    }
+  1146→
+  1147→    setSubmitting(true);
+  1148→
+  1149→    try {
+  1150→      const submission: Submission = {
+  1151→        id: "s_" + Math.random().toString(36).slice(2, 10),
+  1152→        name: form.name,
+  1153→        email: form.email,
+  1154→        company: form.company || undefined,
+  1155→        service: form.service,
+  1156→        timeline: form.timeline || undefined,
+  1157→        brief: form.brief,
+  1158→        attachments: uploads.map((u) => ({ name: u.name, url: u.url, size: u.size, type: u.type })),
+  1159→        status: "Pending",
+  1160→        createdAt: new Date().toISOString(),
+  1161→      };
+  1162→
+  1163→      await addSubmission(submission);
+  1164→
+  1165→      setSubmitting(false);
+  1166→      setDone(true);
+  1167→    } catch (e) {
+  1168→      setSubmitting(false);
+  1169→      setError(
+  1170→        e instanceof Error && e.message
+  1171→          ? `Could not save submission: ${e.message}`
+  1172→          : "Could not save submission. Please try again."
+  1173→      );
+  1174→    }
+  1175→  };
+  1176→
+  1177→  const reset = () => {
+  1178→    setForm({
+  1179→      name: "",
+  1180→      email: "",
+  1181→      company: "",
+  1182→      service: "",
+  1183→      timeline: "",
+  1184→      brief: "",
+  1185→    });
+  1186→    setUploads([]);
+  1187→    setUploadProgress([]);
+  1188→    setDone(false);
+  1189→    setError(null);
+  1190→  };
+  1191→
+  1192→  if (done) {
+  1193→    return (
+  1194→      <section id="submit" className="mx-auto max-w-7xl px-3 py-12 scroll-mt-20 sm:px-6 sm:py-20">
+  1195→        <div className="glass-card border-gradient overflow-hidden">
+  1196→          <div className="grid lg:grid-cols-2">
+  1197→            <div className="relative p-10 lg:p-12">
+  1198→              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
+  1199→                <CheckCircle2 className="h-3.5 w-3.5" /> Submission received
+  1200→              </span>
+  1201→              <h2 className="mt-4 text-3xl font-bold text-white">
+  1202→                Thank you, {form.name.split(" ")[0] || "there"}!
+  1203→              </h2>
+  1204→              <p className="mt-3 text-ink-300">
+  1205→                Your project brief has been saved. We&apos;ll review it and reply to
+  1206→                <span className="font-mono text-mint-300"> {form.email} </span>
+  1207→                within 48 hours with a clear scope and estimate.
+  1208→              </p>
+  1209→              <ul className="mt-6 space-y-3 text-sm text-ink-200">
+  1210→                {[
+  1211→                  "Reference ID: " + form.email.split("@")[0].slice(0, 6).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase(),
+  1212→                  "Status: Pending review",
+  1213→                  "Next step: Discovery call within 48h",
+  1214→                ].map((t) => (
+  1215→                  <li key={t} className="flex items-center gap-2">
+  1216→                    <CheckCircle2 className="h-4 w-4 text-emerald-400" /> {t}
+  1217→                  </li>
+  1218→                ))}
+  1219→              </ul>
+  1220→              <div className="mt-8 flex gap-3">
+  1221→                <button onClick={reset} className="btn-primary">
+  1222→                  <Send className="h-4 w-4" /> Submit another
+  1223→                </button>
+  1224→                <a href="#track" className="btn-ghost">
+  1225→                  <Search className="h-4 w-4" /> Track status
+  1226→                </a>
+  1227→              </div>
+  1228→            </div>
+  1229→            <div className="relative border-t border-white/5 bg-navy-900/40 p-10 lg:border-l lg:border-t-0 lg:p-12">
+  1230→              <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-400">
+  1231→                What you submitted
+  1232→              </h3>
+  1233→              <dl className="mt-4 space-y-3 text-sm">
+  1234→                <SummaryRow k="Name" v={form.name} />
+  1235→                <SummaryRow k="Email" v={form.email} />
+  1236→                {form.company && <SummaryRow k="Company" v={form.company} />}
+  1237→                {form.service && <SummaryRow k="Service" v={form.service} />}
+  1238→                {form.timeline && <SummaryRow k="Timeline" v={form.timeline} />}
+  1239→                {uploads.length > 0 && (
+  1240→                  <div>
+  1241→                    <dt className="text-xs uppercase tracking-wider text-ink-500">
+  1242→                      Attachments ({uploads.length})
+  1243→                    </dt>
+  1244→                    <dd className="mt-2 space-y-1.5">
+  1245→                      {uploads.map((f) => (
+  1246→                        <a
+  1247→                          key={f.url}
+  1248→                          href={f.url}
+  1249→                          target="_blank"
+  1250→                          rel="noopener noreferrer"
+  1251→                          className="flex items-center gap-2 rounded-md border border-white/5 bg-white/[0.05] px-3 py-2 text-xs text-ink-200 transition-colors hover:border-mint-300/40 hover:text-mint-200"
+  1252→                        >
+  1253→                          {f.type.startsWith("image/") ? (
+  1254→                            <ImageIcon className="h-3.5 w-3.5 shrink-0" />
+  1255→                          ) : (
+  1256→                            <FileText className="h-3.5 w-3.5 shrink-0" />
+  1257→                          )}
+  1258→                          <span className="truncate">{f.name}</span>
+  1259→                          <span className="ml-auto shrink-0 text-ink-500">{formatBytes(f.size)}</span>
+  1260→                        </a>
+  1261→                      ))}
+  1262→                    </dd>
+  1263→                  </div>
+  1264→                )}
+  1265→                <div>
+  1266→                  <dt className="text-xs uppercase tracking-wider text-ink-500">Brief</dt>
+  1267→                  <dd className="mt-1 rounded-lg border border-white/5 bg-white/[0.05] p-3 text-ink-200">
+  1268→                    {form.brief}
+  1269→                  </dd>
+  1270→                </div>
+  1271→              </dl>
+  1272→            </div>
+  1273→          </div>
+  1274→        </div>
+  1275→      </section>
+  1276→    );
+  1277→  }
+  1278→
+  1279→  return (
+  1280→    <section id="submit" className="mx-auto max-w-7xl px-3 py-12 scroll-mt-20 sm:px-6 sm:py-20">
+  1281→      <div className="glass-card border-gradient overflow-hidden">
+  1282→        <div className="grid lg:grid-cols-2">
+  1283→          <div className="relative p-5 sm:p-8 lg:p-12">
+  1284→            <span className="inline-flex items-center gap-2 rounded-full bg-mint-300/10 px-3 py-1 text-xs font-medium text-mint-300">
+  1285→              <Rocket className="h-3.5 w-3.5" /> Submit Project
+  1286→            </span>
+  1287→            <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl">Tell us about your project</h2>
+  1288→            <p className="mt-3 text-ink-300">
+  1289→              Fill in the form — no login, no file uploads. Share scope and
+  1290→              timeline and we&apos;ll reply within 48 hours with a clear estimate.
+  1291→            </p>
+  1292→            <ul className="mt-6 space-y-3 text-sm text-ink-200">
+  1293→              {[
+  1294→                "No login required",
+  1295→                "Saved locally for demo tracking",
+  1296→                "Email-based status updates",
+  1297→                "Share wireframes via email or Drive link",
+  1298→              ].map((t) => (
+  1299→                <li key={t} className="flex items-center gap-2">
+  1300→                  <CheckCircle2 className="h-4 w-4 text-emerald-400" /> {t}
+  1301→                </li>
+  1302→              ))}
+  1303→            </ul>
+  1304→          </div>
+  1305→
+  1306→          <form
+  1307→            onSubmit={handleSubmit}
+  1308→            className="relative border-t border-white/5 bg-navy-900/40 p-5 sm:p-8 lg:border-l lg:border-t-0 lg:p-12"
+  1309→          >
+  1310→            <div className="space-y-4">
+  1311→              <div>
+  1312→                <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+  1313→                  Your name *
+  1314→                </label>
+  1315→                <input
+  1316→                  value={form.name}
+  1317→                  onChange={(e) => update("name", e.target.value)}
+  1318→                  required
+  1319→                  className="input-field"
+  1320→                  placeholder="Jane Doe"
+  1321→                />
+  1322→              </div>
+  1323→
+  1324→              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+  1325→                <div>
+  1326→                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+  1327→                    Email *
+  1328→                  </label>
+  1329→                  <input
+  1330→                    type="email"
+  1331→                    value={form.email}
+  1332→                    onChange={(e) => update("email", e.target.value)}
+  1333→                    required
+  1334→                    className="input-field"
+  1335→                    placeholder="you@company.com"
+  1336→                  />
+  1337→                </div>
+  1338→                <div>
+  1339→                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+  1340→                    Company
+  1341→                  </label>
+  1342→                  <input
+  1343→                    value={form.company}
+  1344→                    onChange={(e) => update("company", e.target.value)}
+  1345→                    className="input-field"
+  1346→                    placeholder="Acme Inc."
+  1347→                  />
+  1348→                </div>
+  1349→              </div>
+  1350→
+  1351→              <div>
+  1352→                <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+  1353→                  Service needed
+  1354→                </label>
+  1355→                <select
+  1356→                  value={form.service}
+  1357→                  onChange={(e) => update("service", e.target.value)}
+  1358→                  className="input-field"
+  1359→                >
+  1360→                  <option value="">Select a service…</option>
+  1361→                  {SERVICES.map((s) => (
+  1362→                    <option key={s.title} value={s.title}>{s.title}</option>
+  1363→                  ))}
+  1364→                </select>
+  1365→              </div>
+  1366→
+  1367→              <div>
+  1368→                <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+  1369→                  Timeline
+  1370→                </label>
+  1371→                <input
+  1372→                  value={form.timeline}
+  1373→                  onChange={(e) => update("timeline", e.target.value)}
+  1374→                  className="input-field"
+  1375→                  placeholder="e.g. 6 weeks, Q3 2026, ASAP…"
+  1376→                />
+  1377→              </div>
+  1378→
+  1379→              <div>
+  1380→                <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+  1381→                  Attachments {UPLOAD_CONFIGURED ? "(optional)" : "(disabled — ask admin to configure uploads)"}
+  1382→                </label>
+  1383→                <FileDropzone
+  1384→                  uploads={uploads}
+  1385→                  progress={uploadProgress}
+  1386→                  dragOver={dragOver}
+  1387→                  setDragOver={setDragOver}
+  1388→                  onAddFiles={async (files) => {
+  1389→                    if (!UPLOAD_CONFIGURED) {
+  1390→                      setError("File uploads are not configured yet. Please email files directly.");
+  1391→                      return;
+  1392→                    }
+  1393→                    setError(null);
+  1394→                    const list = Array.from(files);
+  1395→                    if (uploads.length + list.length > MAX_FILES) {
+  1396→                      setError(`Max ${MAX_FILES} files per submission.`);
+  1397→                      return;
+  1398→                    }
+  1399→                    for (const file of list) {
+  1400→                      const v = validateFile(file);
+  1401→                      if (v) {
+  1402→                        setError(v);
+  1403→                        continue;
+  1404→                      }
+  1405→                      setUploadProgress((p) => [
+  1406→                        ...p,
+  1407→                        { fileName: file.name, progress: 0, status: "uploading" },
+  1408→                      ]);
+  1409→                      try {
+  1410→                        const result = await uploadFile(file, (prog) => {
+  1411→                          setUploadProgress((p) =>
+  1412→                            p.map((it) =>
+  1413→                              it.fileName === file.name ? prog : it
+  1414→                            )
+  1415→                          );
+  1416→                        });
+  1417→                        setUploads((u) => [...u, result]);
+  1418→                      } catch {
+  1419→                        // error already reflected in progress entry
+  1420→                      }
+  1421→                    }
+  1422→                    // Clear out errored entries after a beat
+  1423→                    setTimeout(() => {
+  1424→                      setUploadProgress((p) => p.filter((it) => it.status === "uploading"));
+  1425→                    }, 1500);
+  1426→                  }}
+  1427→                  onRemove={(idx) => {
+  1428→                    setUploads((u) => u.filter((_, i) => i !== idx));
+  1429→                  }}
+  1430→                />
+  1431→                <p className="mt-1 text-[10px] text-ink-500">
+  1432→                  PNG, JPG, GIF, WebP, PDF, ZIP, DOC, DOCX — up to 25 MB each, max {MAX_FILES} files.
+  1433→                </p>
+  1434→              </div>
+  1435→
+  1436→              <div>
+  1437→                <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+  1438→                  Project brief *
+  1439→                </label>
+  1440→                <textarea
+  1441→                  rows={4}
+  1442→                  value={form.brief}
+  1443→                  onChange={(e) => update("brief", e.target.value)}
+  1444→                  required
+  1445→                  className="input-field resize-none"
+  1446→                  placeholder="What are you building? Any must-haves, links, or context we should know?"
+  1447→                />
+  1448→              </div>
+  1449→
+  1450→              {error && (
+  1451→                <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-200">
+  1452→                  {error}
+  1453→                </div>
+  1454→              )}
+  1455→
+  1456→              <button
+  1457→                type="submit"
+  1458→                disabled={submitting || uploadProgress.some((p) => p.status === "uploading")}
+  1459→                className="btn-primary w-full"
+  1460→              >
+  1461→                {submitting ? (
+  1462→                  <>
+  1463→                    <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/40 border-t-white" />
+  1464→                    Submitting…
+  1465→                  </>
+  1466→                ) : uploadProgress.some((p) => p.status === "uploading") ? (
+  1467→                  <>
+  1468→                    <Loader2 className="h-4 w-4 animate-spin" /> Uploading files…
+  1469→                  </>
+  1470→                ) : (
+  1471→                  <>
+  1472→                    <Send className="h-4 w-4" /> Submit project
+  1473→                  </>
+  1474→                )}
+  1475→              </button>
+  1476→            </div>
+  1477→          </form>
+  1478→        </div>
+  1479→      </div>
+  1480→    </section>
+  1481→  );
+  1482→}
+  1483→
+  1484→function SummaryRow({ k, v }: { k: string; v: string }) {
+  1485→  return (
+  1486→    <div className="flex items-center justify-between gap-3 border-b border-white/5 pb-2">
+  1487→      <dt className="text-xs uppercase tracking-wider text-ink-500">{k}</dt>
+  1488→      <dd className="truncate text-right text-ink-200">{v}</dd>
+  1489→    </div>
+  1490→  );
+  1491→}
+  1492→
+  1493→/* ─────────────────────────────────────────────────────────────────────── */
+  1494→/* FILE DROPZONE — drag/drop or click to upload, with per-file progress    */
+  1495→/* ─────────────────────────────────────────────────────────────────────── */
+  1496→
+  1497→function FileDropzone({
+  1498→  uploads,
+  1499→  progress,
+  1500→  dragOver,
+  1501→  setDragOver,
+  1502→  onAddFiles,
+  1503→  onRemove,
+  1504→}: {
+  1505→  uploads: UploadedFile[];
+  1506→  progress: UploadProgress[];
+  1507→  dragOver: boolean;
+  1508→  setDragOver: (v: boolean) => void;
+  1509→  onAddFiles: (files: FileList | File[]) => void;
+  1510→  onRemove: (idx: number) => void;
+  1511→}) {
+  1512→  const inputRef = React.useRef<HTMLInputElement>(null);
+  1513→
+  1514→  return (
+  1515→    <div className="space-y-2">
+  1516→      <div
+  1517→        onDragOver={(e) => {
+  1518→          e.preventDefault();
+  1519→          setDragOver(true);
+  1520→        }}
+  1521→        onDragLeave={() => setDragOver(false)}
+  1522→        onDrop={(e) => {
+  1523→          e.preventDefault();
+  1524→          setDragOver(false);
+  1525→          if (e.dataTransfer.files?.length) onAddFiles(e.dataTransfer.files);
+  1526→        }}
+  1527→        onClick={() => inputRef.current?.click()}
+  1528→        className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors ${
+  1529→          dragOver
+  1530→            ? "border-mint-300 bg-mint-300/5"
+  1531→            : "border-white/10 bg-white/[0.05] hover:border-white/20"
+  1532→        }`}
+  1533→      >
+  1534→        <Paperclip className="h-5 w-5 text-ink-400" />
+  1535→        <p className="mt-2 text-xs text-ink-300">
+  1536→          <span className="font-semibold text-mint-300">Click to attach</span> or drag & drop
+  1537→        </p>
+  1538→        <p className="mt-0.5 text-[10px] text-ink-500">Files are uploaded securely</p>
+  1539→        <input
+  1540→          ref={inputRef}
+  1541→          type="file"
+  1542→          multiple
+  1543→          className="hidden"
+  1544→          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.zip,.doc,.docx"
+  1545→          onChange={(e) => {
+  1546→            if (e.target.files?.length) onAddFiles(e.target.files);
+  1547→            e.target.value = "";
+  1548→          }}
+  1549→        />
+  1550→      </div>
+  1551→
+  1552→      {/* Active upload progress */}
+  1553→      {progress.length > 0 && (
+  1554→        <div className="space-y-1.5">
+  1555→          {progress.map((p, i) => (
+  1556→            <div
+  1557→              key={p.fileName + i}
+  1558→              className="rounded-lg border border-white/5 bg-white/[0.05] px-3 py-2"
+  1559→            >
+  1560→              <div className="flex items-center justify-between text-[11px]">
+  1561→                <span className="truncate text-ink-200">{p.fileName}</span>
+  1562→                <span
+  1563→                  className={`ml-2 shrink-0 ${
+  1564→                    p.status === "error"
+  1565→                      ? "text-rose-300"
+  1566→                      : p.status === "done"
+  1567→                      ? "text-emerald-300"
+  1568→                      : "text-ink-400"
+  1569→                  }`}
+  1570→                >
+  1571→                  {p.status === "error"
+  1572→                    ? "Failed"
+  1573→                    : p.status === "done"
+  1574→                    ? "Done"
+  1575→                    : `${p.progress}%`}
+  1576→                </span>
+  1577→              </div>
+  1578→              {p.status === "uploading" && (
+  1579→                <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/5">
+  1580→                  <div
+  1581→                    className="h-full rounded-full bg-mint-300 transition-all duration-200"
+  1582→                    style={{ width: `${p.progress}%` }}
+  1583→                  />
+  1584→                </div>
+  1585→              )}
+  1586→              {p.status === "error" && (
+  1587→                <p className="mt-1 text-[10px] text-rose-300">{p.error}</p>
+  1588→              )}
+  1589→            </div>
+  1590→          ))}
+  1591→        </div>
+  1592→      )}
+  1593→
+  1594→      {/* Already-uploaded files */}
+  1595→      {uploads.length > 0 && (
+  1596→        <div className="space-y-1.5">
+  1597→          {uploads.map((f, i) => (
+  1598→            <div
+  1599→              key={f.url}
+  1600→              className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.05] px-3 py-2 text-xs"
+  1601→            >
+  1602→              {f.type.startsWith("image/") ? (
+  1603→                <ImageIcon className="h-3.5 w-3.5 shrink-0 text-mint-300" />
+  1604→              ) : (
+  1605→                <FileText className="h-3.5 w-3.5 shrink-0 text-mint-300" />
+  1606→              )}
+  1607→              <a
+  1608→                href={f.url}
+  1609→                target="_blank"
+  1610→                rel="noopener noreferrer"
+  1611→                className="truncate text-ink-200 hover:text-mint-200"
+  1612→              >
+  1613→                {f.name}
+  1614→              </a>
+  1615→              <span className="ml-auto shrink-0 text-ink-500">{formatBytes(f.size)}</span>
+  1616→              <button
+  1617→                type="button"
+  1618→                onClick={(e) => {
+  1619→                  e.stopPropagation();
+  1620→                  onRemove(i);
+  1621→                }}
+  1622→                className="text-ink-500 hover:text-rose-300"
+  1623→                aria-label={`Remove ${f.name}`}
+  1624→              >
+  1625→                <X className="h-3.5 w-3.5" />
+  1626→              </button>
+  1627→            </div>
+  1628→          ))}
+  1629→        </div>
+  1630→      )}
+  1631→    </div>
+  1632→  );
+  1633→}
+  1634→
+  1635→/* ─────────────────────────────────────────────────────────────────────── */
+  1636→/* FUNCTIONAL TRACK STATUS SECTION                                         */
+  1637→/* ─────────────────────────────────────────────────────────────────────── */
+  1638→
+  1639→function TrackStatusSection() {
+  1640→  const [email, setEmail] = useState("");
+  1641→  const [results, setResults] = useState<
+  1642→    Array<{ id: string; projectTitle: string; status: string; createdAt: string }>
+  1643→  >([]);
+  1644→  const [searched, setSearched] = useState(false);
+  1645→  const [error, setError] = useState<string | null>(null);
+  1646→
+  1647→  const handleSearch = (e: React.FormEvent) => {
+  1648→    e.preventDefault();
+  1649→    setError(null);
+  1650→    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  1651→      setError("Please enter a valid email address.");
+  1652→      setResults([]);
+  1653→      setSearched(false);
+  1654→      return;
+  1655→    }
+  1656→    try {
+  1657→      const all = loadSubmissions();
+  1658→      const matches = all.filter(
+  1659→        (s) => s.email.toLowerCase() === email.toLowerCase()
+  1660→      );
+  1661→      setResults(
+  1662→        matches.map((s) => ({
+  1663→          id: s.id,
+  1664→          projectTitle: s.service || s.brief?.slice(0, 60) || "Project",
+  1665→          status: s.status,
+  1666→          createdAt: s.createdAt,
+  1667→        }))
+  1668→      );
+  1669→      setSearched(true);
+  1670→    } catch {
+  1671→      setError("Could not read saved submissions.");
+  1672→    }
+  1673→  };
+  1674→
+  1675→  return (
+  1676→    <section id="track" className="mx-auto max-w-4xl px-3 py-12 scroll-mt-20 sm:px-6 sm:py-20">
+  1677→      <div className="text-center">
+  1678→        <span className="inline-flex items-center gap-2 rounded-full bg-violet-600/10 px-3 py-1 text-xs font-medium text-violet-300">
+  1679→          <Search className="h-3.5 w-3.5" /> Track Status
+  1680→        </span>
+  1681→        <h2 className="mt-4 text-3xl font-bold text-white">Track your submission</h2>
+  1682→        <p className="mt-3 text-ink-300">
+  1683→          Enter the email you used to submit — we&apos;ll show every project and its live status.
+  1684→        </p>
+  1685→      </div>
+  1686→      <form onSubmit={handleSearch} className="mt-8 glass-card p-6">
+  1687→        <div className="flex flex-col gap-3 sm:flex-row">
+  1688→          <input
+  1689→            type="email"
+  1690→            value={email}
+  1691→            onChange={(e) => setEmail(e.target.value)}
+  1692→            placeholder="you@company.com"
+  1693→            className="input-field flex-1"
+  1694→          />
+  1695→          <button type="submit" className="btn-primary">
+  1696→            <Search className="h-4 w-4" /> Search
+  1697→          </button>
+  1698→        </div>
+  1699→        {error && (
+  1700→          <p className="mt-3 text-center text-xs text-rose-300">{error}</p>
+  1701→        )}
+  1702→        {searched && !error && (
+  1703→          <div className="mt-6">
+  1704→            {results.length === 0 ? (
+  1705→              <div className="rounded-xl border border-white/5 bg-white/[0.05] p-6 text-center text-sm text-ink-400">
+  1706→                No submissions found for <span className="font-mono text-ink-200">{email}</span>.
+  1707→                <br />
+  1708→                Try submitting a project above first.
+  1709→              </div>
+  1710→            ) : (
+  1711→              <div className="space-y-3">
+  1712→                <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-400">
+  1713→                  {results.length} submission{results.length === 1 ? "" : "s"} found
+  1714→                </h3>
+  1715→                {results.map((r) => (
+  1716→                  <div
+  1717→                    key={r.id}
+  1718→                    className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.05] p-4"
+  1719→                  >
+  1720→                    <div className="min-w-0">
+  1721→                      <div className="truncate text-sm font-semibold text-white">{r.projectTitle}</div>
+  1722→                      <div className="font-mono text-[10px] text-ink-500">{r.id}</div>
+  1723→                    </div>
+  1724→                    <span className="badge badge-pending whitespace-nowrap">{r.status}</span>
+  1725→                  </div>
+  1726→                ))}
+  1727→              </div>
+  1728→            )}
+  1729→          </div>
+  1730→        )}
+  1731→      </form>
+  1732→    </section>
+  1733→  );
+  1734→}
+  1735→
